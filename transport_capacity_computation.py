@@ -504,10 +504,11 @@ def sed_velocity( Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel , phi , indx_tr_c
                 tr_cap[d,:] = tr_cap_class[d,:]
             
         elif indx_tr_cap == 3: 
-            tr_cap = np.zeros((len(dmi), len(Slope_t)))            
-            for d in range(len(dmi)): 
-                tr = Engelund_Hansen_formula( dmi[d] , Slope_t , Wac_t, v , h )
-                tr_cap[d,:] = tr
+            Slope_t_v, dmi_v = np.meshgrid(Slope_t, dmi, indexing='xy')
+            h_v, dmi_v = np.meshgrid(h, dmi, indexing='xy')
+            v_v, dmi_v = np.meshgrid(v, dmi, indexing='xy')
+            Wac_t_v, dmi_v = np.meshgrid(Wac_t, dmi, indexing='xy')
+            tr_cap = Engelund_Hansen_formula( dmi_v, Slope_t_v , Wac_t_v, v_v , h_v )
             
         elif indx_tr_cap == 4: 
             tr_cap = Yang_formula( Fi_r, dmi , Slope_t , Q_t, v, h, psi ) 
