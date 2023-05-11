@@ -345,6 +345,7 @@ def Wong_Parker_formula(D50, Slope, Wac, h):
 
     return tr_cap
 
+
 def Molinas_rates( Fi_r, h, v, Slope, dmi_finer, D50_finer):
     """MOLINAS_rates returns the Molinas coefficient of fractional transport rates Pci, to be multiplied
     by the total sediment load to split it into different classes. 
@@ -444,6 +445,8 @@ def tr_cap_junction( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap 
         tr_cap = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
         Qtr_cap = tr_cap #these formulas returns already partitioned results;
         pci = Qtr_cap/np.sum(Qtr_cap)
+    
+    
         
     return Qtr_cap
 

@@ -55,7 +55,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
     # formula selection 
     
-    indx_tr_cap, indx_partition = read_user_input()
+    indx_tr_cap , indx_partition = read_user_input()
+
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
     ################### fixed parameters
@@ -69,7 +70,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     min_slope = min(ReachData['Slope']) # put a minimum value to guarantee movement 
     Slope = np.zeros((timescale, n_reaches))
     Slope[0,:] = np.maximum(ReachData['Slope'], min_slope)
-    Slope[1,:] = np.maximum(ReachData['Slope'], min_slope)   
+    Slope[1,:] = np.maximum(ReachData['Slope'], min_slope) 
     
     # initialize node elevation (for each reach the matrix reports the fromN elevation)
     # the last column reports the outlet ToNode elevation (last node of the network), which can never change elevation.
@@ -175,6 +176,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
             tr_cap = tr_cap_junction(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)*24*60*60
             tr_cap_sum[t,n] = np.sum(tr_cap)
+        
 
             
             if np.sum(tr_cap) < (np.sum(V_dep2act[:,1:]) + np.sum(V_inc2act[:,1:])): # if the total transport capacity is lower than the active layer volume...
@@ -259,6 +261,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
       
     # output processing
     # aggregated matrixes
+    
     QB_mob_t = [np.sum(x, axis = 2) for x in Qbi_mob[0:timescale-1]] #sum along sediment classes
     Qbi_mob_class = [np.sum(x, axis = 0) for x in Qbi_mob[0:timescale-1]] #sum along sediment classes
     QB_mob = np.rollaxis(np.dstack(QB_mob_t),-1) 

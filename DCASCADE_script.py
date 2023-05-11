@@ -41,12 +41,13 @@ from DCASCADE_loop import DCASCADE_main
 '''user defined input data'''
 
 #Shape files 
-path_river_network = 'C:\\Users\\user1\\OneDrive - Università degli Studi di Padova\\Documenti\\Postdoc_Padova\\cascade\\python\\DCASCADE_toolbox_v2\\Input\\input_trial\\'
+path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
 name_river_network = 'River_network.shp'
 
 # Q files
-path_q = 'C:\\Users\\user1\\OneDrive - Università degli Studi di Padova\\Documenti\\Postdoc_Padova\\cascade\\python\\DCASCADE_toolbox_v2\\Input\\input_trial\\'
+path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
 name_q = 'Q_Vjosa.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 #Sediment classes definition (must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
@@ -54,7 +55,7 @@ sed_range = [-8, 4]  #range of sediment sizes considered in the model - in log s
 class_size = 2.5  # amplitude of the sediment classes
 
 #timescale 
-timescale = 20 # days 
+timescale = 10 # days 
 
 # read the network 
 ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
@@ -77,6 +78,7 @@ Network = graph_preprocessing(ReachData)
 psi = np.arange(sed_range[0], sed_range[-1], class_size)
 n_classes = len(psi)
 del sed_range, class_size
+
 
 # external sediment for all reaches, all classes and all timesteps 
 Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
