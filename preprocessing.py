@@ -85,8 +85,8 @@ def graph_preprocessing( ReachData ):
     
       
     '''
-    FromN = np.array(ReachData.FromN)-1
-    ToN = np.array(ReachData.ToN)-1
+    FromN = np.array(ReachData.FromN) -1
+    ToN = np.array(ReachData.ToN) -1
     length = np.array(ReachData.Length)
     
 
@@ -101,8 +101,10 @@ def graph_preprocessing( ReachData ):
     #shortest downstream path to each node
     paths = nx.shortest_path(G)
     
+    
     #shortest upstream path to each node
     paths_up = nx.shortest_path(G_down)  
+    
     
     #find the number of upstream nodes
     numberUpstreamNodes = np.zeros([np.size(FromN),1])
@@ -121,7 +123,7 @@ def graph_preprocessing( ReachData ):
         for w, key in enumerate(collection):           
             el = paths_up[str(i)][key]
             add = 0 
-            if len(el) == 1 and el[0] == key:
+            if len(el) == 1 and el[0] == key: # source
                 dist[int(el[0])] = 0 
             else:
                 for z in range(len(el)-1):
@@ -133,6 +135,21 @@ def graph_preprocessing( ReachData ):
         
         distanceUpstream[int(i)] = dist
         numberUpstreamNodes[int(i)] = length_dict
+        
+    """
+    # incoming node count 
+    incoming_node_count ={}
+    
+    for node, p in paths_up.items(): 
+        for target_node in p: 
+            print(target_node)
+            #exclude the node itself
+            if target_node != node: 
+
+                if target_node in incoming_node_count: 
+                    incoming_node_count[target_node] +=1
+                else: 
+                    incoming_node_count[target_node] +=1 """
 
     
     # create upstream distance list
@@ -217,11 +234,9 @@ def graph_preprocessing( ReachData ):
             Downstream_Node[i] = np.empty([1,1])
             
     
-    # EB: compatible with Nh   
-    #Downstream_Node = [n-1 for n in Downstream_Node]
-    
     # node hierarchy for CASCADE loop (refers to the position in ReachData, not the reach ID)
-    Nh = np.argsort(numberUpstreamNodes.transpose(), kind = 'mergesort').transpose()
+    Nh = np.argsort(numberUpstreamNodes.transpose() , kind = 'mergesort').transpose() 
+
     
     #create Network dict to collect all output data
     Network ={'numberUpstreamNodes':numberUpstreamNodes,'Upstream_Node':Upstream_Node, 'Downstream_Node': Downstream_Node , 
