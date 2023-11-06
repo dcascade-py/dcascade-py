@@ -132,8 +132,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         
         
         # calculate new water dept for all reaches via Manning equation
-        h = np.power(Q.iloc[t,:]*ReachData['n']/(ReachData['Wac']*np.sqrt(Slope[t])), 3/5)
-        v = 1/ReachData['n']*np.power(h,2/3)*np.sqrt(Slope[t])
+        h = np.power(Q.iloc[t,:].astype('float')*ReachData['n'].astype('float')/(ReachData['Wac'].astype('float')*np.sqrt(Slope[t])), 3/5)
+        v = 1/ReachData['n'].astype('float')*np.power(h,2/3)*np.sqrt(Slope[t])
         
         
         
