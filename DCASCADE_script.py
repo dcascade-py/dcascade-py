@@ -60,8 +60,8 @@ timescale = 10 # days
 # read the network 
 ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
 
-# define the initial deposit layer 
-ReachData['deposit'] = np.repeat(50, len(ReachData))
+# define the initial deposit layer per each reach in [m3/m]
+ReachData['deposit'] = np.repeat(100000, len(ReachData))
 
 
 # read/define the water discharge 
