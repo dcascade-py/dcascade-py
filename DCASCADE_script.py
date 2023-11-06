@@ -71,6 +71,14 @@ Q = pd.read_csv(path_q + name_q , header = None, sep=',') # read from external c
 
 n_reaches = len(ReachData)
 
+ReachData = ReachData.sort_values(by = 'FromN')
+# order flow rates accordingly 
+Q_new = np.zeros((Q.shape))
+for i, idx in enumerate(ReachData.index): 
+    Q_new[:,i] = Q.iloc[:,idx]
+Q = pd.DataFrame(Q_new)
+ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
+
 #extract network properties
 Network = graph_preprocessing(ReachData)
 
