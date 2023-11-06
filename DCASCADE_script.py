@@ -87,8 +87,8 @@ psi = np.arange(sed_range[0], sed_range[-1], class_size)
 
 # check requirement  
 dmi = 2**(-psi).reshape(-1,1)
-print(min(ReachData['D16_05']), ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
-print(max(ReachData['D84_05']), ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
+print(min(ReachData['D16'])*1000, ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
+print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
    
 
 n_classes = len(psi)
@@ -136,4 +136,4 @@ name_file_ext = path_q + 'bega_ext_output.p'
 extended_output = pickle.load(open(name_file_ext , "rb"))
 data_output = pickle.load(open(name_file , "rb"))
 
- """
+ """ """
