@@ -84,6 +84,13 @@ Network = graph_preprocessing(ReachData)
 
 # sediment classes defined in Krumbein phi (φ) scale   
 psi = np.arange(sed_range[0], sed_range[-1], class_size)
+
+# check requirement  
+dmi = 2**(-psi).reshape(-1,1)
+print(min(ReachData['D16_05']), ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
+print(max(ReachData['D84_05']), ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
+   
+
 n_classes = len(psi)
 del sed_range, class_size
 
