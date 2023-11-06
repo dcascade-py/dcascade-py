@@ -88,7 +88,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     Fi_r_act[0][:]= np.nan
     Q_out =[np.zeros((n_reaches, n_classes)) for _ in range(timescale)] # amount of material delivered outside the network in each timestep
     D50_AL = np.zeros((timescale,n_reaches)) # D50 of the active layer in each reach in each timestep
-    
+    V_sed = [np.zeros((n_classes, n_reaches)) for _ in range(timescale)] 
     
     """ EB constant slope - uncomment Slope[:,:] and Node_el[:,:]"""
     #Slope[:,:] = Slope[0,:]
@@ -126,7 +126,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
     # start waiting bar 
      
-    for t in tqdm(range(1, timescale-1)):
+    for t in tqdm(range(timescale-1)):
         #bar.update(t)   
         #tqdm(range(1, timescale-1))
         
@@ -141,7 +141,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         for n in Network['NH']:
 
             n = int(n)
-
+            
+            
        
             V_dep_old = Qbi_dep[t][n]# extract the deposit layer of the reach from the relative cell in the previous timestep
             
@@ -219,7 +220,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         
         # 5) Move the mobilized volumes to the destination reaches according to the sediment velocity
         #loop for all reaches, now that i have the Fi_r and thus can compute transfer rates for all reaches
-        #print(n, t, 'v dep', V_dep)
+
 
         for n in Network['NH']:
             #load mobilized volume for reach n
@@ -243,13 +244,13 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
             # Sum the volumes transported from reach n with all the othe 
             # volumes mobilized by all the other reaches at time
-            #print(t, n, np.sum(Qbi_tr[t+1]), np.sum(Qbi_tr_t))
+
             Qbi_tr[t+1] = Qbi_tr[t+1] + np.float32(Qbi_tr_t)
             Q_out[t] =  Q_out[t] + Q_out_t
+            V_sed[t] = v_sed*(60*60*24)
             
         del Qbi_tr_t,Q_out_t
         
-
 
         """ EB constant slope - comment line Slope[t+1,:]"""
         #change the slope accordingly to the bed elevation
@@ -394,7 +395,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     extended_output = { 'Qbi_tr': Qbi_tr,  
                    'Qbi_mob' : Qbi_mob  , 'Q_out' : Q_out ,  
                    'Qbi_dep':Qbi_dep, 'Fi_r_ac' :Fi_r_act ,  
-                   'Node_el' : Node_el }
+                   'Node_el' : Node_el, 
+                   'Sed_velocity [m/day]': V_sed}
     
 
     return data_output,extended_output
