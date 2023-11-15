@@ -30,6 +30,7 @@ def GSDcurvefit(D16 , D50 , D84 , psi):
     ' sediment classes diameter (mm) '
     
     dmi = 2**(-psi).reshape(-1,1); 
+    
     ' problem definition '
     
     lb = [ np.percentile(dmi,10, method='midpoint') , 0.5 ] # k and s lower bound

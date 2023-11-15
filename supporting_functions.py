@@ -80,6 +80,8 @@ def layer_search(Qbi_incoming, V_dep_old , V_lim_tot_n, roundpar):
         if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty # EB check again 
             # if the cascades in the deposit have combined
             # volume that is less then the active layer volume (i've reached the bottom)
+            
+            print(' reach the bottom ....')
 
             V_dep2act = V_dep_old  # I put all the deposit into the active layer
             V_dep = np.c_[V_dep_old[0,0], np.zeros((1,Qbi_incoming.shape[1]-1))]

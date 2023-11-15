@@ -499,12 +499,23 @@ def sed_velocity( Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel , phi , indx_tr_c
             tr_cap = np.zeros((len(dmi), len(Slope_t)))
             # ... run the tr.cap function indipendently for each class, setting
             # the frequency of each class = 1
+            Fi_r = np.diag(np.full(len(dmi),1))
+            Fi_r = np.repeat(Fi_r[:,:,np.newaxis], len(Slope_t), axis = 2)
             for d in range(len(dmi)): 
+                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r[d,:,:], dmi[d], Slope_t, Wac_t , h, psi)
+                tr_cap[d,:] = tr_cap_class[d,:]
+                
+            """Fi_r = np.ones((len(dmi), len(Slope_t)))
+            [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi, Slope_t, Wac_t , h, psi)
+            tr_cap[d,:] = tr_cap_class[d,:]"""
+            
+            
+            """for d in range(len(dmi)): 
                 Fi_r = np.zeros((len(dmi),1))
                 Fi_r[d] = 1
                 Fi_r = np.matlib.repmat(Fi_r,1,len(Slope_t))
                 [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi[d], Slope_t, Wac_t , h, psi) 
-                tr_cap[d,:] = tr_cap_class[d,:]
+                tr_cap[d,:] = tr_cap_class[d,:]"""
             
         elif indx_tr_cap == 3: 
             Slope_t_v, dmi_v = np.meshgrid(Slope_t, dmi, indexing='xy')
