@@ -32,7 +32,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar):
+def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope = False):
     """INPUT :
     ReachData      = nx1 Struct defining the features of the network reaches
     Network        = 1x1 struct containing for each node info on upstream and downstream nodes
@@ -44,6 +44,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     psi            = sediment classes considered (from coarse to fine)
     roundpar       = mimimum volume to be considered for mobilization of subcascade 
                      (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+    update_slope   = bool to chose if we change slope trought time or not. Default Flase (constant slope). If True, slope change according to sediment deposit.
   
     
     OUTPUT: 
@@ -93,9 +94,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     D50_AL = np.zeros((timescale,n_reaches)) # D50 of the active layer in each reach in each timestep
     V_sed = [np.zeros((n_classes, n_reaches)) for _ in range(timescale)] 
     
-    """ EB constant slope - uncomment Slope[:,:] and Node_el[:,:]"""
-    Slope[:,:] = Slope[0,:]
-    Node_el[:,: ] =  Node_el[0,:]
+    # in case of constant slope
+    if update_slope == False:
+        Slope[:,:] = Slope[0,:]
+        Node_el[:,: ] =  Node_el[0,:]
 
     
     #initialise sediment deposit in the reaches 
@@ -217,8 +219,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         
                 
             Delta_V = np.sum(Qbi_dep[t+1][n][:,1:]) -  np.sum(Qbi_dep[t][n][:,1:])
-            """ EB constant slope - comment Node_el[t+1][n]"""
-            #Node_el[t+1][n]= Node_el[t,n] + Delta_V/( np.sum(ReachData['Wac'][np.append(n, Network['Upstream_Node'][n])] * ReachData['Length'][np.append(n, Network['Upstream_Node'][n])]) * (1-phi) )
+            
+            #in case of changing slope
+            if update_slope == True:
+                Node_el[t+1][n]= Node_el[t,n] + Delta_V/( np.sum(ReachData['Wac'][np.append(n, Network['Upstream_Node'][n])] * ReachData['Length'][np.append(n, Network['Upstream_Node'][n])]) * (1-phi) )
         # end of the reach loop
         
         # 5) Move the mobilized volumes to the destination reaches according to the sediment velocity
@@ -255,10 +259,11 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         del Qbi_tr_t,Q_out_t
         
 
-        """ EB constant slope - comment line Slope[t+1,:]"""
-        #change the slope accordingly to the bed elevation
-        #Slope[t+1,:], Node_el[t+1,:] = change_slope( Node_el[t+1,:] ,ReachData['Length'], Network, s = min_slope )
-        
+        #in case of changing slope..
+        if update_slope == True:
+            #..change the slope accordingly to the bed elevation
+            Slope[t+1,:], Node_el[t+1,:] = change_slope( Node_el[t+1,:] ,ReachData['Length'], Network, s = min_slope )
+            
         #measure time of routing
         #time2   = clock;
 

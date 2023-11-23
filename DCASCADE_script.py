@@ -46,7 +46,7 @@ import profile
 # path_river_network = 'Input\\input_trial\\'
 # name_river_network = 'River_network.shp'
 
-path_river_network = '..\\Tag_case\\Inputs'
+path_river_network = '..\\Tag_case\\Inputs\\'
 name_river_network = 'Reach_data_tag_newgs.csv'
 
 
@@ -55,11 +55,11 @@ name_river_network = 'Reach_data_tag_newgs.csv'
 # name_q = 'q_vjosa.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
 
-path_q = '..\\Tag_case\\Inputs'
+path_q = '..\\Tag_case\\Inputs\\'
 name_q = 'feb_oct.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
 #----output file
-path_results = "..\\tagdata\\Outputs\\"
+path_results = "..\\Tag_case\\Cascade_outputs\\"
 
 
 #----
@@ -135,7 +135,7 @@ for n in range(len(ReachData)):
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
 # call dcascade 
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope=True) 
 
 # exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
@@ -194,3 +194,4 @@ fig.set_tight_layout(True)
 fig.set_size_inches(800./fig.dpi,800./fig.dpi)
 fig.savefig(path_results+str(output_name))
 fig.clf()
+fig.close()
