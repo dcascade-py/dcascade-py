@@ -42,23 +42,27 @@ import profile
 
 
 
-#Shape files 
-#path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-#name_river_network = 'River_network.shp'
+#----Shape files 
+# path_river_network = 'Input\\input_trial\\'
+# name_river_network = 'River_network.shp'
 
-path_river_network = "C:\\Users\\user1\\Documents\\Po_local\\network_cascade\\Po_QGIS_Files_Rafaella_Carlos\\"
-name_river_network = "Po_rivernet_grainsze_new_d.shp"
+path_river_network = '..\\Tag_case\\Inputs'
+name_river_network = 'Reach_data_tag_newgs.csv'
 
 
-# Q files
-#path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-#name_q = 'Q_Vjosa.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+#----Q files
+# path_q = 'Input\\input_trial\\'
+# name_q = 'q_vjosa.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
-path_q = "C:\\Users\\user1\\Documents\\Po_local\\portate\\"
-name_q = 'Po_Qdaily_latest_cascade.csv' 
 
-path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
+path_q = '..\\Tag_case\\Inputs'
+name_q = 'feb_oct.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
+#----output file
+path_results = "..\\tagdata\\Outputs\\"
+
+
+#----
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 #Sediment classes definition (must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
@@ -70,6 +74,7 @@ timescale = 10 # days
 
 # read the network 
 ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
+ReachData = ReachData.astype(float)
 
 # define the initial deposit layer per each reach in [m3/m]
 ReachData['deposit'] = np.repeat(100000, len(ReachData))
@@ -77,6 +82,11 @@ ReachData['deposit'] = np.repeat(100000, len(ReachData))
 
 # read/define the water discharge 
 Q = pd.read_csv(path_q + name_q , header = None, sep=',') # read from external csv file
+
+# # Lindsay pb: divide grain sizes by 10 
+# ReachData['D16'] = ReachData['D16']/10.
+# ReachData['D50'] = ReachData['D50']/10.
+# ReachData['D84'] = ReachData['D84']/10.
 
 
 ################ MAIN ###############
@@ -133,8 +143,8 @@ variable_names = [data for data in data_output_t.keys() if data.endswith('per cl
 for item in variable_names: 
     del data_output_t[item]
 
-## plot results 
-keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+# ## plot results 
+# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
 
 """ save results as pickled files 
@@ -153,3 +163,34 @@ data_output = pickle.load(open(name_file , "rb"))
  """
  
 #a = profile.run('main()', sort=2)
+
+###---plot results with space and time and save plots
+import matplotlib.pyplot as plt
+
+def plot_data(ax, data, output_name, x_axis = 'reach', time_list = []):
+    my_data = data[output_name]
+    if x_axis == 'reach':
+        if time_list == []:
+            ax.plot(my_data.T, label = ['t:'+str(i+1) for i in range(my_data.shape[0])])
+        else:
+            for t in time_list:
+                ax.plot(my_data[t,:], label = 't:'+str(t))
+        #make the average
+        avg = np.nanmean(my_data, axis = 0)       
+    ax.plot(avg, 'k--', label = 'Average')  
+    ax.legend()
+    ax.set_title(str(output_name))
+
+
+
+fig = plt.figure()
+ax = plt.subplot(111)
+output_name = 'Transported [m^3]'
+time_list = [i for i in range(0,100,5)]
+plot_data(ax, data_output_t, output_name)#, time_list = time_list)
+
+
+fig.set_tight_layout(True)
+fig.set_size_inches(800./fig.dpi,800./fig.dpi)
+fig.savefig(path_results+str(output_name))
+fig.clf()
