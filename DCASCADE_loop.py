@@ -32,7 +32,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope = False):
+def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope):
     """INPUT :
     ReachData      = nx1 Struct defining the features of the network reaches
     Network        = 1x1 struct containing for each node info on upstream and downstream nodes
@@ -44,7 +44,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     psi            = sediment classes considered (from coarse to fine)
     roundpar       = mimimum volume to be considered for mobilization of subcascade 
                      (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-    update_slope   = bool to chose if we change slope trought time or not. Default Flase (constant slope). If True, slope change according to sediment deposit.
+    update_slope   = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope change according to sediment deposit.
   
     
     OUTPUT: 
