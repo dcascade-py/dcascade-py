@@ -56,11 +56,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
     # formula selection 
     
-    # indx_tr_cap , indx_partition = read_user_input()
+    indx_tr_cap , indx_partition = read_user_input()
     
-    indx_tr_cap = 2 #wilcock and crowe
-    indx_partition = 4 #shear stress
-
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
     ################### fixed parameters
