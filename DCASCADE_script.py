@@ -41,53 +41,64 @@ import profile
 '''user defined input data'''
 
 
-
 #----Shape files 
-# path_river_network = 'Input\\input_trial\\'
-# name_river_network = 'River_network.shp'
+# path_river_network = '..\\Vjosa_simple_case\\Inputs\\'
+# name_river_network = 'Vjosa_simple.csv'
 
-path_river_network = '..\\Tag_case\\Inputs\\'
-name_river_network = 'Reach_data_tag_newgs.csv'
+# path_river_network = 'Input\\input_trial\\'
+# name_river_network = 'River_Network.shp'
+
+
+# path_river_network = '..\\My_simple_case2\\Inputs\\'
+# name_river_network = 'River_Diane_test.csv'
+
+path_river_network = '..\\Tag_case_2y\\Inputs\\'
+name_river_network = 'Reach_data_tag.csv'
 
 
 #----Q files
+# path_q = '..\\Vjosa_simple_case\\Inputs\\'
+# name_q = 'Q_simple.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+
 # path_q = 'Input\\input_trial\\'
-# name_q = 'q_vjosa.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+# name_q = 'Q_simple.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
 
-path_q = '..\\Tag_case\\Inputs\\'
-name_q = 'feb_oct.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+# path_q = '..\\My_simple_case2\\Inputs\\'
+# name_q = 'Q_Diane_test.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+
+
+path_q = '..\\Tag_case_2y\\Inputs\\'
+name_q = 'Tagliamento_Qdaily.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
 #----output file
-path_results = "..\\Tag_case\\Cascade_outputs\\"
+path_results = "..\\Tag_case_2y\\Cascade_outputs\\"
 
 
 #----
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 #Sediment classes definition (must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-8, 5]  #range of sediment sizes considered in the model - in log scale where each number is the average diameter of that sediment class (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+sed_range = [-8, 4]  #range of sediment sizes considered in the model - in log scale where each number is the average diameter of that sediment class (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
 class_size = 2.5  # amplitude of the sediment classes
 
 #timescale 
-timescale = 100 # days 
+timescale = 730 # days 
 
-# read the network 
-ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
-ReachData = ReachData.astype(float)
+#----read the network 
+ReachData = pd.read_csv(path_river_network + name_river_network , sep=';') # read from external csv file
+# ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
+
 
 # define the initial deposit layer per each reach in [m3/m]
 ReachData['deposit'] = np.repeat(100000, len(ReachData))
 
 
 # read/define the water discharge 
-Q = pd.read_csv(path_q + name_q , header = None, sep=',') # read from external csv file
+Q = pd.read_csv(path_q + name_q , header = 0, sep=';', index_col = 'yyyy/mm/dd')  # read from external csv file
 
-# # Lindsay pb: divide grain sizes by 10 
-# ReachData['D16'] = ReachData['D16']/10.
-# ReachData['D50'] = ReachData['D50']/10.
-# ReachData['D84'] = ReachData['D84']/10.
-
+#update slope
+update_slope = False
 
 ################ MAIN ###############
 
@@ -98,7 +109,7 @@ ReachData = ReachData.sort_values(by = 'FromN')
 # order flow rates accordingly 
 Q_new = np.zeros((Q.shape))
 for i, idx in enumerate(ReachData.index): 
-    Q_new[:,i] = Q.iloc[:,idx]
+    Q_new[:,i] = Q.iloc[:,idx]  
 Q = pd.DataFrame(Q_new)
 ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
 
@@ -125,6 +136,8 @@ Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
 deposit = ReachData.deposit*ReachData.Length
 Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84 , psi) # per each reach, Rosin distribution of sediments for the diameters specified in sed_range 
 
+
+
 #initialise deposit layer 
 Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] # initialise the deposit layer 
 for n in range(len(ReachData)):
@@ -135,7 +148,7 @@ for n in range(len(ReachData)):
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
 # call dcascade 
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope=False) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope) 
 
 # exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
@@ -143,54 +156,24 @@ variable_names = [data for data in data_output_t.keys() if data.endswith('per cl
 for item in variable_names: 
     del data_output_t[item]
 
-# ## plot results 
-# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+# plot results 
+#keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
 
-""" save results as pickled files 
+###---save results as pickled files 
  
 import pickle 
-name_file = path_results + 'Po_2018_data_output.p'
-pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
+name_file = path_results + 'save_all.p'
+pickle.dump(data_output_t, open(name_file , "wb"))  # save it into a file named save.p
 
-name_file_ext = path_results + 'Po_2018_ext_output_hwidth.p'
-pickle.dump(name_file_ext , open(name_file_ext , "wb"))  # save it into a file named save.p
+name_file_ext = path_results + 'save_all_ext.p'
+pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
-# load outout 
-extended_output = pickle.load(open(name_file_ext , "rb"))
-data_output = pickle.load(open(name_file , "rb"))
+# # load outout 
+# extended_output = pickle.load(open(name_file_ext , "rb"))
+# data_output = pickle.load(open(name_file , "rb"))
 
- """
  
 #a = profile.run('main()', sort=2)
 
-###---plot results with space and time and save plots
-import matplotlib.pyplot as plt
 
-def plot_data(ax, data, output_name, x_axis = 'reach', time_list = []):
-    my_data = data[output_name]
-    if x_axis == 'reach':
-        if time_list == []:
-            ax.plot(my_data.T, label = ['t:'+str(i+1) for i in range(my_data.shape[0])])
-        else:
-            for t in time_list:
-                ax.plot(my_data[t,:], label = 't:'+str(t))
-        #make the average
-        avg = np.nanmean(my_data, axis = 0)       
-    ax.plot(avg, 'k--', label = 'Average')  
-    ax.legend()
-    ax.set_title(str(output_name))
-
-
-
-fig = plt.figure()
-ax = plt.subplot(111)
-output_name = 'Transported [m^3]'
-time_list = [i for i in range(0,100,5)]
-plot_data(ax, data_output_t, output_name)#, time_list = time_list)
-
-
-fig.set_tight_layout(True)
-fig.set_size_inches(800./fig.dpi,800./fig.dpi)
-fig.savefig(path_results+str(output_name))
-fig.clf()

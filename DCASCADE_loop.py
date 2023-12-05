@@ -16,6 +16,7 @@ import pandas as pd
 from tqdm import tqdm 
 import copy
 import sys
+import os
 
 from widget import read_user_input
 from supporting_functions import D_finder
@@ -32,7 +33,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope = False):
+def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope):
     """INPUT :
     ReachData      = nx1 Struct defining the features of the network reaches
     Network        = 1x1 struct containing for each node info on upstream and downstream nodes
@@ -44,7 +45,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     psi            = sediment classes considered (from coarse to fine)
     roundpar       = mimimum volume to be considered for mobilization of subcascade 
                      (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-    update_slope   = bool to chose if we change slope trought time or not. Default Flase (constant slope). If True, slope change according to sediment deposit.
+    update_slope   = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope change according to sediment deposit.
   
     
     OUTPUT: 
@@ -93,6 +94,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     Q_out =[np.zeros((n_reaches, n_classes)) for _ in range(timescale)] # amount of material delivered outside the network in each timestep
     D50_AL = np.zeros((timescale,n_reaches)) # D50 of the active layer in each reach in each timestep
     V_sed = [np.zeros((n_classes, n_reaches)) for _ in range(timescale)] 
+    Delta_V_all = np.zeros((timescale,n_reaches)) # reach mass balance (volumes eroded or deposited)
     
     # in case of constant slope
     if update_slope == False:
@@ -101,7 +103,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
     
     #initialise sediment deposit in the reaches 
-    for n in Network['NH']:        
+    for n in Network['NH']:  
         # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
         n = int(n)
         q_bin = np.array([Qbi_dep_in[n]])
@@ -130,7 +132,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     tr_cap_sum = np.zeros((timescale, n_reaches))
 
     # start waiting bar 
+    
      
+    check_Q = []    # DD: init list for checking concordance between reach and discharge (need to be compared with Q input file)
+    
     for t in tqdm(range(timescale-1)):
         #bar.update(t)   
         #tqdm(range(1, timescale-1))
@@ -140,17 +145,15 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         h = np.power(Q.iloc[t,:].astype('float')*ReachData['n'].astype('float')/(ReachData['Wac'].astype('float')*np.sqrt(Slope[t])), 3/5)
         v = 1/ReachData['n'].astype('float')*np.power(h,2/3)*np.sqrt(Slope[t])
         
-        
-        
         # loop for all reaches
         for n in Network['NH']:
 
             n = int(n)
             
+            check_Q.append('t='+str(t)+'; reachID='+str(ReachData['reach_id'][n])+'; FromN='+str(n+1)+'; Q='+str(Q.iloc[t,n]))
             
-       
+                 
             V_dep_old = Qbi_dep[t][n]# extract the deposit layer of the reach from the relative cell in the previous timestep
-            
 
             # 1) extract the deposit layer from the storage matrix and load the incoming cascades
             
@@ -214,11 +217,12 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             if  (Qbi_dep[t+1][n]).size == 0 :
                 Qbi_dep[t+1][n] = np.float32(np.append(n, np.zeros(len(psi))).reshape(1,-1))
                 
+   
             # 4) Compute the changes in bed elevation
             # modify bed elevation according to increased deposit
-        
-                
             Delta_V = np.sum(Qbi_dep[t+1][n][:,1:]) -  np.sum(Qbi_dep[t][n][:,1:])
+            #record Delta_V
+            Delta_V_all[t,n] = Delta_V
             
             #in case of changing slope
             if update_slope == True:
@@ -269,9 +273,15 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
         #if np.remainder(10, t) == 0:  # save time only at certain timesteps 
         #   timerout = etime(time2, time1);
-         
+        
         """end of the time loop"""
-    
+        
+    # write check_Q for the user to check concordance between reachID and Q
+    df = pd.DataFrame(check_Q)
+    path = os.getcwd()
+    if not os.path.exists(os.path.join(path,'check')):
+        os.mkdir(os.path.join(path,'check'))
+    df.to_csv('check//check_Q.csv', index=False)  
       
     # output processing
     # aggregated matrixes
@@ -395,6 +405,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Reach Slope':Slope, 'D50 deposited layer [m]' :D50_dep, 'D50 mobilised layer [m]':D50_mob,
                    'D50 active layer [m]' :D50_AL,  
                    'Daily trasport capacity [m^3/day]': tr_cap_sum, 'Deposited volume[m^3]': V_dep_sum, 
+                   'Delta Deposit Volume per day [m^3]' : Delta_V_all, 'Delta Deposit Volume Cumulative [m^3]' : np.cumsum(Delta_V_all, axis = 0), #DD: Check the time the delta volume refers to 
                    'Discharge [m^3/s]': Q[0:timescale,:], 'Transported + deposited sed - per class [m^3/s]':  tot_sed_class, 
                    'Deposited sed in the reach - per class [m^3/s]' : deposited_class,
                    'Mobilised sed in the reach - per class [m^3/s]': mobilised_class}
