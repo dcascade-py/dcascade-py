@@ -445,9 +445,7 @@ def tr_cap_junction( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap 
         tr_cap = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
         Qtr_cap = tr_cap #these formulas returns already partitioned results;
         pci = Qtr_cap/np.sum(Qtr_cap)
-    
-    
-        
+      
     return Qtr_cap
 
 
