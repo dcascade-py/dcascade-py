@@ -48,12 +48,15 @@ import profile
 # path_river_network = 'Input\\input_trial\\'
 # name_river_network = 'River_Network.shp'
 
-
 # path_river_network = '..\\My_simple_case2\\Inputs\\'
 # name_river_network = 'River_Diane_test.csv'
 
-path_river_network = '..\\Tag_case_2y\\Inputs\\'
-name_river_network = 'Reach_data_tag.csv'
+# path_river_network = '..\\Tag_case_2y\\Inputs\\'
+# name_river_network = 'Reach_data_tag.csv'
+
+path_river_network = '..\\Po_case_16y\\Inputs\\shp_file\\'
+name_river_network = 'Po_rivernet_grainsze_new_d.shp'
+
 
 
 #----Q files
@@ -68,26 +71,26 @@ name_river_network = 'Reach_data_tag.csv'
 # name_q = 'Q_Diane_test.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
 
-path_q = '..\\Tag_case_2y\\Inputs\\'
-name_q = 'Tagliamento_Qdaily.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+path_q = '..\\Po_case_16y\\Inputs\\'
+name_q = 'Po_Qdaily_16y.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
 #----output file
-path_results = "..\\Tag_case_2y\\Cascade_outputs\\"
 
+path_results = "..\\Po_case_16y\\Cascade_outputs\\"
 
 #----
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 #Sediment classes definition (must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-8, 4]  #range of sediment sizes considered in the model - in log scale where each number is the average diameter of that sediment class (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+sed_range = [-8, 5]  #range of sediment sizes considered in the model - in log scale where each number is the average diameter of that sediment class (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
 class_size = 2.5  # amplitude of the sediment classes
 
 #timescale 
-timescale = 730 # days 
+timescale = 20 # days 
 
 #----read the network 
-ReachData = pd.read_csv(path_river_network + name_river_network , sep=';') # read from external csv file
-# ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
+# ReachData = pd.read_csv(path_river_network + name_river_network , sep=';') # read from external csv file
+ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
 
 
 # define the initial deposit layer per each reach in [m3/m]
@@ -95,7 +98,7 @@ ReachData['deposit'] = np.repeat(100000, len(ReachData))
 
 
 # read/define the water discharge 
-Q = pd.read_csv(path_q + name_q , header = 0, sep=';', index_col = 'yyyy/mm/dd')  # read from external csv file
+Q = pd.read_csv(path_q + name_q, header = 0, sep=',', index_col = 'yyyy/mm/dd')  # read from external csv file
 
 #update slope
 update_slope = False
@@ -157,7 +160,7 @@ for item in variable_names:
     del data_output_t[item]
 
 # plot results 
-#keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
 
 ###---save results as pickled files 

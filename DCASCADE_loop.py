@@ -45,7 +45,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     psi            = sediment classes considered (from coarse to fine)
     roundpar       = mimimum volume to be considered for mobilization of subcascade 
                      (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-    update_slope   = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope change according to sediment deposit.
+    update_slope   = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope changes according to sediment deposit.
   
     
     OUTPUT: 
@@ -57,10 +57,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
     # formula selection 
     
-    # indx_tr_cap , indx_partition = read_user_input()
+    indx_tr_cap , indx_partition = read_user_input()
     
-    indx_tr_cap = 2 #wilcock and crowe
-    indx_partition = 4 #shear stress
+    # indx_tr_cap = 2 #wilcock and crowe
+    # indx_partition = 4 #shear stress
 
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
@@ -150,7 +150,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
             n = int(n)
             
-            check_Q.append('t='+str(t)+'; reachID='+str(ReachData['reach_id'][n])+'; FromN='+str(n+1)+'; Q='+str(Q.iloc[t,n]))
+            check_Q.append('t='+str(t)+'; reachID='+str(ReachData['River'][n])+'; FromN='+str(n+1)+'; Q='+str(Q.iloc[t,n]))
             
                  
             V_dep_old = Qbi_dep[t][n]# extract the deposit layer of the reach from the relative cell in the previous timestep
