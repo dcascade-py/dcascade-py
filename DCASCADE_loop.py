@@ -239,7 +239,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             V_mob = np.zeros((len(Network['NH']),len(psi)+1))
             V_mob[:,0] = np.arange(len(Network['NH']))
             
-            V_mob[:,1:len(psi)+1] = np.squeeze(Qbi_mob[t][:,n,:])
+            V_mob[:,1:len(psi)+1] = np.squeeze(Qbi_mob[t][:,n,:], axis = 1)
             V_mob = matrix_compact(V_mob)
             
             #calculate GSD of mobilized volume
