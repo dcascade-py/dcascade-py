@@ -54,7 +54,7 @@ import profile
 # path_river_network = '..\\Tag_case_2y\\Inputs\\'
 # name_river_network = 'Reach_data_tag.csv'
 
-path_river_network = '..\\Po_case_16y\\Inputs\\shp_file\\'
+path_river_network = '..\\Po_case_16y\\Inputs\\shp_file_new_slopes\\'
 name_river_network = 'Po_rivernet_grainsze_new_d.shp'
 
 
@@ -72,7 +72,7 @@ name_river_network = 'Po_rivernet_grainsze_new_d.shp'
 
 
 path_q = '..\\Po_case_16y\\Inputs\\'
-name_q = 'Po_Qdaily_16y.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+name_q = 'Po_Qdaily_16y_no_headers.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
 #----output file
 
@@ -83,10 +83,10 @@ roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as
 
 #Sediment classes definition (must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
 sed_range = [-8, 5]  #range of sediment sizes considered in the model - in log scale where each number is the average diameter of that sediment class (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
-class_size = 2.5  # amplitude of the sediment classes
+class_size = 13  # amplitude of the sediment classes
 
 #timescale 
-timescale = 20 # days 
+timescale = 50#5844 # days
 
 #----read the network 
 # ReachData = pd.read_csv(path_river_network + name_river_network , sep=';') # read from external csv file
@@ -98,7 +98,7 @@ ReachData['deposit'] = np.repeat(100000, len(ReachData))
 
 
 # read/define the water discharge 
-Q = pd.read_csv(path_q + name_q, header = 0, sep=',', index_col = 'yyyy/mm/dd')  # read from external csv file
+Q = pd.read_csv(path_q + name_q, header = None, sep=',')#, index_col = 'yyyy/mm/dd')  # read from external csv file
 
 #update slope
 update_slope = False
@@ -120,7 +120,8 @@ ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
 Network = graph_preprocessing(ReachData)
 
 # sediment classes defined in Krumbein phi (φ) scale   
-psi = np.arange(sed_range[0], sed_range[-1], class_size)
+psi = np.arange(sed_range[0], sed_range[-1], class_size).astype(float)
+#psi=np.array([-1]).astype(float)
 
 # check requirement  
 dmi = 2**(-psi).reshape(-1,1)
