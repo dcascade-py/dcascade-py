@@ -59,9 +59,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
     indx_tr_cap , indx_partition = read_user_input()
     
-    # indx_tr_cap = 2 #wilcock and crowe
-    # indx_partition = 4 #shear stress
-
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
     ################### fixed parameters
@@ -221,8 +218,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             # 4) Compute the changes in bed elevation
             # modify bed elevation according to increased deposit
             Delta_V = np.sum(Qbi_dep[t+1][n][:,1:]) -  np.sum(Qbi_dep[t][n][:,1:])
-            #record Delta_V
-            Delta_V_all[t,n] = Delta_V
             
             #in case of changing slope
             if update_slope == True:
@@ -405,7 +400,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Reach Slope':Slope, 'D50 deposited layer [m]' :D50_dep, 'D50 mobilised layer [m]':D50_mob,
                    'D50 active layer [m]' :D50_AL,  
                    'Daily trasport capacity [m^3/day]': tr_cap_sum, 'Deposited volume[m^3]': V_dep_sum, 
-                   'Delta Deposit Volume per day [m^3]' : Delta_V_all, 'Delta Deposit Volume Cumulative [m^3]' : np.cumsum(Delta_V_all, axis = 0), #DD: Check the time the delta volume refers to 
                    'Discharge [m^3/s]': Q[0:timescale,:], 'Transported + deposited sed - per class [m^3/s]':  tot_sed_class, 
                    'Deposited sed in the reach - per class [m^3/s]' : deposited_class,
                    'Mobilised sed in the reach - per class [m^3/s]': mobilised_class}
