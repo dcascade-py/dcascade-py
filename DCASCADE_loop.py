@@ -91,8 +91,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     Q_out =[np.zeros((n_reaches, n_classes)) for _ in range(timescale)] # amount of material delivered outside the network in each timestep
     D50_AL = np.zeros((timescale,n_reaches)) # D50 of the active layer in each reach in each timestep
     V_sed = [np.zeros((n_classes, n_reaches)) for _ in range(timescale)] 
-    Delta_V_all = np.zeros((timescale,n_reaches)) # reach mass balance (volumes eroded or deposited)
-    
+
     # in case of constant slope
     if update_slope == False:
         Slope[:,:] = Slope[0,:]
@@ -130,9 +129,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
     # start waiting bar 
     
-     
-    check_Q = []    # DD: init list for checking concordance between reach and discharge (need to be compared with Q input file)
-    
     for t in tqdm(range(timescale-1)):
         #bar.update(t)   
         #tqdm(range(1, timescale-1))
@@ -146,10 +142,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         for n in Network['NH']:
 
             n = int(n)
-            
-            check_Q.append('t='+str(t)+'; reachID='+str(ReachData['River'][n])+'; FromN='+str(n+1)+'; Q='+str(Q.iloc[t,n]))
-            
-                 
+               
             V_dep_old = Qbi_dep[t][n]# extract the deposit layer of the reach from the relative cell in the previous timestep
 
             # 1) extract the deposit layer from the storage matrix and load the incoming cascades
@@ -271,13 +264,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         
         """end of the time loop"""
         
-    # write check_Q for the user to check concordance between reachID and Q
-    df = pd.DataFrame(check_Q)
-    path = os.getcwd()
-    if not os.path.exists(os.path.join(path,'check')):
-        os.mkdir(os.path.join(path,'check'))
-    df.to_csv('check//check_Q.csv', index=False)  
-      
+
     # output processing
     # aggregated matrixes
     
