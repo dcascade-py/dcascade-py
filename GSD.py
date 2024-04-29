@@ -55,7 +55,7 @@ def GSDcurvefit(D16 , D50 , D84 , psi):
 
     ' curve fitting '
     #popt, pcov = curve_fit(fun_GSD, sed_data[:,0] , sed_perc, p0 = [sed_data[1,0] ,1 ] , bounds = [lb ,ub]   )
-    import matplotlib.pyplot as plt 
+
     for i in range(0,np.size(sed_data,1)):
         if dmi.size <= 2: 
             #DD: in this case, lb[0] and ub[0] are the same and can not be used as lower and upper bounds. 
@@ -72,9 +72,9 @@ def GSDcurvefit(D16 , D50 , D84 , psi):
     
     F = 1 - np.exp(F2s.transpose())
     F[:,np.size(F,1)-1] = 1
-    
-    Fi_r  = np.flip(np.concatenate(( F[:,0].reshape(1,-1) , np.diff(F).transpose() ) ).transpose(),1)
-    
+
+    Fi_r  = np.flip(np.concatenate(( F[:,0].reshape(1,-1) , np.diff(F).transpose() ) ).transpose(),1)   
+
     return (Fi_r, resnorm, par_opt)
 
 

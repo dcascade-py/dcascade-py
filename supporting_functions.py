@@ -391,7 +391,7 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     #via the outlet
     setout = (np.squeeze(p_dest) - np.array(Lngt[reach_dest]) - downdist[reach_dest].T> 0)*1
      
-    #in each row, setout is equal to 1 in the reach where the sed. volume
+    #in each row, setplace is equal to 1 in the reach where the sed. volume
     #of each class is delivered 
     setplace = np.zeros((len(v_sed_day), len(downdist)))
     setplace[np.arange(len(v_sed_day)), reach_dest]  = 1
