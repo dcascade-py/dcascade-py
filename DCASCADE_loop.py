@@ -9,6 +9,8 @@ This script was adapted from the Matlab version by Marco Tangi
 @author: Elisa Bozzolan
 """
 
+test
+
 """ Libraries to import """
 import numpy as np
 import numpy.matlib
