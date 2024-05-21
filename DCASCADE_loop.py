@@ -223,14 +223,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             #         print ("why")
            
             
-            if np.sum(tr_cap) < (np.sum(V_dep2act[:,1:]) + np.sum(V_inc2act[:,1:])): # if the total transport capacity is lower than the active layer volume...
-               #... deposit part of the active layer cascades, 
-               #    proportionally to their volume and the volume of the active layer
-              
-              [V_mob, V_dep ] = tr_cap_deposit( V_inc2act, V_dep2act, V_dep, tr_cap, roundpar)   
-            else:
-               # if not, the mobilized layer is equal to the active layer
-               V_mob = matrix_compact(np.vstack((V_dep2act ,V_inc2act)))
+            [V_mob, V_dep ] = tr_cap_deposit( V_inc2act, V_dep2act, V_dep, tr_cap, roundpar)
+
 
             # if t == 642:
             #     if n == 10:
