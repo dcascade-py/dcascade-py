@@ -3,7 +3,7 @@
 Created on Mon Oct 10 15:21:34 2022
 
 Input that are required in the ReachData dataframe which define your river network:
-- reach FromN - ToN (From Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
+- reach FromN - ToN (FRom Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
 - deposit = initial deposit layer expressed in m3/m2 - this value will be then multiplied by the reach width and length 
@@ -35,18 +35,17 @@ from numpy import random
 from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
+
 import profile
 
-
 '''user defined input data'''
-
 
 
 #Shape files 
 #path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
 #name_river_network = 'River_network.shp'
 
-path_river_network = "C:\\Users\\user1\\Documents\\Po_local\\network_cascade\\Po_QGIS_Files_Rafaella_Carlos\\"
+path_river_network = "E:\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
 name_river_network = "Po_rivernet_grainsze_new_d.shp"
 
 
@@ -54,10 +53,10 @@ name_river_network = "Po_rivernet_grainsze_new_d.shp"
 #path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
 #name_q = 'Q_Vjosa.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
-path_q = "C:\\Users\\user1\\Documents\\Po_local\\portate\\"
+path_q = "E:\\cascade\\input\\"
 name_q = 'Po_Qdaily_latest_cascade.csv' 
 
-path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
+path_results = "E:\\cascade\\cascade_results\\"
 
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
@@ -65,8 +64,7 @@ roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as
 sed_range = [-8, 5]  #range of sediment sizes considered in the model - in log scale where each number is the average diameter of that sediment class (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
 class_size = 2.5  # amplitude of the sediment classes
 
-#timescale 
-timescale = 10 # days 
+
 
 # read the network 
 ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
@@ -78,33 +76,45 @@ ReachData['deposit'] = np.repeat(100000, len(ReachData))
 # read/define the water discharge 
 Q = pd.read_csv(path_q + name_q , header = None, sep=',') # read from external csv file
 
-#change slope or not
-update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
-
 
 ################ MAIN ###############
 
-
 n_reaches = len(ReachData)
 
+#Order the ReachData network by FromNode (needed for graph operations)
 ReachData = ReachData.sort_values(by = 'FromN')
 # order flow rates accordingly 
 Q_new = np.zeros((Q.shape))
 for i, idx in enumerate(ReachData.index): 
     Q_new[:,i] = Q.iloc[:,idx]
 Q = pd.DataFrame(Q_new)
+
+Q.to_csv(path_q + 'Q_latest_reordered.csv', index=False)
+
+#timescale 
+
+timescale = 10 # days 
+
+# timescale = len(Q) # days 
+
 ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
+
+
+# mwindow 
+ReachData.rename(columns={'Slope': 'Slope_or'}, inplace=True)
+ReachData['Slope'] = np.where(ReachData['River'] == 'Po', ReachData['Slope_or'].rolling(window=2).mean(), ReachData['Slope_or'])
+
 
 #extract network properties
 Network = graph_preprocessing(ReachData)
 
 # sediment classes defined in Krumbein phi (φ) scale   
-psi = np.arange(sed_range[0], sed_range[-1], class_size).astype(float)
+psi = np.arange(sed_range[0], sed_range[-1], class_size)
 
 # check requirement  
 dmi = 2**(-psi).reshape(-1,1)
-print(min(ReachData['D16'])*1000, ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
-print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
+print(min(ReachData['D16_05']), ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
+print(max(ReachData['D84_05']), ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
    
 
 n_classes = len(psi)
@@ -124,30 +134,30 @@ for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
     
 # to add deposit layer at a given reach 
-#row = np.array(range(n_classes)).reshape(1,n_classes)
+#row = np.array(range(n_classes)).reshape(1,n_classes)  
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
 # call dcascade 
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar) 
+  
+# # exclude variables not included in the plotting yet (sediment divided into classes)
+# data_output_t = copy.deepcopy(data_output)
+# variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
+# for item in variable_names: 
+#     del data_output_t[item]
 
-# exclude variables not included in the plotting yet (sediment divided into classes)
-data_output_t = copy.deepcopy(data_output)
-variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
-for item in variable_names: 
-    del data_output_t[item]
+# ## plot results 
+# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
-## plot results 
-keep_slider = dynamic_plot(data_output_t, ReachData, psi)
-
-
+    
 """ save results as pickled files 
- 
+     
 import pickle 
-name_file = path_results + 'Po_2018_data_output.p'
+name_file = path_results + 'Po_results_H03.p'
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-name_file_ext = path_results + 'Po_2018_ext_output_hwidth.p'
-pickle.dump(name_file_ext , open(name_file_ext , "wb"))  # save it into a file named save.p
+name_file_ext = path_results + 'Po_results_extended.p'
+pickle.dump(extended_output, open(name_file_ext , "wb"))  # save it into a file named save.p
 
 # load outout 
 extended_output = pickle.load(open(name_file_ext , "rb"))
