@@ -42,32 +42,18 @@ import profile
 
 
 
-# #-------River shape files 
-# path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-# name_river_network = 'River_network.shp'
+#-------River shape files 
+path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+name_river_network = 'River_network.shp'
 
-# #--------Q files
-# path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-# # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-# name_q = 'Q_Vjosa.csv' 
+#--------Q files
+path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+name_q = 'Q_Vjosa.csv' 
 
-# #--------path to the output folder
-# path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
+#--------path to the output folder
+path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
 
-
-#----Shape files 
-path_river_network = '..\\Po_case_16y\\Inputs\\02-shp_file_slopes_hydro_and_LR\\'
-# path_river_network = '..\\Inputs\\shp_file_slopes_hydro_and_LR\\'
-name_river_network = 'Po_rivernet_grainsze_new_d.shp'
-
-#----Q files    
-path_q = '..\\Po_case_16y\\Inputs\\'
-# path_q = '..\\Inputs\\'
-name_q = 'Po_Qdaily_16y.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-
-#----output file    
-path_results = "..\\Po_case_16y\\Cascade_outputs\\"
-# path_results = "..\\Cascade_outputs\\"
 
 
 
@@ -88,7 +74,7 @@ update_slope = False #if False: slope is constant, if True, slope changes accord
 
 #---Initial layer sizes
 deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
-AL_max = 10              # Maximum depth that can be eroded in one time step (here one day), in meters
+eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 
 #---Others
@@ -162,7 +148,7 @@ for n in range(len(ReachData)):
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, AL_max) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max) 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
@@ -170,8 +156,17 @@ variable_names = [data for data in data_output_t.keys() if data.endswith('per cl
 for item in variable_names: 
     del data_output_t[item]
 
-## Plot results 
-keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+    
+import pickle 
+name_file = path_results + 'save_all.p'
+pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
+
+name_file_ext = path_results + 'save_all_ext.p'
+pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+
+
+# ## Plot results 
+# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
 
 """ save results as pickled files 
