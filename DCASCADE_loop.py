@@ -33,7 +33,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope):
+def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, AL_max):
     """INPUT :
     ReachData      = nx1 Struct defining the features of the network reaches
     Network        = 1x1 struct containing for each node info on upstream and downstream nodes
@@ -120,7 +120,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         
     # set limit for erosion in 1st timestep, given by the parameter mlim, that
     # is the maximum depth in meter that can be eroded for each reach. In this case mlim is constant and defined by maxH_ActLayer
-    maxH_ActLayer = 1
+    maxH_ActLayer = AL_max
     mlim = np.ones((1,n_reaches))  * maxH_ActLayer 
     V_lim_tot = np.round( mlim*ReachData['Wac'].values*ReachData['Length'].values, roundpar) 
  
