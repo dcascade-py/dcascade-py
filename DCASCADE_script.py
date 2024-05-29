@@ -42,19 +42,32 @@ import profile
 
 
 
-#-------River shape files 
-path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-name_river_network = 'River_network.shp'
+# #-------River shape files 
+# path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+# name_river_network = 'River_network.shp'
 
-#--------Q files
-path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Q_Vjosa.csv' 
+# #--------Q files
+# path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+# # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+# name_q = 'Q_Vjosa.csv' 
 
-#--------path to the output folder
-path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
+# #--------path to the output folder
+# path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
 
 
+#----Shape files 
+path_river_network = '..\\Po_case_16y\\Inputs\\02-shp_file_slopes_hydro_and_LR\\'
+# path_river_network = '..\\Inputs\\shp_file_slopes_hydro_and_LR\\'
+name_river_network = 'Po_rivernet_grainsze_new_d.shp'
+
+#----Q files    
+path_q = '..\\Po_case_16y\\Inputs\\'
+# path_q = '..\\Inputs\\'
+name_q = 'Po_Qdaily_16y.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+
+#----output file    
+path_results = "..\\Po_case_16y\\Cascade_outputs\\"
+# path_results = "..\\Cascade_outputs\\"
 
 
 #--------Parameters of the simulation
