@@ -200,8 +200,9 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             tr_cap_sum[t,n] = np.sum(tr_cap)
             
             # deduce the sediment velocities per class, from the tr_cap in m3/s
-            coef_AL_vel=0.1
-            Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
+            # coef_AL_vel=0.1
+            # Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
+            Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
             Wac = ReachData['Wac'].values[n]
             Svel_i = (Hvel*Wac) * tr_cap_per_s/np.sum(tr_cap_per_s)     # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
             v_sed_n = tr_cap_per_s/Svel_i 
