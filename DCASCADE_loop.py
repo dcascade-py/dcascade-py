@@ -144,9 +144,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         #tqdm(range(1, timescale-1))
         
         
-        if t == 10:
-            if n == 10 :
-                  print ("why")
+        # if t == 5:
+        #     print ("why")
         
         # calculate new water dept for all reaches via Manning equation
         h = np.power(Q.iloc[t,:].astype('float')*ReachData['n'].astype('float')/(ReachData['Wac'].astype('float')*np.sqrt(Slope[t])), 3/5)
@@ -218,15 +217,15 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             tr_cap_all[t][n,:]=tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
             
-            # if t == 328:
-            #     if n == 4:
-            #         print ("why")
+            if t == 10:
+                if n == 4:
+                    print ("why")
            
             
             [V_mob, V_dep ] = tr_cap_deposit( V_inc2act, V_dep2act, V_dep, tr_cap, roundpar)
 
 
-            # if t == 642:
+            # if t == 642: 
             #     if n == 10:
             #       print ("why")
             

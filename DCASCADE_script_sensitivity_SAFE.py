@@ -36,6 +36,7 @@ from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
 import profile
+import pickle
 
 
 '''user defined input data'''
@@ -56,7 +57,7 @@ name_river_network = "Po_rivernet_grainsze_new_d.shp"
 path_q = "E:\\cascade\\input\\"
 name_q = 'Po_Qdaily_latest_cascade.csv' 
 
-path_results = "E:\\cascade\\slope_result\\"
+path_results = "E:\\cascade\\combined_random_sampling\\"
 
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
@@ -92,7 +93,7 @@ Q = pd.DataFrame(Q_new)
 Q.to_csv(path_q + 'Q_latest_reordered.csv', index=False)
 
 #timescale 
-timescale = 10 # days 
+timescale = 5 # days 
 
 # timescale = len(Q) # days 
 
@@ -137,81 +138,32 @@ for n in range(len(ReachData)):
 #row = np.array(range(n_classes)).reshape(1,n_classes)
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
-# Iterate over each percentage decrement in active width 
-# Define the list of percentage changes for sensitivity analysis
-# activewidth_changes = [-30]  
-slope_changes = [ +15]  
 
+N = 200 #Number of samples
+path_ReachData = "E:\\cascade\\ReachData_for_sensitivity\\ReachData_rsu_unif_dist\\"
+path_output = "E:\\cascade\\SAFE_output\\Sensitivity_rsu_unif_dist\\"
 
-# for activewidth_change in activewidth_changes:
-
-for slope_change in slope_changes:    
-    # Copy the original ReachData dataframe to avoid modifying the original data
-    ReachData_copy = ReachData.copy()
-
- # Calculate the multiplier based on the percentage change 
-    # multiplier = 1 + activewidth_change / 100
-    multiplier = 1 + slope_change / 100
-    
-    # Adjust the active channel width by the calculated multiplier
-    # ReachData_copy['Wac'] = ReachData_copy['Wac'] * multiplier
-    ReachData_copy['Slope'] = ReachData_copy['Slope'] * multiplier
-
-
-# call dcascade 
-    data_output, extended_output = DCASCADE_main(ReachData_copy, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar) 
-
-
-   # Save the output data for each percentage change
-     import pickle
-     output_file_name = f"output_change_{activewidth_changes}percent.pkl"
-     output_file_path = path_results + output_file_name
-     pickle.dump(data_output, open(output_file_path, "wb"))
+for i in range(N):
+    # Construct the filename or variable name for ReachData
+    reach_data_file = f'ReachData_modified_{i+1}.shp'
     
     
-# # exclude variables not included in the plotting yet (sediment divided into classes)
-# data_output_t = copy.deepcopy(data_output)
-# variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
-# for item in variable_names: 
-#     del data_output_t[item]
+    # read the network 
+    ReachData_modified = gpd.GeoDataFrame.from_file(path_ReachData + reach_data_file) #read shapefine from shp format
 
-# ## plot results 
-# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
-
+    # call dcascade
+    data_output, extended_output = DCASCADE_main(ReachData_modified, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar)
     
-""" save results as pickled files 
-     
-import pickle 
-name_file = path_results + 'Po_results_H1'
-pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-name_file_ext = path_results + 'Po_results_H01.p'
-pickle.dump(extended_output, open(name_file_ext , "wb"))  # save it into a file named save.p
-
-# load outout 
-extended_output = pickle.load(open(name_file_ext , "rb"))
-data_output = pickle.load(open(name_file , "rb"))
-
- """
- 
-    # import pickle 
-    # with open('E:\\cascade\\cascade_results\\H0.1_reach11_timestep_642.pkl', 'wb') as f:
-    #   pickle.dump(Qbi_incoming, f)
-    #   pickle.dump(V_inc2act, f)
-    #   pickle.dump(tr_cap_all, f)
-    #   pickle.dump(V_dep2act, f)
-    #   pickle.dump(V_mob, f)
-    #   pickle.dump(V_lim_tot, f)
-    #   pickle.dump(Qbi_mob, f)
-    #   pickle.dump(Fi_r_act, f)
-    #   pickle.dump(Qbi_tr, f)
-    #   pickle.dump(D50_AL, f)
+    # Construct the output file name without the '.shp' extension
+    base_filename = reach_data_file.replace('.shp', '')  # Remove the '.shp' extension
+    output_file_name = f"data_output_{base_filename}.pkl"
    
-   
-# # with open('E:\\cascade\\cascade_results\\saved_variables.pkl', 'rb') as f:
-# #     tr_cap_all = pickle.load(f)
-# #     V_inc2act = pickle.load(f)
+    # Save the output data for each percentage change as pickled files
+    output_file_path = path_output + output_file_name
+    pickle.dump(data_output, open(output_file_path, "wb"))
+
+    
+
    
 
- 
-#a = profile.run('main()', sort=2)

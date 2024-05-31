@@ -93,9 +93,9 @@ Q.to_csv(path_q + 'Q_latest_reordered.csv', index=False)
 
 #timescale 
 
-timescale = 10 # days 
+# timescale = 10 # days 
 
-# timescale = len(Q) # days 
+timescale = len(Q) # days 
 
 ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
 
@@ -119,7 +119,7 @@ print(max(ReachData['D84_05']), ' must be lower than ',  np.percentile(dmi,90, m
 
 n_classes = len(psi)
 del sed_range, class_size
-
+  
 
 # external sediment for all reaches, all classes and all timesteps 
 Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
