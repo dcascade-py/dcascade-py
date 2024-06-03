@@ -177,7 +177,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             #---2) Finds cascades to be included into the active layer in [m3/s], and use the cumulative GSD to compute tr_cap
             
             # define incoming matrix in [m3/s]
-            Qbi_incoming_per_s=Qbi_incoming
+            Qbi_incoming_per_s=copy.deepcopy(Qbi_incoming)
             Qbi_incoming_per_s[:,1:]=Qbi_incoming_per_s[:,1:]/(60*60*24)             
                         
             # find the fraction of sediments in the active layer Fi_r_act. 
@@ -203,7 +203,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             coef_AL_vel=0.1
             Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
             Wac = ReachData['Wac'].values[n]
-            Svel_i = (Hvel*Wac) * tr_cap_per_s/np.sum(tr_cap_per_s)     # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
+            Svel_i = (Hvel*Wac) * tr_cap_per_s/np.sum(tr_cap_per_s) #---> x porosity     # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
             v_sed_n = tr_cap_per_s/Svel_i 
             v_sed_n[np.isnan(v_sed_n)] = 0  # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0            
             v_sed[:,n] = v_sed_n
