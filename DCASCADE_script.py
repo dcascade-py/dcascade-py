@@ -41,17 +41,12 @@ import profile
 '''user defined input data'''
 
 
-
-#Shape files 
-#path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-#name_river_network = 'River_network.shp'
-
 path_river_network = "E:\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
-name_river_network = "Po_rivernet_grainsze_new_d.shp"
+name_river_network = "Po_river_network.shp"
 
 
 path_q = "E:\\cascade\\input\\"
-name_q = 'Po_Qdaily_latest_cascade.csv' 
+name_q = 'Po_Qdaily_3y.csv' 
 
 path_results = "E:\\cascade\\cascade_results\\"
 
@@ -59,19 +54,6 @@ path_results = "E:\\cascade\\cascade_results\\"
 
 
 #--------Parameters of the simulation
-
-
-
-
-# read the network 
-ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
-
-# define the initial deposit layer per each reach in [m3/m]
-ReachData['deposit'] = np.repeat(100000, len(ReachData))
-
-
-# read/define the water discharge 
-Q = pd.read_csv(path_q + name_q , header = None, sep=',') # read from external csv file
 
 #---Sediment classes definition 
 # defines the sediment sizes considered in the simulation
@@ -97,11 +79,6 @@ roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as
 
 
 ################ MAIN ###############
-
-
-n_reaches = len(ReachData)
-
-#Order the ReachData network by FromNode (needed for graph operations)
 
 # Read the network 
 ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
@@ -130,19 +107,8 @@ ReachData = ReachData.sort_values(by = 'FromN')
 Q_new = np.zeros((Q.shape))
 for i, idx in enumerate(ReachData.index): 
     Q_new[:,i] = Q.iloc[:,idx]
-
-
-
+Q = pd.DataFrame(Q_new)
 ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
-
-
-# mwindow 
-ReachData.rename(columns={'Slope': 'Slope_or'}, inplace=True)
-ReachData['Slope'] = np.where(ReachData['River'] == 'Po', ReachData['Slope_or'].rolling(window=2).mean(), ReachData['Slope_or'])
-
-
-#extract network properties
-Network = graph_preprocessing(ReachData)
 
 
 # Extract network properties
@@ -155,14 +121,6 @@ psi=np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype
 # Sediment classes in mm
 dmi = 2**(-psi).reshape(-1,1)
 
-print(min(ReachData['D16_05']), ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
-print(max(ReachData['D84_05']), ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
-   
-  
-
-# external sediment for all reaches, all classes and all timesteps 
-
-
 # Check requirements. Classes must be compatible with D16, D50, D84 defined for the reaches - i.e. max sed class cannot be lower than D16
 print(min(ReachData['D16'])*1000, ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
 print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
@@ -170,8 +128,8 @@ print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90,
 
 n_reaches = len(ReachData)
 # External sediment for all reaches, all classes and all timesteps 
-
 Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
+
 
 # Define input sediment load in the deposit layer
 deposit = ReachData.deposit*ReachData.Length
@@ -201,21 +159,3 @@ data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Q
 # # ## Plot results 
 # # keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
-
-
-# """ save results as pickled files 
-     
-# import pickle 
-# name_file = path_results + 'Po_results_H03.p'
-# pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
-
-# name_file_ext = path_results + 'Po_results_extended.p'
-# pickle.dump(extended_output, open(name_file_ext , "wb"))  # save it into a file named save.p
-
-# # load outout 
-# extended_output = pickle.load(open(name_file_ext , "rb"))
-# data_output = pickle.load(open(name_file , "rb"))
-
-#  """
- 
-# #a = profile.run('main()', sort=2)
