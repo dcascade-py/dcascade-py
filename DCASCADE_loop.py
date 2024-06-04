@@ -73,7 +73,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 
     ################### Fixed parameters
     phi = 0.4 #sediment porosity in the maximum active layer
-    minvel = 0.00001
+    minvel = 0.0000001
     outlet = Network['NH'][-1] #outlet reach ID identification
     n_reaches = len(ReachData)
     n_classes = len(psi)
@@ -223,9 +223,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             coef_AL_vel=0.1
             Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
             Wac = ReachData['Wac'].values[n]
-            Svel_i = (Hvel*Wac) * tr_cap_per_s/np.sum(tr_cap_per_s)     # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
+            Svel_i = (Hvel*Wac) * (tr_cap_per_s/np.sum(tr_cap_per_s))*(1-phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
             v_sed_n = tr_cap_per_s/Svel_i 
-            v_sed_n[np.isnan(v_sed_n)] = 0  # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0            
+            v_sed_n[np.isnan(v_sed_n)] = 0            # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0            
+            v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
             v_sed[:,n] = v_sed_n
              
     
@@ -453,6 +454,9 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     D50_AL[np.isnan(D50_AL)] = 0
     
     Q = np.array(Q)
+    
+    
+    
     
     #--Output struct definition 
     #data_plot contains the most important D_CASCADE outputs 
