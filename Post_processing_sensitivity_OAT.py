@@ -25,10 +25,10 @@ data_output = pickle.load(open(path + name_output, "rb"))
 
 mobilized_volume_original = data_output['Mobilized volume [m^3]']
 
-path_river_network = "E:\\cascade\\input\\"
-name_river_network = "Po_rivernet_grainsze_new_d.shp"
+path_river_network = "E:\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
+name_river_network = "Po_river_network.shp"
 
-figure_folder = "E:\\cascade\\figure\\"
+# figure_folder = "E:\\cascade\\figure\\"
 
 
 # load network for reference
@@ -44,17 +44,18 @@ Po_idx = Po_idx.astype(int)
 mobilized_volumes = {}  # List to store mobilized volumes from each file
 ##change the name according to the choice of output that needs to be extracted##
 
-percentages = [5, 10, 15, 20]
+# Initialize an empty dictionary to store the data outputs
+output_data_dict = {}
+
+
+percentages = [-5, -10, -15, -20, -30, -50]
 for percent in percentages:
     # Load the pickled file
-    path = "E:\\cascade\\slope_result\\"
+    path = "E:\\cascade\\sensitivity_analysis_results\\activewidth_decrease_modified_code\\"
     filename = f'output_change_{percent}percent.pkl'
     data_output = pickle.load(open(path + filename, "rb"))
-
-    # # Extract the mobilized volume from the current data_output
-    # mobilized_volume = data_output['Mobilized volume [m^3]']   #'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
-    # mobilized_volumes[percent] = mobilized_volume
-
+    
+ 
     # Extract the transported volume from the current data_output
     # 'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
     mobilized_volume = data_output['Mobilized volume [m^3]']
@@ -63,6 +64,7 @@ for percent in percentages:
 annual_sums = {}
 for percent, mobilized_volume in mobilized_volumes.items():
     # Slice the mobilized volume array to consider only the first 365 rows and the columns indicated by Po_idx
+
     mobilized_volume_year = mobilized_volume[:365, Po_idx - 1]
     # mobilized_volume_year = mobilized_volume[365:731, Po_idx - 1]
 
@@ -81,11 +83,11 @@ annual_sum_original = np.nansum(mobilized_volume_year_original, axis=0)
 
 
 # Plot the annual sum from outside the loop
-fig = plt.figure()
+fig = plt.figure()  
 ax = plt.subplot(111)
 
 plt.plot(Po_idx, annual_sum_original, label="Original",
-         color='black', linestyle='--')
+          color='black', linestyle='--')
 
 # Plot the annual sums from inside the loop
 for percent, annual_sum in annual_sums.items():
@@ -112,10 +114,10 @@ for _, row in trib_data.iterrows():
 mobilized_volumes = {}  # List to store mobilized volumes from each file
 ##change the name according to the choice of output that needs to be extracted##
 
-percentages = [-5, -10, -15, -20, -50]
+percentages = [-5, -10, -15, -20, -30, -50]
 for percent in percentages:
     # Load the pickled file
-    path = "E:\\cascade\\slope_result_decrease\\"
+    path = "E:\\cascade\\sensitivity_analysis_results\\slope_decrease_modified_code\\"
     filename = f'output_change_{percent}percent.pkl'
     data_output = pickle.load(open(path + filename, "rb"))
 
@@ -162,10 +164,10 @@ plt.show()
 mobilized_volumes = {}  # List to store mobilized volumes from each file
 ##change the name according to the choice of output that needs to be extracted##
 
-percentages = [-5, -10, -15, -20, -50]
+percentages = [-5, -10, -15, -20, -30, -50]
 for percent in percentages:
     # Load the pickled file
-    path = "E:\\cascade\\slope_result_decrease\\"
+    path = "E:\\cascade\\sensitivity_analysis_results\\slope_decrease_modified_code\\"
     filename = f'output_change_{percent}percent.pkl'
     data_output = pickle.load(open(path + filename, "rb"))
 
