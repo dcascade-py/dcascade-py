@@ -30,6 +30,7 @@ def GSDcurvefit(D16 , D50 , D84 , psi):
     ' sediment classes diameter (mm) '
     
     dmi = 2**(-psi).reshape(-1,1); 
+    
     ' problem definition '
     
     lb = [ np.percentile(dmi,10, method='midpoint') , 0.5 ] # k and s lower bound
@@ -54,11 +55,16 @@ def GSDcurvefit(D16 , D50 , D84 , psi):
 
     ' curve fitting '
     #popt, pcov = curve_fit(fun_GSD, sed_data[:,0] , sed_perc, p0 = [sed_data[1,0] ,1 ] , bounds = [lb ,ub]   )
-     
+
     for i in range(0,np.size(sed_data,1)):
-        par_opt[i,:], resnormtot = curve_fit(fun_GSD, sed_data[:,i] , sed_perc, p0 = [sed_data[1,i] ,1 ] , bounds = [lb ,ub]   )
+        # if dmi.size <= 2: 
+            # #DD: in this case, lb[0] and ub[0] are the same and can not be used as lower and upper bounds. 
+            # # The bounding does not change much the fiting results and could be removed in the future ?
+        par_opt[i,:], resnormtot = curve_fit(fun_GSD, sed_data[:,i] , sed_perc, p0 = [sed_data[1,i] ,1 ])
+        # else:
+            # par_opt[i,:], resnormtot = curve_fit(fun_GSD, sed_data[:,i] , sed_perc, p0 = [sed_data[1,i] ,1 ] , bounds = [lb ,ub]   )
         resnorm[i,:] = [resnormtot[0,0], resnormtot[1,1]]
-                
+        
     'find Fi_r'
     #da semplificare! 
     F1s = - (np.flip(dmi.reshape(-1,1)) @ (1/par_opt[:,0].reshape(1,-1))) 
@@ -66,9 +72,9 @@ def GSDcurvefit(D16 , D50 , D84 , psi):
     
     F = 1 - np.exp(F2s.transpose())
     F[:,np.size(F,1)-1] = 1
-    
-    Fi_r  = np.flip(np.concatenate(( F[:,0].reshape(1,-1) , np.diff(F).transpose() ) ).transpose(),1)
-    
+
+    Fi_r  = np.flip(np.concatenate(( F[:,0].reshape(1,-1) , np.diff(F).transpose() ) ).transpose(),1)   
+
     return (Fi_r, resnorm, par_opt)
 
 

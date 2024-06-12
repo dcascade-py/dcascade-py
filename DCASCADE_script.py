@@ -3,7 +3,7 @@
 Created on Mon Oct 10 15:21:34 2022
 
 Input that are required in the ReachData dataframe which define your river network:
-- reach FromN - ToN (FRom Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
+- reach FromN - ToN (From Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
 - deposit = initial deposit layer expressed in m3/m2 - this value will be then multiplied by the reach width and length 
@@ -35,62 +35,110 @@ from numpy import random
 from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
-
+import profile
 
 
 '''user defined input data'''
 
-#Shape files 
-path_river_network = 'C:\\Users\\user1\\OneDrive - Università degli Studi di Padova\\Documenti\\Postdoc_Padova\\cascade\\python\\DCASCADE_toolbox_v2\\Input\\input_trial\\'
+
+
+#-------River shape files 
+path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
 name_river_network = 'River_network.shp'
 
-# Q files
-path_q = 'C:\\Users\\user1\\OneDrive - Università degli Studi di Padova\\Documenti\\Postdoc_Padova\\cascade\\python\\DCASCADE_toolbox_v2\\Input\\input_trial\\'
-name_q = 'Q_Vjosa.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+#--------Q files
+path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+name_q = 'Q_Vjosa.csv' 
+
+#--------path to the output folder
+path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
+
+
+
+
+#--------Parameters of the simulation
+
+
+#---Sediment classes definition 
+# defines the sediment sizes considered in the simulation
+#(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
+sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+n_classes = 6        # number of classes
+
+#---Timescale 
+timescale = 10 # days 
+
+#---Change slope or not
+update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
+
+#---Initial layer sizes
+deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
+eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+
+
+#---Others
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
-#Sediment classes definition (must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-8, 4]  #range of sediment sizes considered in the model - in log scale where each number is the average diameter of that sediment class (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
-class_size = 2.5  # amplitude of the sediment classes
 
-#timescale 
-timescale = 20 # days 
-
-# read the network 
-ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
-
-# define the initial deposit layer 
-ReachData['deposit'] = np.repeat(50, len(ReachData))
-
-# Choose formula for h
-h_manning = False
-h_ferguson = True
-
-
-# read/define the water discharge 
-Q = pd.read_csv(path_q + name_q , header = None, sep=',') # read from external csv file
 
 ################ MAIN ###############
 
-n_reaches = len(ReachData)
+# Read the network 
+ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
 
-#extract network properties
+# Define the initial deposit layer per each reach in [m3/m]
+ReachData['deposit'] = np.repeat(deposit_layer, len(ReachData))
+
+# Read/define the water discharge 
+# but first, we check automatically the delimiter (; or ,) and if Q file has headers or not:
+Q_check = pd.read_csv(path_q + name_q , header = None) # read from external csv file
+if Q_check.iloc[0,:].size == 1: 
+    my_delimiter = ';'
+else:
+    my_delimiter = ','
+Q_check2 = pd.read_csv(path_q + name_q, header=None, sep=my_delimiter)  
+if Q_check2.iloc[0,0]=='yyyy/mm/dd':
+    Q = pd.read_csv(path_q + name_q, header = 0, sep=my_delimiter, index_col = 'yyyy/mm/dd')  
+else:
+    Q = pd.read_csv(path_q + name_q, header = None, sep=my_delimiter)
+
+
+
+# Sort ReachData according to the FromN, and organise the Q file accordingly
+ReachData = ReachData.sort_values(by = 'FromN')
+Q_new = np.zeros((Q.shape))
+for i, idx in enumerate(ReachData.index): 
+    Q_new[:,i] = Q.iloc[:,idx]
+Q = pd.DataFrame(Q_new)
+ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
+
+# Extract network properties
 Network = graph_preprocessing(ReachData)
 
-# sediment classes defined in Krumbein phi (φ) scale   
-psi = np.arange(sed_range[0], sed_range[-1], class_size)
-n_classes = len(psi)
-del sed_range, class_size
+# Sediment classes defined in Krumbein phi (φ) scale   
+psi=np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
 
-# external sediment for all reaches, all classes and all timesteps 
+# Sediment classes in mm
+dmi = 2**(-psi).reshape(-1,1)
+
+# Check requirements. Classes must be compatible with D16, D50, D84 defined for the reaches - i.e. max sed class cannot be lower than D16
+print(min(ReachData['D16'])*1000, ' must be greater than ', np.percentile(dmi,10, method='midpoint'))
+print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90, method='midpoint'))
+   
+
+n_reaches = len(ReachData)
+# External sediment for all reaches, all classes and all timesteps 
 Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
 
-# define input sediment load in the deposit layer
+# Define input sediment load in the deposit layer
 deposit = ReachData.deposit*ReachData.Length
-Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84, psi) # per each reach, Rosin distribution of sediments for the diameters specified in sed_range 
 
-#initialise deposit layer 
-Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] # initialise the deposit layer 
+# Define initial sediment fractions per class in each reaches, using a Rosin distribution
+Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84 , psi) 
+
+# Initialise deposit layer 
+Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] 
 for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
     
@@ -98,29 +146,41 @@ for n in range(len(ReachData)):
 #row = np.array(range(n_classes)).reshape(1,n_classes)
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
-# call dcascade 
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, h_manning, h_ferguson) 
+# Call dcascade main
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max) 
 
-# exclude variables not included in the plotting yet (sediment divided into classes)
+# Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
 variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
 for item in variable_names: 
     del data_output_t[item]
 
-## plot results 
-keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+    
+import pickle 
+name_file = path_results + 'save_all.p'
+pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
+
+name_file_ext = path_results + 'save_all_ext.p'
+pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+
+
+# ## Plot results 
+# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+
 
 """ save results as pickled files 
  
 import pickle 
-name_file = path_q + 'bega_output.p'
-#pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
+name_file = path_results + 'Po_2018_data_output.p'
+pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-name_file_ext = path_q + 'bega_ext_output.p'
-#pickle.dump(extended_output, open(name_file_ext , "wb"))  # save it into a file named save.p
+name_file_ext = path_results + 'Po_2018_ext_output_hwidth.p'
+pickle.dump(name_file_ext , open(name_file_ext , "wb"))  # save it into a file named save.p
 
 # load outout 
 extended_output = pickle.load(open(name_file_ext , "rb"))
 data_output = pickle.load(open(name_file , "rb"))
 
  """
+ 
+#a = profile.run('main()', sort=2)

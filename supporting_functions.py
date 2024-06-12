@@ -32,23 +32,27 @@ np.seterr(divide='ignore', invalid='ignore')
 def D_finder(fi_r, D_values, psi): 
 
     dmi = np.power(2, -psi)/1000
-    if fi_r.ndim == 1:
-        fi_r = fi_r[:, None] # EB: needs to be a column vector
-        
-    D_changes = np.zeros((1, np.shape(fi_r)[1]))
-    Perc_finer = np.empty((len(dmi),np.shape(fi_r)[1]))
-    Perc_finer[:] = np.nan
-    Perc_finer[0] = 100
-
-    for i in range(1, len(Perc_finer)):
-        Perc_finer[i,:] = Perc_finer[i-1,:] - fi_r[i-1,:]*100
+    if dmi.size == 1:
+        return dmi[0]
     
-    for k in range(np.shape(Perc_finer)[1]):
-        a = np.minimum(np.where(Perc_finer[:,k] > D_values)[0].max(), len(psi)-2)
-        D_changes[0,k] = (D_values - Perc_finer[a+1,k])/(Perc_finer[a,k] -Perc_finer[a+1,k])*(-psi[a]+psi[a+1])-psi[a+1]
-        D_changes[0,k] = np.power(2, D_changes[0,k])/1000
-        D_changes[0,k] = D_changes[0,k]*(D_changes[0,k]>0) + dmi[-1]*(D_changes[0,k]<0)
-    return D_changes
+    else:
+        if fi_r.ndim == 1:
+            fi_r = fi_r[:, None] # EB: needs to be a column vector
+            
+        D_changes = np.zeros((1, np.shape(fi_r)[1]))
+        Perc_finer = np.empty((len(dmi),np.shape(fi_r)[1]))
+        Perc_finer[:] = np.nan
+        Perc_finer[0] = 100
+    
+        for i in range(1, len(Perc_finer)):
+            Perc_finer[i,:] = Perc_finer[i-1,:] - fi_r[i-1,:]*100
+        
+        for k in range(np.shape(Perc_finer)[1]):
+            a = np.minimum(np.where(Perc_finer[:,k] > D_values)[0].max(), len(psi)-2)
+            D_changes[0,k] = (D_values - Perc_finer[a+1,k])/(Perc_finer[a,k] -Perc_finer[a+1,k])*(-psi[a]+psi[a+1])-psi[a+1]
+            D_changes[0,k] = np.power(2, D_changes[0,k])/1000
+            D_changes[0,k] = D_changes[0,k]*(D_changes[0,k]>0) + dmi[-1]*(D_changes[0,k]<0)
+        return D_changes
 
 
 def sortdistance(Qbi, distancelist):
@@ -80,6 +84,8 @@ def layer_search(Qbi_incoming, V_dep_old , V_lim_tot_n, roundpar):
         if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty # EB check again 
             # if the cascades in the deposit have combined
             # volume that is less then the active layer volume (i've reached the bottom)
+            
+            print(' reach the bottom ....')
 
             V_dep2act = V_dep_old  # I put all the deposit into the active layer
             V_dep = np.c_[V_dep_old[0,0], np.zeros((1,Qbi_incoming.shape[1]-1))]
@@ -385,7 +391,7 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     #via the outlet
     setout = (np.squeeze(p_dest) - np.array(Lngt[reach_dest]) - downdist[reach_dest].T> 0)*1
      
-    #in each row, setout is equal to 1 in the reach where the sed. volume
+    #in each row, setplace is equal to 1 in the reach where the sed. volume
     #of each class is delivered 
     setplace = np.zeros((len(v_sed_day), len(downdist)))
     setplace[np.arange(len(v_sed_day)), reach_dest]  = 1
