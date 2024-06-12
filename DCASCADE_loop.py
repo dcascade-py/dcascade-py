@@ -32,7 +32,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar):
+def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, h_manning, h_ferguson):
     """INPUT :
     ReachData      = nx1 Struct defining the features of the network reaches
     Network        = 1x1 struct containing for each node info on upstream and downstream nodes
@@ -119,7 +119,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
  
     # support variable recording the total transport capacity in each reach in each timestep
     tr_cap_sum = np.zeros((timescale, n_reaches))
-
+    
+    flow_depth = np.zeros((timescale, n_reaches))
+    
+    
     # start waiting bar 
      
     for t in tqdm(range(1, timescale-1)):
@@ -127,11 +130,30 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         #tqdm(range(1, timescale-1))
         
         
+        if h_manning == True:
         # calculate new water dept for all reaches via Manning equation
-        h = np.power(Q.iloc[t,:]*ReachData['n']/(ReachData['Wac']*np.sqrt(Slope[t])), 3/5)
-        v = 1/ReachData['n']*np.power(h,2/3)*np.sqrt(Slope[t])
+            h = np.power(Q.iloc[t,:].astype('float')*ReachData['n'].astype('float')/(ReachData['Wac'].astype('float')*np.sqrt(Slope[t])), 3/5)
+            v = 1/ReachData['n'].astype('float')*np.power(h,2/3)*np.sqrt(Slope[t])
+            #print('Manning', h)
+        ## Ferguson still to be validated!!!!
+        ## need to add a velocity formula without manning
         
-        
+        if h_ferguson == True:
+            #calculate water depth and velocity with the Ferguson formula (2007)
+            q_star = Q.iloc[t,:] / (ReachData['Wac'] * np.sqrt(9.81 * Slope[t] * ReachData['D84']**3))
+            #print('q_star: ',q_star)
+            
+            #𝑝…𝑖𝑓 𝑞∗<100 → 𝑝=0.24, 𝑖𝑓 𝑞^∗>100 → 𝑝=0.31
+            p = np.where(q_star < 100, 0.24, 0.31)
+            
+            h = 0.015 * ReachData['D84'] * (q_star**(2*p)) / (p**2.5)
+            #v = 1/ReachData['n'].astype('float')*np.power(h,2/3)*np.sqrt(Slope[t])
+            
+            v = (np.sqrt(9.81 * h * Slope[t])* 6.5 * 2.5 * (h/ReachData['D84'])) / np.sqrt((6.2 ** 2) * (2.5 ** 2) * ((h/ReachData['D84']) ** (5/3)))
+            #print('Ferguson', h)
+            
+            flow_depth[t] = h
+            
         
         # loop for all reaches
         for n in Network['NH']:

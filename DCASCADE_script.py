@@ -62,6 +62,10 @@ ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) 
 # define the initial deposit layer 
 ReachData['deposit'] = np.repeat(50, len(ReachData))
 
+# Choose formula for h
+h_manning = False
+h_ferguson = True
+
 
 # read/define the water discharge 
 Q = pd.read_csv(path_q + name_q , header = None, sep=',') # read from external csv file
@@ -83,7 +87,7 @@ Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
 
 # define input sediment load in the deposit layer
 deposit = ReachData.deposit*ReachData.Length
-Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84 , psi) # per each reach, Rosin distribution of sediments for the diameters specified in sed_range 
+Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84, psi) # per each reach, Rosin distribution of sediments for the diameters specified in sed_range 
 
 #initialise deposit layer 
 Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] # initialise the deposit layer 
@@ -95,7 +99,7 @@ for n in range(len(ReachData)):
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
 # call dcascade 
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, h_manning, h_ferguson) 
 
 # exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
