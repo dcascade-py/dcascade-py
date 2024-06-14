@@ -28,6 +28,7 @@ from supporting_functions import sed_transfer_simple
 from supporting_functions import change_slope
 from transport_capacity_computation import tr_cap_junction
 from transport_capacity_computation import sed_velocity
+from flow_depth_calc import choose_flow_depth
 
 np.seterr(divide='ignore', invalid='ignore')
              
@@ -56,7 +57,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
 
     # Formula selection     
-    indx_tr_cap , indx_partition = read_user_input()
+    flo_depth , indx_tr_cap , indx_partition = read_user_input()
     
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
@@ -137,8 +138,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         AL_vol = AL_depth*ReachData['Wac'].values[n][0]*ReachData['Length'].values[n][0]
         AL_vol_all[:,n] = numpy.expand_dims(np.repeat(AL_vol, timescale, axis=0), axis = 1)
         AL_depth_all[:,n] = numpy.expand_dims(np.repeat(AL_depth, timescale, axis=0), axis = 1)
-                    
-            
+
+    flow_depth = np.zeros((timescale, n_reaches))           
 
     # start waiting bar    
     for t in tqdm(range(timescale-1)):
@@ -146,6 +147,12 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         # calculate new water dept for all reaches via Manning equation
         h = np.power(Q.iloc[t,:].astype('float')*ReachData['n'].astype('float')/(ReachData['Wac'].astype('float')*np.sqrt(Slope[t])), 3/5)
         v = 1/ReachData['n'].astype('float')*np.power(h,2/3)*np.sqrt(Slope[t])
+        #FP: define flow depth and flow velocity from flow_depth_calc
+        h, v = choose_flow_depth(ReachData, Slope, Q, t, flo_depth)
+        flow_depth[t] = h
+        
+        #print("flow_depth", flow_depth)
+        
         
         v_sed = np.zeros((len(psi), n_reaches)) #store velocities per reach and per class, for this time step
         # loop for all reaches
@@ -438,7 +445,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Mobilised sed in the reach - per class [m^3/s]': mobilised_class,
                    'Transported sed in the reach - per class [m^3/s]': transported_class,
                    'Tr cap sed in the reach - per class [m^3/s]': tr_cap_class,
-                   'Sed_velocity [m/day]': V_sed
+                   'Sed_velocity [m/day]': V_sed,
+                   'Flow depth': flow_depth
                    }
    
     #all other outputs are included in the extended_output cell variable 
