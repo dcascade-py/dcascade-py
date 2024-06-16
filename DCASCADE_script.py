@@ -55,8 +55,6 @@ name_q = 'Q_Vjosa.csv'
 path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
 
 
-
-
 #--------Parameters of the simulation
 
 
@@ -76,6 +74,8 @@ update_slope = False #if False: slope is constant, if True, slope changes accord
 deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
 eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
+#---Storing Deposit layer
+save_dep_layer = 'always' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
@@ -147,7 +147,7 @@ for n in range(len(ReachData)):
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer) 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
