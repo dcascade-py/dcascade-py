@@ -41,7 +41,6 @@ import profile
 '''user defined input data'''
 
 
-
 #-------River shape files 
 path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
 name_river_network = 'River_network.shp'
@@ -54,9 +53,7 @@ name_q = 'Q_Vjosa.csv'
 #--------path to the output folder
 path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
 
-
 #--------Parameters of the simulation
-
 
 #---Sediment classes definition 
 # defines the sediment sizes considered in the simulation

@@ -103,6 +103,9 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     tr_cap_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)] #transport capacity per each sediment class
     tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity 
     
+    Delta_V_all = np.zeros((timescale,n_reaches)) # reach mass balance (volumes eroded or deposited)
+    Delta_V_class_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)]
+    
     # In case of constant slope
     if update_slope == False:
         Slope[:,:] = Slope[0,:]
@@ -259,7 +262,15 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             #in case of changing slope
             if update_slope == True:
                 Node_el[t+1][n]= Node_el[t,n] + Delta_V/( np.sum(ReachData['Wac'][np.append(n, Network['Upstream_Node'][n])] * ReachData['Length'][np.append(n, Network['Upstream_Node'][n])]) * (1-phi) )
-        
+            
+            #record Delta_V
+            Delta_V_all[t,n] = Delta_V
+            
+            # Delta V per class
+            Delta_V_class=np.sum(Qbi_dep_0[n][:,1:], axis=0) -  np.sum(Qbi_dep_old[n][:,1:], axis=0)
+            Delta_V_class_all[t][n,:]=Delta_V_class
+            
+            
         #Save Qbi_dep according to saving frequency
         if save_dep_layer=='always':
             Qbi_dep[t+1]= copy.deepcopy(Qbi_dep_0)  
@@ -464,12 +475,14 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'D50 active layer [m]' :D50_AL,  
                    'Daily trasport capacity [m^3/day]': tr_cap_sum,                   
                    'Deposited volume[m^3]': V_dep_sum, 
+                   'Delta Deposit Volume [m^3]' : Delta_V_all,
                    'Transported + deposited sed - per class [m^3/s]':  tot_sed_class, 
                    'Deposited sed in the reach - per class [m^3/s]' : deposited_class,
                    'Mobilised sed in the reach - per class [m^3/s]': mobilised_class,
                    'Transported sed in the reach - per class [m^3/s]': transported_class,
+                   'Delta Deposit Volume - per class [m^3]': Delta_V_class,
                    'Tr cap sed in the reach - per class [m^3/s]': tr_cap_class,
-                   'Sed_velocity [m/day]': V_sed
+                   'Sed_velocity [m/day]': V_sed                  
                    }
    
     #all other outputs are included in the extended_output cell variable 
