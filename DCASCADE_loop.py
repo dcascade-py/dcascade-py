@@ -93,7 +93,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     V_sed = [np.zeros((n_classes, n_reaches)) for _ in range(timescale)] #velocities
     
     tr_cap_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)] #transport capacity per each sediment class
-    tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity 
+    tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity
+    
+    tr_cap_classes = [np.zeros((timescale, n_reaches)) for _ in psi]
+    Qc_classes = [np.zeros((timescale, n_reaches)) for _ in psi]    
     
     # In case of constant slope
     if update_slope == False:
@@ -142,11 +145,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     flow_depth = np.zeros((timescale, n_reaches))           
 
     # start waiting bar    
-    for t in tqdm(range(timescale-1)):
+    for t in tqdm(range(timescale-1)):           
         
-        # calculate new water dept for all reaches via Manning equation
-        h = np.power(Q.iloc[t,:].astype('float')*ReachData['n'].astype('float')/(ReachData['Wac'].astype('float')*np.sqrt(Slope[t])), 3/5)
-        v = 1/ReachData['n'].astype('float')*np.power(h,2/3)*np.sqrt(Slope[t])
         #FP: define flow depth and flow velocity from flow_depth_calc
         h, v = choose_flow_depth(ReachData, Slope, Q, t, flo_depth)
         flow_depth[t] = h
@@ -200,12 +200,19 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
-            tr_cap_per_s = tr_cap_junction(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+            tr_cap_per_s, Qc = tr_cap_junction(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             tr_cap=tr_cap_per_s*24*60*60
             
             tr_cap_all[t][n,:]=tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
-            
+                        
+            for i in range(len(tr_cap_classes)):
+                tr_cap_classes[i][t,n] = tr_cap[i]
+                #Qc only relevant for Rickenmann's tr_cap formula
+                if indx_tr_cap == 7:
+                    Qc_classes[i][t][n] = Qc[i]
+
+    
             # deduce the sediment velocities per class, from the tr_cap in m3/s
             coef_AL_vel=0.1
             Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
@@ -448,7 +455,15 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Sed_velocity [m/day]': V_sed,
                    'Flow depth': flow_depth
                    }
-   
+    
+    for i in  range(len(tr_cap_classes)):
+        #data_output[f"Transport class {i}"] = []
+        data_output[f"tr_cap class {i}"] = tr_cap_classes[i]
+        if indx_tr_cap == 7:
+            #data_output[f"Qc class {i}"] = []
+            data_output[f"Qc class {i}"] = Qc_classes[i]
+     
+    
     #all other outputs are included in the extended_output cell variable 
     extended_output = { 'Qbi_tr': Qbi_tr,  
                    'Qbi_mob' : Qbi_mob  , 
