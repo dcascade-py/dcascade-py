@@ -462,6 +462,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
     
     
+    
     #--Output struct definition 
     #data_plot contains the most important D_CASCADE outputs 
     data_output = { 'Channel Width [m]': np.repeat(np.array(ReachData['Wac']).reshape(1,-1),len(Qbi_dep), axis = 0), 
@@ -496,7 +497,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
 
     return data_output,extended_output
-
 
 
 
