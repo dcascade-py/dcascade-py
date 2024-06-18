@@ -345,46 +345,6 @@ def Wong_Parker_formula(D50, Slope, Wac, h):
 
     return tr_cap
 
-def Rickenmann_formula(D50, Slope, Q, Wac):
-    
-    ''' Rickenmann's formula for bedload transport capacity based on unit discharge
-    for slopes of 0.04% - 20%.
-    Critical discharge Qc is based on the equation probosed by Barthust et al. (1987)
-    and later refined by Rickenmann (1991)
-    
-    Sources: 
-        Rickenmann (2001). Comparison of bed load transport in torrents and gravel bed streams. 
-            Water Resources Research 37(12): 3295–3305.DOI: 10.1029/2001WR000319.
-        Barthust et al. (1987). Bed load discharge equations for steep mountain rivers. 
-            In Sediment Transport in Gravel-Bed Rivers, Wiley: New York; 453–477
-        Rickenmann (1991). Hyperconcentrated flow and sediment transport at steep flow. 
-            Journal ofHydraulic Engineering 117(11): 1419–1439. DOI: 10.1061/(ASCE)0733-9429(1991)117:11(1419)
-    
-    '''
-    
-    rho_s = 2650 # sediment densit [kg/m^3]
-    rho_w = 1000 # water density [kg/m^3]
-    R = rho_s/rho_w # Ratio of solid to fluid density []
-    g = 9.81 
-    
-    #Q is on whole width, Qunit = Q/w
-    
-    Qunit = Q / Wac
-
-    Qc = 0.065 * ((R - 1) ** 1.67) * (g ** 0.5) * (D50 ** 1.5) * (Slope ** (-1.12)) #critical unit discharge
-
-    #Check if Q is smaller than Qc
-    Qarr = np.full_like(Qc, Qunit)
-    
-    Qb = np.zeros_like(Qc)
-    
-    condition = (Qarr - Qc) < 0
-    Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * (Slope ** 1.5))
-
-    Qb_Wac = Qb * Wac
-    tr_cap = Qb_Wac
-
-    return tr_cap, Qc
 
 def Molinas_rates( Fi_r, h, v, Slope, dmi_finer, D50_finer):
     """MOLINAS_rates returns the Molinas coefficient of fractional transport rates Pci, to be multiplied
@@ -430,8 +390,7 @@ def choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , 
 
     tau = np.nan
     taur50 = np.nan
-    Qc = np.nan
-
+ 
     #choose transport capacity formula
     if indx_tr_cap == 1:
         [tr_cap, tau, taur50] = Parker_Klingeman_formula( Fi_r_reach, D50, Slope, Wac , h, psi) 
@@ -449,12 +408,9 @@ def choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , 
         tr_cap = Wong_Parker_formula( D50 ,Slope, Wac ,h)
         
     elif indx_tr_cap == 6: 
-        tr_cap = Ackers_White_formula( D50,  Slope , Q, v, h)    
-    
-    elif indx_tr_cap == 7:
-        tr_cap, Qc = Rickenmann_formula(D50, Slope, Q, Wac)
+        tr_cap = Ackers_White_formula( D50,  Slope , Q, v, h)        
    
-    return tr_cap, Qc
+    return tr_cap
 
 def tr_cap_junction( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition ): 
     """TR_CAP_JUNCTION refers to the transport capacity equation and partitioning 
@@ -472,24 +428,26 @@ def tr_cap_junction( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap 
     
     if indx_partition == 1: # Direct computation by the size fraction approach  
         
-        Qtr_cap, Qc = choose_formula(Fi_r_reach , dmi ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
+        Qtr_cap = choose_formula(Fi_r_reach , dmi ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
         pci = Fi_r_reach
         
     elif indx_partition == 2: # The BMF approach (Bed Material Fraction)
-        tr_cap, Qc =  choose_formula(Fi_r_reach , dmi ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition)
+        tr_cap =  choose_formula(Fi_r_reach , dmi ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition)
         Qtr_cap = Fi_r_reach*tr_cap
         pci = Fi_r_reach 
         
     elif indx_partition == 3: # The TCF approach (Transport Capacity Fraction) with the Molinas formula (Molinas and Wu, 2000)
         pci = Molinas_rates(Fi_r_reach, h, v, Slope, dmi*1000, D50*1000)
-        tr_cap, Qc = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition)
+        tr_cap = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition)
         Qtr_cap = pci*tr_cap
     
     elif indx_partition == 4: #Shear stress correction approach (for fractional transport formulas)
-        tr_cap, Qc = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
+        tr_cap = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
         Qtr_cap = tr_cap #these formulas returns already partitioned results;
         pci = Qtr_cap/np.sum(Qtr_cap)
-    return Qtr_cap, Qc
+      
+    return Qtr_cap
+
 
 def sed_velocity( Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel , phi , indx_tr_cap, indx_partition, indx_velocity): 
     
