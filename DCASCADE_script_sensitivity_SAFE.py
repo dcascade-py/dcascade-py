@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Created on Mon Oct 10 15:21:34 2022
 
@@ -42,13 +42,13 @@ import pickle
 
 
 path_river_network = "E:\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
-name_river_network = "Po_rivernet_grainsze_new_d.shp"
+name_river_network = "Po_river_network.shp"
 
 
 path_q = "E:\\cascade\\input\\"
-name_q = 'Po_Qdaily_latest_cascade.csv' 
+name_q = 'Po_Qdaily_3y.csv' 
 
-path_results = "E:\\cascade\\cascade_results\\"
+path_results = "E:\\cascade\\SAFE_output\\Sensitivity_lhs_norm_dist"
 
 
 
@@ -62,7 +62,7 @@ sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 6        # number of classes
 
 #---Timescale 
-timescale = 1096 # days 
+timescale = 10 # days 
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
@@ -149,8 +149,8 @@ for n in range(len(ReachData)):
 
 ## Reading ReachData and running the model  iteratively against these ReachData 
 N = 200 #Number of samples (in this case number of Reach Data shape files with modified input parameters)
-path_ReachData = "E:\\cascade\\ReachData_for_sensitivity\\ReachData_rsu_unif_dist\\"
-path_output = "E:\\cascade\\SAFE_output\\Sensitivity_rsu_unif_dist\\"
+path_ReachData = "E:\\cascade\\ReachData_for_sensitivity\\ReachData_lhs_norm_dist\\"
+path_output = "E:\\cascade\\SAFE_output\\Sensitivity_lhs_norm_dist\\"
 
 for i in range(N):
     # Construct the filename or variable name for ReachData

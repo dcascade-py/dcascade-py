@@ -13,7 +13,7 @@ import copy
 import os
 
 # Define the directory where the pickled files are stored
-directory = "E:\\cascade\\SAFE_output\\Sensitivity_lhs_unif_dist\\"
+directory = "E:\\cascade\\SAFE_output\\Sensitivity_lhs_norm_dist\\"
 
 # Initialize an empty dictionary to store the data outputs
 output_data_dict = {}
