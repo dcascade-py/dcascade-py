@@ -103,6 +103,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
     tr_cap_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)] #transport capacity per each sediment class
     tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity 
+
+    Qc_class_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)]
     
     Delta_V_all = np.zeros((timescale,n_reaches)) # reach mass balance (volumes eroded or deposited)
     Delta_V_class_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)]
@@ -213,11 +215,15 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
-            tr_cap_per_s = tr_cap_junction(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+            tr_cap_per_s, Qc = tr_cap_junction(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             tr_cap=tr_cap_per_s*24*60*60
             
             tr_cap_all[t][n,:]=tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
+            
+            if indx_tr_cap == 7:
+                Qc_class_all[t][n,:]=Qc
+
             
             # deduce the sediment velocities per class, from the tr_cap in m3/s
             coef_AL_vel=0.1
@@ -448,7 +454,16 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     for c in range(n_classes): 
         for t in range(timescale-1): 
             q_m = tr_cap_all[t][:,c]
-            tr_cap_class[c][t,:] = q_m         
+            tr_cap_class[c][t,:] = q_m     
+    
+    #--Critical discharge per class (put in same format as mob and trans per class)
+    if indx_tr_cap == 7:   
+        Qc_classes = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
+        for c in range(n_classes): 
+            for t in range(timescale-1): 
+                q_m = Qc_class_all[t][:,c]
+                Qc_classes[c][t,:] = q_m  
+            
     
     #--Total sediment volume leaving the network
     outcum_tot = np.array([np.sum(x) for x in Q_out])
@@ -487,7 +502,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Sed_velocity [m/day]': V_sed,
                    'Flow depth': flow_depth
                    }
-   
+
+    if indx_tr_cap == 7:
+        data_output["Qc class"] = Qc_classes
+         
     #all other outputs are included in the extended_output cell variable 
     extended_output = { 'Qbi_tr': Qbi_tr,  
                    'Qbi_mob' : Qbi_mob  , 

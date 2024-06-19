@@ -46,15 +46,17 @@ def read_user_input():
             indx_tr_cap = 5
         elif clicked.get() == "Ackers and White formula 1973": 
             indx_tr_cap = 6
+        elif clicked.get() == "Rickenmann 2001":
+            indx_tr_cap = 7
         root.destroy()
     
     root = Tk() # create the little window
     myLabel = Label(root, text = 'Sediment transport formulas')  
     myLabel.pack()
     root.geometry("300x300")
-    #indx_tr_cap = 3 # default value
+    #indx_tr_cap = 2 # default value
     options = ["Engelund and Hansen 1967", "Wilkock and Crowe 2003", "Parker and Klingeman 1982",
-               "Yang formula 1989", "Wong and Parker 2006", "Ackers and White formula 1973"]
+               "Yang formula 1989", "Wong and Parker 2006", "Ackers and White formula 1973", "Rickenmann 2001"]
     clicked = StringVar()
     clicked.set("Choose an option")
     
