@@ -11,6 +11,27 @@ from tkinter import Label, Tk, StringVar, OptionMenu  # for widget
 
 def read_user_input(): 
     
+    def flow_depth_selection(event):
+        global flo_depth
+        if clicked.get() == "Manning (----)":
+            flo_depth = 1
+        if clicked.get() == "Ferguson (2007)":
+            flo_depth = 2
+        root.destroy()
+    
+    root = Tk() # create the little window
+    myLabel = Label(root, text = 'Flow depth caluculation formulas')  
+    myLabel.pack()
+    root.geometry("300x300")
+    #flo_depth = 2 # default value
+    options = ["Manning (----)", "Ferguson (2007)"]
+    clicked = StringVar()
+    clicked.set("Choose an option")
+    
+    drop = OptionMenu(root, clicked, *options, command = flow_depth_selection)
+    drop.pack(pady=20)    
+    root.mainloop() 
+
     def formula_selection(event): 
         global indx_tr_cap
         if clicked.get() == "Engelund and Hansen 1967": 
@@ -70,4 +91,4 @@ def read_user_input():
     drop.pack(pady=20)
     root.mainloop()
     
-    return indx_tr_cap, indx_partition
+    return flo_depth, indx_tr_cap, indx_partition
