@@ -42,16 +42,16 @@ import profile
 
 
 #-------River shape files 
-path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
-name_river_network = 'River_network.shp'
+path_river_network = 'C:\\Sahansila\\UNIPD\\shp_file_slopes_hydro_and_LR\\'
+name_river_network = 'Po_river_network.shp'
 
 #--------Q files
-path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+path_q = 'C:\\Sahansila\\cascade\\input\\'
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Q_Vjosa.csv' 
+name_q = 'Po_Qdaily_3y.csv' 
 
 #--------path to the output folder
-path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
+path_results = "C:\\cascade\\cascade_results\\"
 
 #--------Parameters of the simulation
 
@@ -62,7 +62,7 @@ sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 6        # number of classes
 
 #---Timescale 
-timescale = 10 # days 
+timescale = 1096 # days 
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
@@ -72,7 +72,7 @@ deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite th
 eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
-save_dep_layer = 'always' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
+save_dep_layer = 'never' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
