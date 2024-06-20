@@ -3,7 +3,7 @@
 Created on Mon Oct 10 15:21:34 2022
 
 Input that are required in the ReachData dataframe which define your river network:
-- reach FromN - ToN (FRom Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
+- reach FromN - ToN (From Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
 - deposit = initial deposit layer expressed in m3/m2 - this value will be then multiplied by the reach width and length 
@@ -35,23 +35,23 @@ from numpy import random
 from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
-
 import profile
+
 
 '''user defined input data'''
 
 
-path_river_network = "E:\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
-name_river_network = "Po_river_network.shp"
+#-------River shape files 
+path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+name_river_network = 'River_network.shp'
 
+#--------Q files
+path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+name_q = 'Q_Vjosa.csv' 
 
-path_q = "E:\\cascade\\input\\"
-name_q = 'Po_Qdaily_3y.csv' 
-
-path_results = "E:\\cascade\\cascade_results\\"
-
-
-
+#--------path to the output folder
+path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
 
 #--------Parameters of the simulation
 
@@ -71,10 +71,11 @@ update_slope = False #if False: slope is constant, if True, slope changes accord
 deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
 eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
+#---Storing Deposit layer
+save_dep_layer = 'always' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-
 
 
 
@@ -102,7 +103,6 @@ else:
 
 
 # Sort ReachData according to the FromN, and organise the Q file accordingly
-
 ReachData = ReachData.sort_values(by = 'FromN')
 Q_new = np.zeros((Q.shape))
 for i, idx in enumerate(ReachData.index): 
@@ -110,13 +110,11 @@ for i, idx in enumerate(ReachData.index):
 Q = pd.DataFrame(Q_new)
 ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
 
-
 # Extract network properties
 Network = graph_preprocessing(ReachData)
 
 # Sediment classes defined in Krumbein phi (φ) scale   
 psi=np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
-
 
 # Sediment classes in mm
 dmi = 2**(-psi).reshape(-1,1)
@@ -130,7 +128,6 @@ n_reaches = len(ReachData)
 # External sediment for all reaches, all classes and all timesteps 
 Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
 
-
 # Define input sediment load in the deposit layer
 deposit = ReachData.deposit*ReachData.Length
 
@@ -143,19 +140,44 @@ for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
     
 # to add deposit layer at a given reach 
-#row = np.array(range(n_classes)).reshape(1,n_classes)  
+#row = np.array(range(n_classes)).reshape(1,n_classes)
 #Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
-
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer) 
 
-# # Exclude variables not included in the plotting yet (sediment divided into classes)
-# data_output_t = copy.deepcopy(data_output)
-# variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
-# for item in variable_names: 
-#     del data_output_t[item]
+# Exclude variables not included in the plotting yet (sediment divided into classes)
+data_output_t = copy.deepcopy(data_output)
+variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
+for item in variable_names: 
+    del data_output_t[item]
+
     
-# # ## Plot results 
-# # keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+import pickle 
+name_file = path_results + 'save_all.p'
+pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
+name_file_ext = path_results + 'save_all_ext.p'
+pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+
+
+# ## Plot results 
+# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+
+
+""" save results as pickled files 
+ 
+import pickle 
+name_file = path_results + 'Po_2018_data_output.p'
+pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
+
+name_file_ext = path_results + 'Po_2018_ext_output_hwidth.p'
+pickle.dump(name_file_ext , open(name_file_ext , "wb"))  # save it into a file named save.p
+
+# load outout 
+extended_output = pickle.load(open(name_file_ext , "rb"))
+data_output = pickle.load(open(name_file , "rb"))
+
+ """
+ 
+#a = profile.run('main()', sort=2)
