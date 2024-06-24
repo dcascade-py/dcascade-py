@@ -29,6 +29,7 @@ from supporting_functions import change_slope
 from transport_capacity_computation import tr_cap_junction
 from transport_capacity_computation import sed_velocity
 from flow_depth_calc import choose_flow_depth
+from slope_reduction import choose_slopeRed
 
 np.seterr(divide='ignore', invalid='ignore')
              
@@ -57,7 +58,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
 
     # Formula selection     
-    flo_depth, indx_tr_cap , indx_partition = read_user_input()
+    flo_depth, slopeRed, indx_tr_cap , indx_partition = read_user_input()
     
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
@@ -165,6 +166,9 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         h, v = choose_flow_depth(ReachData, Slope, Q, t, flo_depth)
         flow_depth[t] = h
         
+        #FP: Slope reductuion functions
+        Slope = choose_slopeRed(ReachData, Slope, Q, t, h, slopeRed)
+
         # store velocities per reach and per class, for this time step
         v_sed = np.zeros((len(psi), n_reaches)) 
         
