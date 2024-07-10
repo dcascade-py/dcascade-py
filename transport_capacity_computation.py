@@ -456,7 +456,7 @@ def choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , 
    
     return tr_cap, Qc
 
-def tr_cap_junction( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition ): 
+def tr_cap_function( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition ): 
     """TR_CAP_JUNCTION refers to the transport capacity equation and partitioning 
     formula chosen by the  user and return the value of the transport capacity 
     and the relative Grain Size Distrubution (pci) for each sediment class in the reach """  
@@ -583,7 +583,7 @@ def sed_velocity( Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel , phi , indx_tr_c
     
     # sediment velocity found in this way is constant for all sed.classes
     if indx_velocity == 2:
-        [ Qtr_cap, pci ] = tr_cap_junction( Fi_r , D50 ,  Slope_t, Q_t, Wac_t, v , h, psi, indx_tr_cap , indx_partition)
+        [ Qtr_cap, pci ] = tr_cap_function( Fi_r , D50 ,  Slope_t, Q_t, Wac_t, v , h, psi, indx_tr_cap , indx_partition)
         v_sed = np.maximum( Qtr_cap/( Wac_t * L_a*(1-phi) * pci ) , minvel)
         
     return v_sed
