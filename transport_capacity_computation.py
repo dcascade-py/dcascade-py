@@ -79,7 +79,7 @@ def Wilcock_Crowe_formula( Fi_r_reach , D50 , Slope , Wac , h, psi):
     if tau.ndim != 0:  
         tau = tau[None,:] # add a dimension for computation 
         
-    tau_r50 = (0.021 + 0.0015*np.exp( -20 * Fr_s ) ) * (rho_w * R * g * D50) # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
+    tau_r50 = (0.021 + 0.015*np.exp( -20 * Fr_s ) ) * (rho_w * R * g * D50) # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
     
     b = 0.67 / (1 + np.exp(1.5 - dmi/D50)) #hiding factor
     
