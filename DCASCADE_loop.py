@@ -165,11 +165,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         #FP: define flow depth and flow velocity from flow_depth_calc
         h, v = choose_flow_depth(ReachData, Slope, Q, t, flo_depth)
         flow_depth[t] = h
-        
+
         #FP: Slope reductuion functions
         Slope = choose_slopeRed(ReachData, Slope, Q, t, h, slopeRed)
 
-        # store velocities per reach and per class, for this time step
         v_sed = np.zeros((len(psi), n_reaches)) 
         
         # deposit layer from previous timestep
@@ -220,7 +219,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
             tr_cap_per_s, Qc = tr_cap_junction(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
-            tr_cap=tr_cap_per_s*24*60*60
+            tr_cap=tr_cap_per_s*24*60*60 #daily
             
             tr_cap_all[t][n,:]=tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
@@ -460,6 +459,12 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             q_m = tr_cap_all[t][:,c]
             tr_cap_class[c][t,:] = q_m     
     
+    Q_out_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
+    for c in range(n_classes): 
+        for t in range(timescale-1): 
+            q_m = Q_out[t][:,c]
+            Q_out_class[c][t,:] = q_m 
+    
     #--Critical discharge per class (put in same format as mob and trans per class)
     if indx_tr_cap == 7:   
         Qc_classes = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
@@ -504,7 +509,9 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Delta Deposit Volume - per class [m^3]': Delta_V_class,
                    'Tr cap sed in the reach - per class [m^3/s]': tr_cap_class,
                    'Sed_velocity [m/day]': V_sed,
-                   'Flow depth': flow_depth
+                   'Flow depth': flow_depth,
+                   'Q_out' : Q_out,
+                   'Q_out_class' : Q_out_class
                    }
 
     if indx_tr_cap == 7:
