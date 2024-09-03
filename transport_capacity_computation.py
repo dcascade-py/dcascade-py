@@ -80,7 +80,6 @@ def Wilcock_Crowe_formula( Fi_r_reach , D50 , Slope , Wac , h, psi):
         tau = tau[None,:] # add a dimension for computation 
         
     tau_r50 = (0.021 + 0.015*np.exp( -20 * Fr_s ) ) * (rho_w * R * g * D50) # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
-    #MISTAKE - here 0.0015 in WC formula 0.015
     
     b = 0.67 / (1 + np.exp(1.5 - dmi/D50)) #hiding factor
     
@@ -372,7 +371,7 @@ def Rickenmann_formula(D50, Slope, Q, Wac):
     
     Qunit = Q / Wac
     
-    e = 3 # in Rickenmann 2001 e = 1.5
+    e = 1.5 # in Rickenmann 2001 e = 1.5
     Qc = 0.065 * ((R - 1) ** 1.67) * (g ** 0.5) * (D50 ** e) * (Slope ** (-1.12)) #critical unit discharge
 
     #Check if Q is smaller than Qc
