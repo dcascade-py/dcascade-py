@@ -230,8 +230,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             # deduce the sediment velocities per class, from the tr_cap in m3/s
             #coef_AL_vel=0.1
-            #Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
-            Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
             Wac = ReachData['Wac'].values[n]
             Svel_i = (Hvel*Wac) * (tr_cap_per_s/np.sum(tr_cap_per_s))*(1-phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
             v_sed_n = tr_cap_per_s/Svel_i 
@@ -467,19 +465,12 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
     #--Critical discharge per class (put in same format as mob and trans per class)
     if indx_tr_cap == 7:   
-        Qc_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
+        Qc_classes = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
         for c in range(n_classes): 
             for t in range(timescale-1): 
                 q_m = Qc_class_all[t][:,c]
-                Qc_class[c][t,:] = q_m
-    
-    V_sed_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
-   
-    for t in range(timescale-1):
-        V_sed[t] = V_sed[t].T  
-        for c in range(n_classes):
-            q_m = V_sed[t][:, c]
-            V_sed_class[c][t, :] = q_m    
+                Qc_classes[c][t,:] = q_m  
+            
     
     #--Total sediment volume leaving the network
     outcum_tot = np.array([np.sum(x) for x in Q_out])
@@ -516,14 +507,13 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Delta Deposit Volume - per class [m^3]': Delta_V_class,
                    'Tr cap sed in the reach - per class [m^3/s]': tr_cap_class,
                    'Sed_velocity [m/day]': V_sed,
-                   'Sed_velocity - per class [m/day]': V_sed_class,
                    'Flow depth': flow_depth,
                    'Q_out' : Q_out,
                    'Q_out_class' : Q_out_class
                    }
 
     if indx_tr_cap == 7:
-        data_output["Qc class"] = Qc_class
+        data_output["Qc class"] = Qc_classes
          
     #all other outputs are included in the extended_output cell variable 
     extended_output = { 'Qbi_tr': Qbi_tr,  
