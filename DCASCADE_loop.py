@@ -26,7 +26,7 @@ from supporting_functions import tr_cap_deposit
 from supporting_functions import matrix_compact 
 from supporting_functions import sed_transfer_simple
 from supporting_functions import change_slope
-from transport_capacity_computation import tr_cap_junction
+from transport_capacity_computation import tr_cap_function
 from transport_capacity_computation import sed_velocity
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
@@ -58,7 +58,13 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
 
     # Formula selection     
-    flo_depth, slopeRed, indx_tr_cap , indx_partition = read_user_input()
+    indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+    
+    # #If you want to fix indexes, commant out the line above and fix manually the indexes
+    # indx_tr_cap = 2 # Wilkock and Crowe 2003 
+    # indx_partition = 4 # Shear stress correction
+    # indx_flo_depth = 1 # Manning
+    # indx_slope_red = 1 # None
     
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
@@ -106,6 +112,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity 
 
     Qc_class_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)]
+    flow_depth = np.zeros((timescale, n_reaches)) 
     
     Delta_V_all = np.zeros((timescale,n_reaches)) # reach mass balance (volumes eroded or deposited)
     Delta_V_class_all = [np.zeros((n_reaches, n_classes)) for _ in range(timescale)]
@@ -156,18 +163,17 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         AL_vol = AL_depth*ReachData['Wac'].values[n][0]*ReachData['Length'].values[n][0]
         AL_vol_all[:,n] = numpy.expand_dims(np.repeat(AL_vol, timescale, axis=0), axis = 1)
         AL_depth_all[:,n] = numpy.expand_dims(np.repeat(AL_depth, timescale, axis=0), axis = 1)
-                    
-    flow_depth = np.zeros((timescale, n_reaches))        
+                           
 
     # start waiting bar    
     for t in tqdm(range(timescale-1)):
         
         #FP: define flow depth and flow velocity from flow_depth_calc
-        h, v = choose_flow_depth(ReachData, Slope, Q, t, flo_depth)
+        h, v = choose_flow_depth(ReachData, Slope, Q, t, indx_flo_depth)
         flow_depth[t] = h
         
-        #FP: Slope reductuion functions
-        Slope = choose_slopeRed(ReachData, Slope, Q, t, h, slopeRed)
+        #FP: Slope reduction functions
+        Slope = choose_slopeRed(ReachData, Slope, Q, t, h, indx_slope_red)
 
         # store velocities per reach and per class, for this time step
         v_sed = np.zeros((len(psi), n_reaches)) 
@@ -219,7 +225,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
-            tr_cap_per_s, Qc = tr_cap_junction(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+            tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             tr_cap=tr_cap_per_s*24*60*60
             
             tr_cap_all[t][n,:]=tr_cap
@@ -310,7 +316,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             #     Fi_mob = Fi_r_act[t][:,n]
                 
             # #OLD: calculate sediment velocity for the mobilized volume in each reach
-            # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, len(Network['NH'])), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
+            v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, len(Network['NH'])), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
             #transfer the sediment volume downstream according to vsed in m/day
             Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
@@ -481,34 +487,35 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     Q = np.array(Q)
     
     
-    
-    
+        
     #--Output struct definition 
     #data_plot contains the most important D_CASCADE outputs 
     data_output = { 'Channel Width [m]': np.repeat(np.array(ReachData['Wac']).reshape(1,-1),len(Qbi_dep), axis = 0), 
                    'Reach Slope':Slope,   
                    'Discharge [m^3/s]': Q[0:timescale,:],                    
-                   'Mobilized volume [m^3]' : QB_mob_sum ,
+                   'Mobilized [m^3]' : QB_mob_sum ,
                    'Transported [m^3]':  tot_tranported,                   
-                   'Transported + deposited sed in the reach [m^3]':tot_sed,   
-                   'D50 deposited layer [m]' :D50_dep, 
+                   'Transported + deposited [m^3]':tot_sed,   
+                   'D50 deposit layer [m]' :D50_dep, 
                    'D50 mobilised layer [m]':D50_mob,
                    'D50 active layer [m]' :D50_AL,  
-                   'Daily trasport capacity [m^3/day]': tr_cap_sum,                   
-                   'Deposited volume[m^3]': V_dep_sum, 
-                   'Delta Deposit Volume [m^3]' : Delta_V_all,
-                   'Transported + deposited sed - per class [m^3/s]':  tot_sed_class, 
-                   'Deposited sed in the reach - per class [m^3/s]' : deposited_class,
-                   'Mobilised sed in the reach - per class [m^3/s]': mobilised_class,
-                   'Transported sed in the reach - per class [m^3/s]': transported_class,
-                   'Delta Deposit Volume - per class [m^3]': Delta_V_class,
-                   'Tr cap sed in the reach - per class [m^3/s]': tr_cap_class,
+                   'Transport capacity [m^3]': tr_cap_sum,                   
+                   'Deposit layer [m^3]': V_dep_sum, 
+                   'Delta deposit layer [m^3]' : Delta_V_all,
+                   'Transported + deposited - per class [m^3]':  tot_sed_class, 
+                   'Deposited - per class [m^3]' : deposited_class,
+                   'Mobilised - per class [m^3]': mobilised_class,
+                   'Transported- per class [m^3]': transported_class,
+                   'Delta deposit layer - per class [m^3]': Delta_V_class,
+                   'Transport capacity - per class [m^3]': tr_cap_class,
                    'Sed_velocity [m/day]': V_sed,
-                   'Flow depth': flow_depth
+                   'Flow depth': flow_depth,
+                   'Active layer [m]': AL_depth_all,
+                   'Maximum erosion layer [m]': eros_max_all, 
                    }
 
     if indx_tr_cap == 7:
-        data_output["Qc class"] = Qc_classes
+        data_output["Qc - per class"] = Qc_classes
          
     #all other outputs are included in the extended_output cell variable 
     extended_output = { 'Qbi_tr': Qbi_tr,  
@@ -519,7 +526,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
                    'Node_el' : Node_el, 
                    }
     
-
     return data_output,extended_output
 
 
