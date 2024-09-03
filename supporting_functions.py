@@ -284,7 +284,7 @@ def track_sed_position( n , v_sed_day , Lngt , psi, Network ,  **kwargs):
 
     if len(kwargs) ==0:
         start_pos = 0
-        
+       
     ## find path downstream
 
     #start_pos (between 0 and 1) defines the position in the reach n where the 
@@ -354,7 +354,72 @@ def track_sed_position( n , v_sed_day , Lngt , psi, Network ,  **kwargs):
     #sed_pos = sed_pos + Lngt(n) * (1 - start_pos); 
     end_reach_ID = path2out[indx_pos] # i find the ID of the destination reach from indx_pos, given the order defined by path2out 
     
-    return sed_pos , end_reach_ID, outind
+    #DD:find reaches that are between, going from reach n to end_reach_ID excluded, for each sed classes
+    #if outind = 1, we take path2out[:]
+    middle_reach_ID=[]
+    for c_id, r_id in enumerate(indx_pos):
+        middle_reach_ID.append(path2out[:] if outind[c_id] else path2out[:r_id])
+
+    return sed_pos , end_reach_ID, middle_reach_ID, outind 
+
+
+# def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
+#     """SED_TRANSFER_SIMPLE takes the matrix of the mobilized layers(V_mob) and the vector of
+#     the sed velocity for each class(v_sed_id) in a reach (n) and returns the 3D matrices containing the
+#     sed volumes in V_mob in their new position at the end of the timestep.
+#     This simple version of the function represents the volume as a point 
+#     sediment parcel delivered from the ToN of the reach n. Thus the volume
+#     has a single destination reach and it never get split. """ 
+    
+#     ##initailize parameters
+#     outlet = Network['NH'][-1]
+
+#     ## find start and end reach of the sed volume after the timestep
+    
+#     # reach_dest is the id of the reach where the sed. volume stops after the timestep 
+#     #p_dest is the position from the from_node of the id reach where the sed. volume stops after the timestep 
+
+#     if n == outlet:  
+#         reach_dest = np.repeat( n , np.shape(v_sed_day)[0])
+#         p_dest = v_sed_day[:,n] + np.array(Lngt[n])
+#     else:
+#         #to find p_end, i track the position of a sediment parcel starting
+#         #from the To_Node of the reach n (i.e. the From_node of the downstream reach).
+#         p_dest , reach_dest , outind = track_sed_position( int(Network['Downstream_Node'][int(n)]) , v_sed_day , Lngt , psi, Network )
+#         p_dest = p_dest + np.array(Lngt[n])
+        
+#     #downdist contains the distanche from the starting reach to all reaches
+#     #downstream
+#     downdist = Network['downstream_distance'][int(n)]
+   
+#     ## find position of the sediment volume
+        
+#     #setout is equal to 1 if the volume in the sed.class left the network
+#     #via the outlet
+#     setout = (np.squeeze(p_dest) - np.array(Lngt[reach_dest]) - downdist[reach_dest].T> 0)*1
+     
+#     #in each row, setplace is equal to 1 in the reach where the sed. volume
+#     #of each class is delivered 
+#     setplace = np.zeros((len(v_sed_day), len(downdist)))
+#     setplace[np.arange(len(v_sed_day)), reach_dest]  = 1
+    
+    
+    
+#     setplace[setout==1,:] = 0
+
+#     ## place volume to destination reach 
+    
+#     Qbi_tr_t = np.zeros((len(Lngt), len(Lngt) , len(setplace)))
+#     Q_out_t = np.zeros ((len(Lngt), len(setplace)))
+    
+#     for c in range(len(setplace)): 
+#         Qbi_tr_t[[V_mob[:,0].astype(int)],:,c] = V_mob[:,c+1][:,None] * setplace[c,:][None,:]
+#         Q_out_t[[V_mob[:,0].astype(int)],:] = V_mob[:,1:] * setout
+               
+
+    
+#     return Qbi_tr_t, Q_out_t , setplace, setout
+
 
 def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     """SED_TRANSFER_SIMPLE takes the matrix of the mobilized layers(V_mob) and the vector of
@@ -370,7 +435,8 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     ## find start and end reach of the sed volume after the timestep
     
     # reach_dest is the id of the reach where the sed. volume stops after the timestep 
-    #p_dest is the position from the from_node of the id reach where the sed. volume stops after the timestep 
+    #p_dest is the position from the from_node of the id reach to where the sed. volume stops after the timestep 
+    # reach_trans are the ids of the reaches that eventually get traversed by Vmob, without stopping
 
     if n == outlet:  
         reach_dest = np.repeat( n , np.shape(v_sed_day)[0])
@@ -378,7 +444,7 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     else:
         #to find p_end, i track the position of a sediment parcel starting
         #from the To_Node of the reach n (i.e. the From_node of the downstream reach).
-        p_dest , reach_dest , outind = track_sed_position( int(Network['Downstream_Node'][int(n)]) , v_sed_day , Lngt , psi, Network )
+        p_dest , reach_dest , reach_middle, outind = track_sed_position( int(Network['Downstream_Node'][int(n)]) , v_sed_day , Lngt , psi, Network )
         p_dest = p_dest + np.array(Lngt[n])
         
     #downdist contains the distanche from the starting reach to all reaches
@@ -395,23 +461,43 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     #of each class is delivered 
     setplace = np.zeros((len(v_sed_day), len(downdist)))
     setplace[np.arange(len(v_sed_day)), reach_dest]  = 1
-    
-    
-    
+            
     setplace[setout==1,:] = 0
 
-    ## place volume to destination reach 
+    # ## place volume to destination reach (old version)
     
-    Qbi_tr_t = np.zeros((len(Lngt), len(Lngt) , len(setplace)))
-    Q_out_t = np.zeros ((len(Lngt), len(setplace)))
+    # Qbi_tr_t = np.zeros((len(Lngt), len(Lngt) , len(setplace)))
+    # Q_out_t = np.zeros ((len(Lngt), len(setplace)))
     
-    for c in range(len(setplace)): 
-        Qbi_tr_t[[V_mob[:,0].astype(int)],:,c] = V_mob[:,c+1][:,None] * setplace[c,:][None,:]
-        Q_out_t[[V_mob[:,0].astype(int)],:] = V_mob[:,1:] * setout
+    # for c in range(len(setplace)): 
+    #     Qbi_tr_t[[V_mob[:,0].astype(int)],:,c] = V_mob[:,c+1][:,None] * setplace[c,:][None,:]
+    #     Q_out_t[[V_mob[:,0].astype(int)],:] = V_mob[:,1:] * setout
                
-
-    
-    return Qbi_tr_t, Q_out_t , setplace, setout
+    ## place volume to destination reach (new version)
+    ## AND place the same volume object in the middle reaches
+    # To do so, we need split V_mob (subVmob) depending on the number of destination reaches
+    Qstop={}
+    Qtrans={}
+    #setout is also considered, because we have two different cases if the outlet is in reach_dest
+    for dest_out  in np.unique(np.array([reach_dest, setout]).T, axis=0): 
+        indices = np.where((reach_dest==dest_out[0]) & (setout==dest_out[1]))[0]
+        if np.all(V_mob[:,indices+1]==0):
+            continue           
+        subVmob = np.zeros(V_mob.shape, dtype=V_mob.dtype)        
+        subVmob[:,0]=V_mob[:,0]    
+        subVmob[:,indices+1]=V_mob[:,indices+1]  
+        if dest_out[1]==0: #setout value =0. We fill Qstop only for volume that are not exiting the system
+            Qstop[dest_out[0]]=subVmob  
+        #In any case we fill Qtrans if they are reaches in reach_middle
+        try:
+            reach_middle_one = np.unique(np.array([reach_middle[i] for i in indices]))
+        except:
+            print("reach_middle[indices] seem to be not all the same. Strange..")
+        for r in reach_middle_one:    #DD:find a way to make sure that reach_middle[indices] are all the same. Normally Yes.
+            Qtrans[r]= subVmob
+        
+    return Qstop, Qtrans
+    # return Qbi_tr_t, Q_out_t , setplace, setout (old version)
 
 
 
