@@ -29,7 +29,7 @@ The formula by Nitsche et al. (2011) is based on the flow depth and the D84
 '''
 
 def slopeRed_Rickenmann(Slope, h, ReachData, t):  
-   factor_a = 1.5 #factopr a between 1-2, tipically 1.5
+   factor_a = 3.5 #factopr a between 1-2, tipically 1.5
    Slope[t] = Slope[t] * (0.092 * Slope[t] ** (-0.35) * (h / ReachData['D90']) ** (0.33)) ** factor_a
    
    return Slope
