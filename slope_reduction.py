@@ -29,20 +29,17 @@ The formula by Nitsche et al. (2011) is based on the flow depth and the D84
 '''
 
 def slopeRed_Rickenmann(Slope, h, ReachData, t):  
-   factor_a = 3.5 #factopr a between 1-2, tipically 1.5
-   Slope[t] = Slope[t] * (0.092 * Slope[t] ** (-0.35) * (h / ReachData['D90']) ** (0.33)) ** factor_a
+   Slope[t] = Slope[t] * (0.092 * Slope[t] ** (-0.35) * (h / ReachData['D90']) ** (0.33)) ** 1.5 #1.5 = factor a
    
    return Slope
    
-def slopeRed_Chiari_Rickenmann(Slope, Q, ReachData, t):
-    factor_a = 2      
-    Slope[t] = Slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * ReachData['D90']**0.47 * Slope[t]**0.19)) ** factor_a
+def slopeRed_Chiari_Rickenmann(Slope, Q, ReachData, t):        
+    Slope[t] = Slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * ReachData['D90']**0.47 * Slope[t]**0.19)) ** 1.5 #1.5 = factor a
     
     return Slope
 
 def slopeRed_Nitsche(Slope, h, ReachData, t):
-    factor_a = 1 #factopr a between 1-2, tipically 1.5
-    Slope[t] = Slope[t] * ((2.5 *((h / ReachData['D84']) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  ReachData['D84'])**(5/3)))) ** factor_a #1.5 = factor e
+    Slope[t] = Slope[t] * ((2.5 *((h / ReachData['D84']) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  ReachData['D84'])**(5/3)))) ** 1.5 #1.5 = factor e
     
     return Slope
 
