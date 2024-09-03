@@ -42,35 +42,34 @@ import profile
 
 
 #-------River shape files 
-path_river_network = 'C:\\VirtualBoxShared\\outputs_rect\\'
-name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok.shp'
+path_river_network = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+name_river_network = 'River_network.shp'
 
-path_q = 'C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\DischargeSims\\'
-name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29.csv' # timestep = 3287
-#name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29_10yInitiation.csv' # timestep = 6937
+#--------Q files
+path_q = 'C:\\Users\\user1\\Documents\\dcascade_py\\Input\\input_trial\\'
+# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+name_q = 'Q_Vjosa.csv' 
 
-
-
-path_results = 'C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\dCascade_Results\\Simualtions\\2014-22_daily_new_v6\\'
-
+#--------path to the output folder
+path_results = "C:\\Users\\user1\\Documents\\Po_local\\validation\\cascade_results\\"
 
 #--------Parameters of the simulation
 
 #---Sediment classes definition 
 # defines the sediment sizes considered in the simulation
 #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-10, -1]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
-n_classes = 10        # number of classes
+sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+n_classes = 6        # number of classes
 
 #---Timescale 
-timescale = 3287 # days 
+timescale = 10 # days 
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes
-deposit_layer = 0.5   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
-#eros_max = 0.3             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
+eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'always' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
@@ -87,50 +86,6 @@ ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) 
 
 # Define the initial deposit layer per each reach in [m3/m]
 ReachData['deposit'] = np.repeat(deposit_layer, len(ReachData))
-
-deposit_nodes = [
-    #Solda
-    1, 3, 4, 5, 6, 7, 8, 
-    #Trafoi             
-    29, 30, 31, 32, 34, 37, 38              
-                 ] #FromN
-'''
-deposit_nodes = [
-    #Solda
-    1, 
-    #Trafoi             
-    29,  
-    #both
-    24,25,26,27,28             
-                 ] 
-'''
-#ReachData['deposit'] = 0
-ReachData.loc[ReachData['FromN'].isin(deposit_nodes), 'deposit'] = 100000
-'''
-ReachData['Wac'] = ReachData['Wac_BF']
-
-decreaseWac_nodes = [
-    #Solda
-    1, 3, 4, 5, 6, 7, 8, 15, 16, 17, 23,
-
-    #Trafoi
-    29, 31, 32, 34, 36, 37, 44                  
-                 ]
-
-ReachData.loc[ReachData['FromN'].isin(decreaseWac_nodes), 'Wac'] = (
-    ReachData.loc[ReachData['FromN'].isin(decreaseWac_nodes), 'Wac'] * (1/2)
-).round().astype(int)
-'''
-
-increaseGSD_nodes = [
-    #Solda
-    21, 22, 23            
-                 ]
-ReachData.loc[ReachData['FromN'].isin(increaseGSD_nodes), 'D16'] *= 2
-ReachData.loc[ReachData['FromN'].isin(increaseGSD_nodes), 'D50'] *= 2
-ReachData.loc[ReachData['FromN'].isin(increaseGSD_nodes), 'D84'] *= 2
-ReachData.loc[ReachData['FromN'].isin(increaseGSD_nodes), 'D90'] *= 2
-
 
 # Read/define the water discharge 
 # but first, we check automatically the delimiter (; or ,) and if Q file has headers or not:
@@ -197,32 +152,32 @@ variable_names = [data for data in data_output_t.keys() if data.endswith('per cl
 for item in variable_names: 
     del data_output_t[item]
 
-'''    
+    
 import pickle 
 name_file = path_results + 'save_all.p'
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
 name_file_ext = path_results + 'save_all_ext.p'
 pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
-'''
+
 
 # ## Plot results 
 # keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
 
-# save results as pickled files 
-
+""" save results as pickled files 
+ 
 import pickle 
-name_file = path_results + 'Solda_14-22_WC_SSC_hFerg_SredR_a1p5_dep.p'
+name_file = path_results + 'Po_2018_data_output.p'
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-#name_file_ext = path_results + 'Po_2018_ext_output_hwidth.p'
-#pickle.dump(name_file_ext , open(name_file_ext , "wb"))  # save it into a file named save.p
+name_file_ext = path_results + 'Po_2018_ext_output_hwidth.p'
+pickle.dump(name_file_ext , open(name_file_ext , "wb"))  # save it into a file named save.p
 
 # load outout 
-#extended_output = pickle.load(open(name_file_ext , "rb"))
+extended_output = pickle.load(open(name_file_ext , "rb"))
 data_output = pickle.load(open(name_file , "rb"))
 
-
+ """
  
 #a = profile.run('main()', sort=2)
