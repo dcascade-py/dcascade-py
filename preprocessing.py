@@ -235,7 +235,7 @@ def graph_preprocessing( ReachData ):
             
     
     # node hierarchy for CASCADE loop (refers to the position in ReachData, not the reach ID)
-    Nh = np.argsort(numberUpstreamNodes.transpose() , kind = 'mergesort').transpose() 
+    Nh = np.argsort(numberUpstreamNodes.transpose() , kind = 'mergesort')[0]
 
     
     #create Network dict to collect all output data

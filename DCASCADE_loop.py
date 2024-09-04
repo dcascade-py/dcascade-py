@@ -115,8 +115,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     # Initialize node elevation (for each reach the matrix reports the fromN elevation)
     # The last column reports the outlet ToNode elevation (last node of the network), which can never change elevation.
     Node_el = np.zeros((timescale, n_reaches+1))
-    Node_el[0,:] = pd.concat([ReachData['el_FN'], ReachData['el_TN'][outlet]])
-    Node_el[1,:] = pd.concat([ReachData['el_FN'], ReachData['el_TN'][outlet]])
+    Node_el[0,:] = pd.concat([ReachData['el_FN'], ReachData['el_TN'][[outlet]]])
+    Node_el[1,:] = pd.concat([ReachData['el_FN'], ReachData['el_TN'][[outlet]]])
     Node_el[:,-1] =  Node_el[1,-1]
     
     
@@ -159,7 +159,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     Qbi_dep_0 = [np.expand_dims(np.zeros(n_classes+1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)]
     for n in Network['NH']:  
         # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
-        n = int(n)
         q_bin = np.array([Qbi_dep_in[n]])           
         if not q_bin.any(): #if all zeros 
            # Qbi_dep[0][n] = np.hstack((n, np.zeros(n_classes))).reshape(1,-1)
@@ -188,7 +187,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     AL_vol_all=np.zeros((timescale, n_reaches)) #store the volumes
     AL_depth_all=np.zeros((timescale, n_reaches)) #store also the depths 
     for n in Network['NH']:
-        n = n[0]
         Fi_r = Fi_r_act[0][:,n]
         D90 = D_finder(Fi_r, 90, psi)[0,0]
         AL_depth = 2 * D90
@@ -215,8 +213,6 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         
         # loop for all reaches:
         for n in Network['NH']:
-            n = int(n)
-               
             #---1) Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
             V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
 
@@ -329,7 +325,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             V_mob = np.zeros((n_reaches,n_classes+1))
             V_mob[:,0] = np.arange(n_reaches)
             
-            V_mob[:,1:n_classes+1] = np.squeeze(Qbi_mob[t][:,n,:], axis = 1)
+            V_mob[:,1:n_classes+1] = np.squeeze(Qbi_mob[t][:,[n],:], axis = 1)
             V_mob = matrix_compact(V_mob)
             
             # # OLD: calculate GSD of mobilized volume
