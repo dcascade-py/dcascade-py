@@ -37,12 +37,20 @@ np.seterr(divide='ignore', invalid='ignore')
 
 def compute_sediment_velocity_from_tr_cap(v_sed, n, h, Wac, tr_cap_per_s, phi, minvel):
     """
-    Deduce the sediment velocities per class, from the tr_cap in m3/s.
+    Infer the sediment velocities for each sediment class from the transport capacity,
+    expressed in m3/s.
+    The transport capacity is divided by a section of active transport. This section of active
+    transport represents the section of the channel where active transport effectively takes
+    place. Here, we assume that transport only occurs for 10% of the total water height.
+    Furthermore, we assume that this section is proportional to the sediment class fraction,
+    which allows us to have the same velocity for all present sediment classes.
+    
+    INPUT :
     v_sed          = sediment velocities to compute
     n              = reach number
     h              = water height of the reach
     Wac            = river width of the reach
-    tr_cap_per_s   = transport capacity per sediment class in the reach
+    tr_cap_per_s   = transport capacity per sediment class in the reach (m3/s)
     phi            =
     minvel         = minimum velocity to apply
     """
