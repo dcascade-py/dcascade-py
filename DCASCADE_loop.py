@@ -35,6 +35,29 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
+def compute_sediment_velocity_from_tr_cap(v_sed, n, h, Wac, tr_cap_per_s, phi, minvel):
+    """
+    Deduce the sediment velocities per class, from the tr_cap in m3/s.
+    v_sed          = sediment velocities to compute
+    n              = reach number
+    h              = water height of the reach
+    Wac            = river width of the reach
+    tr_cap_per_s   = transport capacity per sediment class in the reach
+    phi            =
+    minvel         = minimum velocity to apply
+    """
+
+    coef_AL_vel = 0.1
+    Hvel = coef_AL_vel * h     # the section height is proportional to the water height h
+    # Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
+    Svel_i = (Hvel * Wac) * (tr_cap_per_s / np.sum(tr_cap_per_s)) * (1 - phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
+    v_sed_n = tr_cap_per_s / Svel_i
+    v_sed_n[np.isnan(v_sed_n)] = 0            # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0
+    v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
+    v_sed[:,n] = v_sed_n
+
+    return v_sed
+
 def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer):
     """INPUT :
     ReachData      = nx1 Struct defining the features of the network reaches
@@ -234,17 +257,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             if indx_tr_cap == 7:
                 Qc_class_all[t][n,:]=Qc
 
-            
-            # deduce the sediment velocities per class, from the tr_cap in m3/s
-            coef_AL_vel=0.1
-            Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
-            # Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
-            Wac = ReachData['Wac'].values[n]
-            Svel_i = (Hvel*Wac) * (tr_cap_per_s/np.sum(tr_cap_per_s))*(1-phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
-            v_sed_n = tr_cap_per_s/Svel_i 
-            v_sed_n[np.isnan(v_sed_n)] = 0            # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0            
-            v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
-            v_sed[:,n] = v_sed_n
+            v_sed = compute_sediment_velocity_from_tr_cap(v_sed, n, h.values[n], ReachData['Wac'].values[n], tr_cap_per_s, phi, minvel)
              
               
             #----3) Finds the volume of sediment from the total incoming load of that day [m3/d] and of the deposit layer to be included in the maximum erodible layer
