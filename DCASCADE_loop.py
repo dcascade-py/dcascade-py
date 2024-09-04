@@ -193,7 +193,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             else: 
                 vect = np.c_[np.repeat(n, Qbi_input[t][n,:].shape[0]), Qbi_input[t][n,:]]
             
-            Qbi_incoming  =  np.r_[(np.c_[np.array(range(len(Network['NH']))), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
+            Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
             Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
             
             if Qbi_incoming.size == 0:
@@ -304,8 +304,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         for n in Network['NH']:
             #load mobilized volume for reach n
             
-            V_mob = np.zeros((len(Network['NH']),len(psi)+1))
-            V_mob[:,0] = np.arange(len(Network['NH']))
+            V_mob = np.zeros((n_reaches,len(psi)+1))
+            V_mob[:,0] = np.arange(n_reaches)
             
             V_mob[:,1:len(psi)+1] = np.squeeze(Qbi_mob[t][:,n,:], axis = 1)
             V_mob = matrix_compact(V_mob)
@@ -316,7 +316,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             #     Fi_mob = Fi_r_act[t][:,n]
                 
             # #OLD: calculate sediment velocity for the mobilized volume in each reach
-            v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, len(Network['NH'])), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
+            # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, n_reaches), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
             #transfer the sediment volume downstream according to vsed in m/day
             Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
