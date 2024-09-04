@@ -188,12 +188,13 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     AL_vol_all=np.zeros((timescale, n_reaches)) #store the volumes
     AL_depth_all=np.zeros((timescale, n_reaches)) #store also the depths 
     for n in Network['NH']:
+        n = n[0]
         Fi_r = Fi_r_act[0][:,n]
-        D90 = D_finder(Fi_r, 90, psi )[0,0]       
-        AL_depth = 2*D90
-        AL_vol = AL_depth*ReachData['Wac'].values[n][0]*ReachData['Length'].values[n][0]
-        AL_vol_all[:,n] = numpy.expand_dims(np.repeat(AL_vol, timescale, axis=0), axis = 1)
-        AL_depth_all[:,n] = numpy.expand_dims(np.repeat(AL_depth, timescale, axis=0), axis = 1)
+        D90 = D_finder(Fi_r, 90, psi)[0,0]
+        AL_depth = 2 * D90
+        AL_vol = AL_depth * ReachData['Wac'].values[n] * ReachData['Length'].values[n]
+        AL_vol_all[:,n] = np.repeat(AL_vol, timescale, axis=0)
+        AL_depth_all[:,n] = np.repeat(AL_depth, timescale, axis=0)
                            
 
     # start waiting bar    
