@@ -176,7 +176,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         Slope = choose_slopeRed(ReachData, Slope, Q, t, h, indx_slope_red)
 
         # store velocities per reach and per class, for this time step
-        v_sed = np.zeros((len(psi), n_reaches)) 
+        v_sed = np.zeros((n_classes, n_reaches))
         
         # deposit layer from previous timestep
         Qbi_dep_old=copy.deepcopy(Qbi_dep_0)
@@ -197,7 +197,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
             
             if Qbi_incoming.size == 0:
-                Qbi_incoming = np.hstack((n, np.zeros(len(psi)))) # put an empty cascade if no incoming volumes are present (for computation)
+                Qbi_incoming = np.hstack((n, np.zeros(n_classes))) # put an empty cascade if no incoming volumes are present (for computation)
             
             if Qbi_incoming.ndim == 1:
                 Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
@@ -268,7 +268,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             #if removing empty rows leaves only an Qbi_dep{t,n} empty
             # matrix, put an empty layer
             if  (Qbi_dep_0[n]).size == 0 :
-                Qbi_dep_0[n] = np.float32(np.append(n, np.zeros(len(psi))).reshape(1,-1))
+                Qbi_dep_0[n] = np.float32(np.append(n, np.zeros(n_classes)).reshape(1,-1))
                 
 
    
@@ -304,10 +304,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
         for n in Network['NH']:
             #load mobilized volume for reach n
             
-            V_mob = np.zeros((n_reaches,len(psi)+1))
+            V_mob = np.zeros((n_reaches,n_classes+1))
             V_mob[:,0] = np.arange(n_reaches)
             
-            V_mob[:,1:len(psi)+1] = np.squeeze(Qbi_mob[t][:,n,:], axis = 1)
+            V_mob[:,1:n_classes+1] = np.squeeze(Qbi_mob[t][:,n,:], axis = 1)
             V_mob = matrix_compact(V_mob)
             
             # # OLD: calculate GSD of mobilized volume
