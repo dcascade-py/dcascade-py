@@ -35,6 +35,7 @@ from numpy import random
 from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
+from widget import read_user_input
 import profile
 import os
 
@@ -145,8 +146,17 @@ Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)]
 for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
 
+# Formula selection
+indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+# If you want to fix indexes, comment the line above and fix manually the indexes
+#indx_tr_cap = 2 # Wilkock and Crowe 2003
+#indx_partition = 4 # Shear stress correction
+#indx_flo_depth = 1 # Manning
+#indx_slope_red = 1 # None
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer) 
+data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red,
+                                             ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                             roundpar, update_slope, eros_max, save_dep_layer)
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)

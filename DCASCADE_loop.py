@@ -18,7 +18,6 @@ import copy
 import sys
 import os
 
-from widget import read_user_input
 from supporting_functions import D_finder
 from supporting_functions import sortdistance
 from supporting_functions import layer_search
@@ -65,17 +64,22 @@ def compute_sediment_velocity_from_tr_cap(v_sed, n, h, Wac, tr_cap_per_s, phi, m
 
     return v_sed
 
-def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer):
+def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, ReachData, Network, Q,
+                   Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer):
     """INPUT :
+    indx_tr_cap    = the index indicating the transport capacity formula
+    indx_partition = the index indicating the type of sediment flux partitioning
+    indx_flo_depth = the index indicating the flow depth formula
+    indx_slope_red = the index indicating the slope reduction formula
     ReachData      = nx1 Struct defining the features of the network reaches
     Network        = 1x1 struct containing for each node info on upstream and downstream nodes
     Q              = txn matrix reporting the discharge for each timestep
-    Qbi_input       = per each reach and per each timestep is defined an external sediment input of a certain sediment class 
-    Qbi_dep_in          = deposit of a sediment material known to be at a certain reach 
+    Qbi_input      = per each reach and per each timestep is defined an external sediment input of a certain sediment class
+    Qbi_dep_in     = deposit of a sediment material known to be at a certain reach
                      (it could be that for the same reach id, there are two strata defined so two rows of the dataframe with the top row is the deepest strata)
     timescale      = length for the time horizion considered
     psi            = sediment classes considered (from coarse to fine)
-    roundpar       = mimimum volume to be considered for mobilization of subcascade 
+    roundpar       = mimimum volume to be considered for mobilization of subcascade
                      (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
     update_slope   = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope changes according to sediment deposit.
     eros_max       = maximum erosion depth per time step [m]
@@ -84,22 +88,10 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     data_output      = struct collecting the main aggregated output matrices 
     extended_output  = struct collecting the raw D-CASCADE output datasets"""
     
-    
-    
-
-    # Formula selection     
-    indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
-    
-    # #If you want to fix indexes, commant out the line above and fix manually the indexes
-    # indx_tr_cap = 2 # Wilkock and Crowe 2003 
-    # indx_partition = 4 # Shear stress correction
-    # indx_flo_depth = 1 # Manning
-    # indx_slope_red = 1 # None
-    
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
     ################### Fixed parameters
-    phi = 0.4 #sediment porosity in the maximum active layer
+    phi = 0.4 # sediment porosity in the maximum active layer
     minvel = 0.0000001
     outlet = Network['NH'][-1] #outlet reach ID identification
     n_reaches = len(ReachData)
