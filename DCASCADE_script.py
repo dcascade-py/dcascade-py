@@ -52,7 +52,7 @@ name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29.csv' # timest
 #name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29_10yInitiation.csv' # timestep = 6937
 
 #--------path to the output folder
-path_results = 'C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\dCascade_Results\\Simualtions\\2014-22_daily_new_v6\\'
+path_results = 'C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\dCascade_Results\\Simualtions\\2014-22_daily_sep24\\'
 
 
 #--------Parameters of the simulation
@@ -65,14 +65,14 @@ n_classes = 10       # number of classes
 
 
 #---Timescale 
-timescale = 3287  # days 
-
+timescale = 50 #3287  # days 
+timestep = 60*60*24 # seconds per timescale unit - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes
-deposit_layer = 0.5   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
+deposit_layer = 0.1   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
 eros_max = 0.3             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
@@ -104,7 +104,7 @@ ReachData.loc[ReachData['FromN'].isin(deposit_nodes), 'deposit'] = 100000
 
 increaseGSD_nodes = [
     #Solda
-    21, 22, 23            
+    21, 22, 23,             
                  ]
 
 ReachData.loc[ReachData['FromN'].isin(increaseGSD_nodes), 'D16'] *= 2
@@ -166,7 +166,7 @@ for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
 
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer, timestep) 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
@@ -181,13 +181,13 @@ import pickle
 if not os.path.exists(path_results):   #does the output folder exist ?   
     os.makedirs(path_results)          # if not, create it.
     
-name_file = path_results + 'Solda_14-22_WC_SSC_hFerg_SredR_a1p5_dep.p'
+name_file = path_results + 'Solda_14-22_WC_SSC_hFerg_SredR_a1p5_dep0p1.p'
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
 #name_file_ext = path_results + 'save_all_ext.p'
 #pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
-
+'''
 
 # ## Plot results 
-# keep_slider = dynamic_plot(data_output_t, ReachData, psi)
-'''
+#keep_slider = dynamic_plot(data_output_t, ReachData, psi)
+

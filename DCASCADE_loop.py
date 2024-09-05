@@ -35,7 +35,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer):
+def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer, timestep):
     """INPUT :
     ReachData      = nx1 Struct defining the features of the network reaches
     Network        = 1x1 struct containing for each node info on upstream and downstream nodes
@@ -58,13 +58,13 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
 
     # Formula selection     
-    indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+    #indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
     
     # #If you want to fix indexes, commant out the line above and fix manually the indexes
-    # indx_tr_cap = 2 # Wilkock and Crowe 2003 
-    # indx_partition = 4 # Shear stress correction
-    # indx_flo_depth = 1 # Manning
-    # indx_slope_red = 1 # None
+    indx_tr_cap = 2 # Wilkock and Crowe 2003 
+    indx_partition = 4 # Shear stress correction
+    indx_flo_depth = 2 # Manning
+    indx_slope_red = 2 # None
     
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
@@ -210,7 +210,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             # define incoming matrix in [m3/s]
             Qbi_incoming_per_s=copy.deepcopy(Qbi_incoming)
-            Qbi_incoming_per_s[:,1:]=Qbi_incoming_per_s[:,1:]/(60*60*24)             
+            Qbi_incoming_per_s[:,1:]=Qbi_incoming_per_s[:,1:]/(timestep)             
                         
             # find the fraction of sediments in the active layer Fi_r_act. 
             # The active layer is made of incoming load in [m3/s], and if it needs to be completed, of deposit layer sediments
@@ -226,7 +226,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
-            tr_cap=tr_cap_per_s*24*60*60
+            tr_cap=tr_cap_per_s * timestep
             
             tr_cap_all[t][n,:]=tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
@@ -319,7 +319,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, len(Network['NH'])), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
             #transfer the sediment volume downstream according to vsed in m/day
-            Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
+            Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple( V_mob , n , v_sed*timestep , ReachData['Length'], Network, psi )
 
             # Sum the volumes transported from reach n with all the other 
             # volumes mobilized by all the other reaches at time
@@ -327,7 +327,7 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             Q_out[t] =  Q_out[t] + Q_out_t
             
         # store vsed per class and per reach, of this day, in m/day
-        V_sed[t] = v_sed*(60*60*24)
+        V_sed[t] = v_sed*timestep
             
         del Qbi_tr_t,Q_out_t
         
