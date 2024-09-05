@@ -248,7 +248,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             tr_cap_sum[t,n] = np.sum(tr_cap)
             
             if indx_tr_cap == 7:
-                Qc_class_all[t][n,:]=Qc
+                Qc_class_all[t,n,:]=Qc
             
             # Compute velocity (in m/s) from tr_cap , using a section of height Hvel
             # coef_AL_vel = 0.1
