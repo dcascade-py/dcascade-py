@@ -36,22 +36,26 @@ from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
 import profile
+import os
+
+a=1
 
 
 '''user defined input data'''
 
 
 #-------River shape files 
-path_river_network = 'C:\\Sahansila\\UNIPD\\shp_file_slopes_hydro_and_LR\\'
-name_river_network = 'Po_river_network.shp'
+path_river_network = 'Input\\input_trial\\'
+name_river_network = 'River_Network.shp'
 
 #--------Q files
-path_q = 'C:\\Sahansila\\cascade\\input\\'
+path_q = 'Input\\input_trial\\'
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Po_Qdaily_3y.csv' 
+name_q = 'Q_Vjosa.csv' 
 
 #--------path to the output folder
-path_results = "C:\\cascade\\cascade_results\\"
+path_results = "..\\cascade_results\\"
+
 
 #--------Parameters of the simulation
 
@@ -61,15 +65,17 @@ path_results = "C:\\cascade\\cascade_results\\"
 sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
 n_classes = 6        # number of classes
 
+
 #---Timescale 
-timescale = 1096 # days 
+timescale = 10 # days 
+
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes
 deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
-eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+eros_max = 1             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'never' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
@@ -138,10 +144,6 @@ Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84 , psi)
 Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] 
 for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
-    
-# to add deposit layer at a given reach 
-#row = np.array(range(n_classes)).reshape(1,n_classes)
-#Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer) 
@@ -152,8 +154,12 @@ variable_names = [data for data in data_output_t.keys() if data.endswith('per cl
 for item in variable_names: 
     del data_output_t[item]
 
-    
+# Save results as pickled files     
 import pickle 
+
+if not os.path.exists(path_results):   #does the output folder exist ?   
+    os.makedirs(path_results)          # if not, create it.
+    
 name_file = path_results + 'save_all.p'
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
@@ -164,20 +170,3 @@ pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file
 # ## Plot results 
 # keep_slider = dynamic_plot(data_output_t, ReachData, psi)
 
-
-""" save results as pickled files 
- 
-import pickle 
-name_file = path_results + 'Po_2018_data_output.p'
-pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
-
-name_file_ext = path_results + 'Po_2018_ext_output_hwidth.p'
-pickle.dump(name_file_ext , open(name_file_ext , "wb"))  # save it into a file named save.p
-
-# load outout 
-extended_output = pickle.load(open(name_file_ext , "rb"))
-data_output = pickle.load(open(name_file , "rb"))
-
- """
- 
-#a = profile.run('main()', sort=2)

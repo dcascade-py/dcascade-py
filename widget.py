@@ -11,27 +11,7 @@ from tkinter import Label, Tk, StringVar, OptionMenu  # for widget
 
 def read_user_input(): 
     
-    def flow_depth_selection(event):
-        global flo_depth
-        if clicked.get() == "Manning (----)":
-            flo_depth = 1
-        if clicked.get() == "Ferguson (2007)":
-            flo_depth = 2
-        root.destroy()
     
-    root = Tk() # create the little window
-    myLabel = Label(root, text = 'Flow depth caluculation formulas')  
-    myLabel.pack()
-    root.geometry("300x300")
-    #flo_depth = 2 # default value
-    options = ["Manning (----)", "Ferguson (2007)"]
-    clicked = StringVar()
-    clicked.set("Choose an option")
-    
-    drop = OptionMenu(root, clicked, *options, command = flow_depth_selection)
-    drop.pack(pady=20)    
-    root.mainloop() 
-
     def formula_selection(event): 
         global indx_tr_cap
         if clicked.get() == "Engelund and Hansen 1967": 
@@ -46,15 +26,17 @@ def read_user_input():
             indx_tr_cap = 5
         elif clicked.get() == "Ackers and White formula 1973": 
             indx_tr_cap = 6
+        elif clicked.get() == "Rickenmann 2001":
+            indx_tr_cap = 7
         root.destroy()
     
     root = Tk() # create the little window
     myLabel = Label(root, text = 'Sediment transport formulas')  
     myLabel.pack()
     root.geometry("300x300")
-    #indx_tr_cap = 3 # default value
+    #indx_tr_cap = 2 # default value
     options = ["Engelund and Hansen 1967", "Wilkock and Crowe 2003", "Parker and Klingeman 1982",
-               "Yang formula 1989", "Wong and Parker 2006", "Ackers and White formula 1973"]
+               "Yang formula 1989", "Wong and Parker 2006", "Ackers and White formula 1973", "Rickenmann 2001"]
     clicked = StringVar()
     clicked.set("Choose an option")
     
@@ -91,4 +73,50 @@ def read_user_input():
     drop.pack(pady=20)
     root.mainloop()
     
-    return flo_depth, indx_tr_cap, indx_partition
+    def flow_depth_selection(event):
+        global flo_depth
+        if clicked.get() == "Manning":
+            flo_depth = 1
+        if clicked.get() == "Ferguson (2007)":
+            flo_depth = 2
+        root.destroy()
+    
+    root = Tk() # create the little window
+    myLabel = Label(root, text = 'Flow depth calculation formulas')  
+    myLabel.pack()
+    root.geometry("300x300")
+    #flo_depth = 2 # default value
+    options = ["Manning", "Ferguson (2007)"]
+    clicked = StringVar()
+    clicked.set("Choose an option")
+    
+    drop = OptionMenu(root, clicked, *options, command = flow_depth_selection)
+    drop.pack(pady=20)    
+    root.mainloop() 
+
+    def slope_reduction_selection(event):
+        global slopeRed
+        if clicked.get() == "None":
+            slopeRed = 1        
+        if clicked.get() == "Rickenmann (2005)":
+            slopeRed = 2
+        if clicked.get() == "Rickenmann & Chiari (2011)":
+            slopeRed = 3
+        if clicked.get() == "Nitsche et al. (2011)":
+            slopeRed = 4
+        root.destroy()
+        
+    root = Tk() # create the little window
+    myLabel = Label(root, text = 'Slope reduction formulas')  
+    myLabel.pack()
+    root.geometry("300x300")
+    #slopeRed = 1 # default value
+    options = ["None", "Rickenmann (2005)", "Rickenmann & Chiari (2011)", "Nitsche et al. (2011)"]
+    clicked = StringVar()
+    clicked.set("Choose an option")
+    
+    drop = OptionMenu(root, clicked, *options, command = slope_reduction_selection)
+    drop.pack(pady=20)    
+    root.mainloop()
+    
+    return indx_tr_cap, indx_partition, flo_depth, slopeRed 
