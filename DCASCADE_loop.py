@@ -486,15 +486,14 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     Q_out_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
     for c in range(n_classes): 
         for t in range(timescale-1): 
-            q_m = Q_out[t][:,c]
+            q_m = Q_out[t,:,c]
             Q_out_class[c][t,:] = q_m 
     
     
     V_sed_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
     for t in range(timescale-1):
-        V_sed[t] = V_sed[t].T  
         for c in range(n_classes):
-            q_m = V_sed[t][:, c]
+            q_m = V_sed[t,c,:]
             V_sed_class[c][t, :] = q_m
         
     #--Total sediment volume leaving the network
