@@ -58,13 +58,13 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
     
 
     # Formula selection     
-    #indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+    indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
     
-    # #If you want to fix indexes, commant out the line above and fix manually the indexes
-    indx_tr_cap = 2 # Wilkock and Crowe 2003 
-    indx_partition = 4 # Shear stress correction
-    indx_flo_depth = 2 # Manning
-    indx_slope_red = 2 # None
+    # # #If you want to fix indexes, commant out the line above and fix manually the indexes
+    # indx_tr_cap = 2 # Wilkock and Crowe 2003 
+    # indx_partition = 4 # Shear stress correction
+    # indx_flo_depth = 2 # Manning
+    # indx_slope_red = 2 # None
     
     indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
 
