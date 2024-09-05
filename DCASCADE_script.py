@@ -38,7 +38,6 @@ from DCASCADE_loop import DCASCADE_main
 import profile
 import os
 
-a=1
 
 
 '''user defined input data'''
