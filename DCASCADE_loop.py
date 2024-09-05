@@ -17,6 +17,7 @@ from tqdm import tqdm
 import copy
 import sys
 import os
+from collections import defaultdict
 
 from widget import read_user_input
 from supporting_functions import D_finder
@@ -269,9 +270,198 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
             
             
                            
-#############################################################
-# # REFACTORING 2
+############################################################
+# REFACTORING 2
 
+    # start waiting bar    
+    for t in tqdm(range(timescale-1)):
+        
+        #FP: define flow depth and flow velocity from flow_depth_calc
+        h, v = choose_flow_depth(ReachData, Slope, Q, t, indx_flo_depth)
+        flow_depth[t] = h
+        
+        #FP: Slope reduction functions
+        Slope = choose_slopeRed(ReachData, Slope, Q, t, h, indx_slope_red)
+
+        # store velocities per reach and per class, for this time step
+        v_sed = np.zeros((len(psi), n_reaches)) 
+        
+        # deposit layer from previous timestep
+        Qbi_dep_old=copy.deepcopy(Qbi_dep_0)
+        
+        #Qs_stop and Qs_trans matrices
+        Qstop_all={}
+        Qtrans_all={}
+                     
+        # loop for all reaches and calculate tr_cap and velocities:
+        for n in Network['NH']:
+            n = int(n)
+                        
+            #---1) Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
+            V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
+
+            if Qbi_input[t][n,:].ndim == 1: 
+                vect = np.expand_dims(np.append(n, Qbi_input[t][n,:]), axis = 0)
+            else: 
+                vect = np.c_[np.repeat(n, Qbi_input[t][n,:].shape[0]), Qbi_input[t][n,:]]
+            
+            Qbi_incoming  =  np.r_[(np.c_[np.array(range(len(Network['NH']))), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
+            Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
+            
+            if Qbi_incoming.size == 0:
+                Qbi_incoming = np.hstack((n, np.zeros(len(psi)))) # put an empty cascade if no incoming volumes are present (for computation)
+            
+            if Qbi_incoming.ndim == 1:
+                Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
+
+            # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first 
+            Qbi_incoming = sortdistance(Qbi_incoming, Network['upstream_distance_list'][n] )
+            
+          
+            #---2) Finds cascades to be included into the active layer in [m3/s], and use the cumulative GSD to compute tr_cap
+            
+            # define incoming matrix in [m3/s]
+            Qbi_incoming_per_s=copy.deepcopy(Qbi_incoming)
+            Qbi_incoming_per_s[:,1:]=Qbi_incoming_per_s[:,1:]/(60*60*24)             
+                        
+            # find the fraction of sediments in the active layer Fi_r_act. 
+            # The active layer is made of incoming load in [m3/s], and if it needs to be completed, of deposit layer sediments
+            _,_,_, Fi_r_act[t][:,n] = layer_search(Qbi_incoming_per_s, V_dep_old, AL_vol_all[0,n], roundpar)
+            
+            # Calculate the D50 of the AL
+            D50_AL[t,n] = D_finder(Fi_r_act[t][:,n], 50, psi)   
+            
+
+            if np.sum(Fi_r_act[t][:,n])==0:
+                Fi_r_act[t][:,n] = Fi_r_act[t-1][:,n] # in case the active layer is empty, I use the GSD of the previous timestep
+            
+            
+            #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
+            tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+            tr_cap=tr_cap_per_s*24*60*60
+            
+            tr_cap_all[t][n,:]=tr_cap
+            tr_cap_sum[t,n] = np.sum(tr_cap)
+            
+            
+            #Critical discharge Qc stored only in the case of Rickenmann 2001 transport formula
+            if indx_tr_cap == 7: 
+                Qc_class_all[t][n,:]=Qc
+            
+            # deduce the sediment velocities per class, from the tr_cap in m3/s
+            coef_AL_vel=0.1
+            Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
+            # Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
+            Wac = ReachData['Wac'].values[n]
+            Svel_i = (Hvel*Wac) * (tr_cap_per_s/np.sum(tr_cap_per_s))*(1-phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
+            v_sed_n = tr_cap_per_s/Svel_i 
+            v_sed_n[np.isnan(v_sed_n)] = 0            # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0            
+            v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
+            v_sed[:,n] = v_sed_n
+            
+            
+        # second loop for calculating Vmob
+        for n in Network['NH']:
+            n = int(n)
+            
+            #---1) Re Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
+            V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
+
+            if Qbi_input[t][n,:].ndim == 1: 
+                vect = np.expand_dims(np.append(n, Qbi_input[t][n,:]), axis = 0)
+            else: 
+                vect = np.c_[np.repeat(n, Qbi_input[t][n,:].shape[0]), Qbi_input[t][n,:]]
+            
+            Qbi_incoming  =  np.r_[(np.c_[np.array(range(len(Network['NH']))), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
+            Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
+            
+            if Qbi_incoming.size == 0:
+                Qbi_incoming = np.hstack((n, np.zeros(len(psi)))) # put an empty cascade if no incoming volumes are present (for computation)
+            
+            if Qbi_incoming.ndim == 1:
+                Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
+
+            # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first 
+            Qbi_incoming = sortdistance(Qbi_incoming, Network['upstream_distance_list'][n] )
+            
+            tr_cap = tr_cap_all[t][n,:]
+                        
+            # 2) look at the Qstop  and Qtrans matrices
+            # Q stop can be directly added in the Qbi_tr(t+1) 
+            for Vm in Qstop_all[n]:
+                Qbi_tr[t+1][[Vm[:,0].astype(int)],n,:]+=Vm[:,1:] #reverifier
+                
+            #We make the sum of Qtrans and compare it to tr_cap
+            concat_trans=np.concatenate(Qtrans_all[n], axis=0)
+            sum_trans=np.sum(concat_trans[:,1:], axis=0)            
+            diff_tr_cap=tr_cap-sum_trans
+            
+            #Negative values in diff_tr_cap are deposited, ie added to Qbi_tr[t+1]
+            diff_neg=-np.where(diff_tr_cap > 0, 0, diff_tr_cap)
+            if np.any(diff_neg):   
+                #We must take diff_neg from Qtrans_all[n]
+                #We take in priority the last cascades of the list, should be the closest reach with the smaller elapsed time (to be verified)
+                removed_quantities = []
+                for V_m in reversed(Qtrans_all[n]):
+                    if np.any(V_m[:,1:]) == False: #V_m may be left empty from upstream operations
+                        del V_m
+                        continue 
+                    removed_row = np.zeros_like(V_m)
+                    removed_row[:,0]=V_m[:,0] #first col with initial provenance
+                    for col_idx in range(V_m[:,1:].shape[1]):  # Loop over columns
+                        if diff_neg[col_idx] > 0:
+                            col_sum = np.sum(V_m[:, col_idx+1])        
+                            if col_sum > 0:
+                                # Calculate the fraction of the column sum to remove
+                                fraction_to_remove = min(diff_neg[col_idx] / col_sum, 1.0)
+                                # Calculate the removed quantities
+                                removed_values = V_m[:, col_idx+1] * fraction_to_remove
+                                # Subtract the removed quantities from the original matrix
+                                V_m[:, col_idx+1] -= removed_values       
+                                # Ensure no negative values
+                                V_m[:, col_idx] = np.where(V_m[:, col_idx+1] < 0, 0, V_m[:, col_idx+1])       
+                                # Store the removed quantities in the new matrix
+                                removed_row[:, col_idx+1] = removed_values               
+                                # Update diff_neg by subtracting the removed quantity
+                                removed_quantity = col_sum * fraction_to_remove
+                                diff_neg[col_idx] -= removed_quantity                                
+                                # Ensure diff_neg doesn't go negative
+                                diff_neg[col_idx] = max(diff_neg[col_idx], 0)                                                               
+                    removed_quantities.append(removed_row)
+            # Important ! Check that modifying Vm modifies it elsewhere in Qstop and Qtrans
+            # Concatenate all removed quantities into a single matrix
+            r_Vmob = np.vstack(removed_quantities) if removed_quantities else np.array([])
+            #add removed_Vmob to Qbi_tr[t+1]
+            Qbi_tr[t+1][[r_Vmob[:,0].astype(int)],n,:]+=r_Vmob[:,1:] #reverifier
+
+            
+            
+            # Positive values in diff_tr_cap must be mobilised from the reach and transfered downstream
+            diff_pos = np.where(diff_tr_cap < 0, 0, diff_tr_cap)
+            if np.any(diff_pos):
+                    
+                V_inc_EL , V_dep_EL ,  V_dep , _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar) 
+             
+                [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)         
+                       
+                #transfer Vmob downstream
+                Qstop, Qtrans = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )  
+                
+                #update Qstop_all, Qtrans_all with respectively Qstop and Qtrans
+                merged_dict = defaultdict(list, Qstop_all)
+                for key, value in Qstop.items():
+                    merged_dict[key].append(value)
+                Qstop_all = dict(merged_dict)
+                
+                merged_dict = defaultdict(list, Qtrans_all)
+                for key, value in Qtrans.items():
+                    merged_dict[key].append(value)
+                Qtrans_all = dict(merged_dict)
+            
+            
+            
+
+# ###########################################################
 #     # start waiting bar    
 #     for t in tqdm(range(timescale-1)):
         
@@ -288,11 +478,8 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 #         # deposit layer from previous timestep
 #         Qbi_dep_old=copy.deepcopy(Qbi_dep_0)
         
-#         #Qs_stop and Qs_trans matrices
-#         Qs_stop={}
-#         Qs_trans={}
-                     
-#         # loop for all reaches and calculate tr_cap and velocities:
+                
+#         # loop for all reaches:
 #         for n in Network['NH']:
 #             n = int(n)
                         
@@ -346,249 +533,122 @@ def DCASCADE_main(ReachData , Network , Q , Qbi_input, Qbi_dep_in, timescale, ps
 #             #Critical discharge Qc stored only in the case of Rickenmann 2001 transport formula
 #             if indx_tr_cap == 7: 
 #                 Qc_class_all[t][n,:]=Qc
+
             
 #             # deduce the sediment velocities per class, from the tr_cap in m3/s
-#             coef_AL_vel=0.1
-#             Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
-#             # Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
+#             # coef_AL_vel=0.1
+#             # Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
+#             Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
 #             Wac = ReachData['Wac'].values[n]
 #             Svel_i = (Hvel*Wac) * (tr_cap_per_s/np.sum(tr_cap_per_s))*(1-phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
 #             v_sed_n = tr_cap_per_s/Svel_i 
 #             v_sed_n[np.isnan(v_sed_n)] = 0            # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0            
 #             v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
 #             v_sed[:,n] = v_sed_n
-            
-            
-#         # second loop for calculating Vmob
-#         for n in Network['NH']:
-#             n = int(n)
-            
-#             Qs_trans[n]
-            
-#             #1) look at the Qstop  and Qtrans matrices
-#             #--> Q stop can be directly put in the Qbi_tr(t+1) (deepcopy the tuples)
-#             #--> put Qs_stop in same format
-#             Qbi_tr[t+1][n]=Qs_stop[n] #à mettre pour t ? On verra, pour l'instant on fait comme ça
-            
-#             #--> Qtrans
-#             # we need to make the sum of it, and compare it to tr_cap, per sediment class
-#             sum_Qs_trans = Qs_trans[n].sum()
-#             diff=sum_Qs_trans-tr_cap[n]
-#             diff_pos = #put to 0 values that are negative in diff. need to be deposited
-#             # we must take diff_pos from Qs_trans[n]
-#             #--> to do
-#             Qbi_tr[t+1][n]=Qbi_tr[t+1][n]+diff_pos
-            
-            
-            
-#             diff_neg = #put to 0 values that are positive in diff. need to be mobilised
-            
-            
-#             # V_inc_EL , V_dep_EL ,  V_dep , _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar) --> not sure when to use it
+             
+              
+#             #----3) Finds the volume of sediment from the total incoming load of that day [m3/d] and of the deposit layer to be included in the maximum erodible layer
+#             V_inc_EL , V_dep_EL ,  V_dep , _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
              
 #             # The tr_cap cumulated over the day [m3/day] is mobilised from the maximum erodible layer
 #             # V_mob is the volumes actually mobilised (if tr_cap reach the max erodible layer, Vmob < tr_cap)
 #             # V_dep is the remaining deposit layer
-#             [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, diff_neg, roundpar)         
-#             #
-            
-#             #transfer Vmob downstream --> to do first
-#             Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
-#             #we must find a way to fill in Qstop and Qtrans in this function for the downstream reaches.
-            
-            
-            
-            
-
-###########################################################
-    # start waiting bar    
-    for t in tqdm(range(timescale-1)):
-        
-        #FP: define flow depth and flow velocity from flow_depth_calc
-        h, v = choose_flow_depth(ReachData, Slope, Q, t, indx_flo_depth)
-        flow_depth[t] = h
-        
-        #FP: Slope reduction functions
-        Slope = choose_slopeRed(ReachData, Slope, Q, t, h, indx_slope_red)
-
-        # store velocities per reach and per class, for this time step
-        v_sed = np.zeros((len(psi), n_reaches)) 
-        
-        # deposit layer from previous timestep
-        Qbi_dep_old=copy.deepcopy(Qbi_dep_0)
-        
-                
-        # loop for all reaches:
-        for n in Network['NH']:
-            n = int(n)
-                        
-            #---1) Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
-            V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
-
-            if Qbi_input[t][n,:].ndim == 1: 
-                vect = np.expand_dims(np.append(n, Qbi_input[t][n,:]), axis = 0)
-            else: 
-                vect = np.c_[np.repeat(n, Qbi_input[t][n,:].shape[0]), Qbi_input[t][n,:]]
-            
-            Qbi_incoming  =  np.r_[(np.c_[np.array(range(len(Network['NH']))), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
-            Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
-            
-            if Qbi_incoming.size == 0:
-                Qbi_incoming = np.hstack((n, np.zeros(len(psi)))) # put an empty cascade if no incoming volumes are present (for computation)
-            
-            if Qbi_incoming.ndim == 1:
-                Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
-
-            # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first 
-            Qbi_incoming = sortdistance(Qbi_incoming, Network['upstream_distance_list'][n] )
-            
-          
-            #---2) Finds cascades to be included into the active layer in [m3/s], and use the cumulative GSD to compute tr_cap
-            
-            # define incoming matrix in [m3/s]
-            Qbi_incoming_per_s=copy.deepcopy(Qbi_incoming)
-            Qbi_incoming_per_s[:,1:]=Qbi_incoming_per_s[:,1:]/(60*60*24)             
-                        
-            # find the fraction of sediments in the active layer Fi_r_act. 
-            # The active layer is made of incoming load in [m3/s], and if it needs to be completed, of deposit layer sediments
-            _,_,_, Fi_r_act[t][:,n] = layer_search(Qbi_incoming_per_s, V_dep_old, AL_vol_all[0,n], roundpar)
-            
-            # Calculate the D50 of the AL
-            D50_AL[t,n] = D_finder(Fi_r_act[t][:,n], 50, psi)   
-            
-
-            if np.sum(Fi_r_act[t][:,n])==0:
-               Fi_r_act[t][:,n] = Fi_r_act[t-1][:,n] # in case the active layer is empty, I use the GSD of the previous timestep
-            
-            
-            #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
-            tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
-            tr_cap=tr_cap_per_s*24*60*60
-            
-            tr_cap_all[t][n,:]=tr_cap
-            tr_cap_sum[t,n] = np.sum(tr_cap)
-            
-            
-            #Critical discharge Qc stored only in the case of Rickenmann 2001 transport formula
-            if indx_tr_cap == 7: 
-                Qc_class_all[t][n,:]=Qc
-
-            
-            # deduce the sediment velocities per class, from the tr_cap in m3/s
-            # coef_AL_vel=0.1
-            # Hvel = coef_AL_vel * h.values[n]     # the section height is proportional to the water height h
-            Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
-            Wac = ReachData['Wac'].values[n]
-            Svel_i = (Hvel*Wac) * (tr_cap_per_s/np.sum(tr_cap_per_s))*(1-phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
-            v_sed_n = tr_cap_per_s/Svel_i 
-            v_sed_n[np.isnan(v_sed_n)] = 0            # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0            
-            v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
-            v_sed[:,n] = v_sed_n
-             
-              
-            #----3) Finds the volume of sediment from the total incoming load of that day [m3/d] and of the deposit layer to be included in the maximum erodible layer
-            V_inc_EL , V_dep_EL ,  V_dep , _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
-             
-            # The tr_cap cumulated over the day [m3/day] is mobilised from the maximum erodible layer
-            # V_mob is the volumes actually mobilised (if tr_cap reach the max erodible layer, Vmob < tr_cap)
-            # V_dep is the remaining deposit layer
-            [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, tr_cap, roundpar)
+#             [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, tr_cap, roundpar)
             
                                
-            # (after this passage, V_mob contains only the volumes actually mobilized)     
-            Qbi_dep_0[n] = np.float32(V_dep)
+#             # (after this passage, V_mob contains only the volumes actually mobilized)     
+#             Qbi_dep_0[n] = np.float32(V_dep)
             
-            #remove empty rows
-            Qbi_dep_0[n] = Qbi_dep_0[n][np.sum(Qbi_dep_0[n][:,1:],axis = 1)!= 0]
+#             #remove empty rows
+#             Qbi_dep_0[n] = Qbi_dep_0[n][np.sum(Qbi_dep_0[n][:,1:],axis = 1)!= 0]
 
-            # Qbi_mob contains the volume mobilized in the reach, that is about to be transfer downstream
-            Qbi_mob[t][V_mob[:,0].astype(int),n,:] = np.float32(V_mob[:,1:]) 
+#             # Qbi_mob contains the volume mobilized in the reach, that is about to be transfer downstream
+#             Qbi_mob[t][V_mob[:,0].astype(int),n,:] = np.float32(V_mob[:,1:]) 
 
-            #if removing empty rows leaves only an Qbi_dep{t,n} empty
-            # matrix, put an empty layer
-            if  (Qbi_dep_0[n]).size == 0 :
-                Qbi_dep_0[n] = np.float32(np.append(n, np.zeros(len(psi))).reshape(1,-1))
+#             #if removing empty rows leaves only an Qbi_dep{t,n} empty
+#             # matrix, put an empty layer
+#             if  (Qbi_dep_0[n]).size == 0 :
+#                 Qbi_dep_0[n] = np.float32(np.append(n, np.zeros(len(psi))).reshape(1,-1))
                 
                 
             
                 
 
    
-            #---- 4) Compute the changes in bed elevation
-            # modify bed elevation according to increased deposit
-            Delta_V = np.sum(Qbi_dep_0[n][:,1:]) -  np.sum(Qbi_dep_old[n][:,1:])
+#             #---- 4) Compute the changes in bed elevation
+#             # modify bed elevation according to increased deposit
+#             Delta_V = np.sum(Qbi_dep_0[n][:,1:]) -  np.sum(Qbi_dep_old[n][:,1:])
             
-            #in case of changing slope
-            if update_slope == True:
-                Node_el[t+1][n]= Node_el[t,n] + Delta_V/( np.sum(ReachData['Wac'][np.append(n, Network['Upstream_Node'][n])] * ReachData['Length'][np.append(n, Network['Upstream_Node'][n])]) * (1-phi) )
+#             #in case of changing slope
+#             if update_slope == True:
+#                 Node_el[t+1][n]= Node_el[t,n] + Delta_V/( np.sum(ReachData['Wac'][np.append(n, Network['Upstream_Node'][n])] * ReachData['Length'][np.append(n, Network['Upstream_Node'][n])]) * (1-phi) )
             
-            #record Delta_V
-            Delta_V_all[t,n] = Delta_V
+#             #record Delta_V
+#             Delta_V_all[t,n] = Delta_V
             
-            # Delta V per class
-            Delta_V_class=np.sum(Qbi_dep_0[n][:,1:], axis=0) -  np.sum(Qbi_dep_old[n][:,1:], axis=0)
-            Delta_V_class_all[t][n,:]=Delta_V_class
+#             # Delta V per class
+#             Delta_V_class=np.sum(Qbi_dep_0[n][:,1:], axis=0) -  np.sum(Qbi_dep_old[n][:,1:], axis=0)
+#             Delta_V_class_all[t][n,:]=Delta_V_class
             
             
-        #Save Qbi_dep according to saving frequency
-        if save_dep_layer=='always':
-            Qbi_dep[t+1]= copy.deepcopy(Qbi_dep_0)  
+#         #Save Qbi_dep according to saving frequency
+#         if save_dep_layer=='always':
+#             Qbi_dep[t+1]= copy.deepcopy(Qbi_dep_0)  
             
-        if save_dep_layer=='yearly':
-            if int(t+2) % 365 == 0 and t!=0:
-                t_y = int((t+2)/365)
-                Qbi_dep[t_y] = copy.deepcopy(Qbi_dep_0)
+#         if save_dep_layer=='yearly':
+#             if int(t+2) % 365 == 0 and t!=0:
+#                 t_y = int((t+2)/365)
+#                 Qbi_dep[t_y] = copy.deepcopy(Qbi_dep_0)
                 
-        # end of the reach loop
+#         # end of the reach loop
         
-        #---5) Move the mobilized volumes to the destination reaches according to the sediment velocity
+#         #---5) Move the mobilized volumes to the destination reaches according to the sediment velocity
 
-        for n in Network['NH']:
-            #load mobilized volume for reach n
+#         for n in Network['NH']:
+#             #load mobilized volume for reach n
             
-            V_mob = np.zeros((len(Network['NH']),len(psi)+1))
-            V_mob[:,0] = np.arange(len(Network['NH']))
+#             V_mob = np.zeros((len(Network['NH']),len(psi)+1))
+#             V_mob[:,0] = np.arange(len(Network['NH']))
             
-            V_mob[:,1:len(psi)+1] = np.squeeze(Qbi_mob[t][:,n,:], axis = 1)
-            V_mob = matrix_compact(V_mob)
+#             V_mob[:,1:len(psi)+1] = np.squeeze(Qbi_mob[t][:,n,:], axis = 1)
+#             V_mob = matrix_compact(V_mob)
             
-            # # OLD: calculate GSD of mobilized volume
-            # Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
-            # if np.isnan(Fi_mob).any():
-            #     Fi_mob = Fi_r_act[t][:,n]
+#             # # OLD: calculate GSD of mobilized volume
+#             # Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
+#             # if np.isnan(Fi_mob).any():
+#             #     Fi_mob = Fi_r_act[t][:,n]
                 
-            # #OLD: calculate sediment velocity for the mobilized volume in each reach
-            # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, len(Network['NH'])), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
+#             # #OLD: calculate sediment velocity for the mobilized volume in each reach
+#             # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, len(Network['NH'])), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
-            #transfer the sediment volume downstream according to vsed in m/day
-            # Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
-            if n == 42:
-                print('caca')
-            Qstop, Qtrans = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
+#             #transfer the sediment volume downstream according to vsed in m/day
+#             # Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
 
-            # # Sum the volumes transported from reach n with all the other 
-            # # volumes mobilized by all the other reaches at time
-            # Qbi_tr[t+1] = Qbi_tr[t+1] + np.float32(Qbi_tr_t)
-            # Q_out[t] =  Q_out[t] + Q_out_t
+#             Qstop, Qtrans = sed_transfer_simple( V_mob , n , v_sed*(60*60*24) , ReachData['Length'], Network, psi )
+
+#             # # Sum the volumes transported from reach n with all the other 
+#             # # volumes mobilized by all the other reaches at time
+#             # Qbi_tr[t+1] = Qbi_tr[t+1] + np.float32(Qbi_tr_t)
+#             # Q_out[t] =  Q_out[t] + Q_out_t
             
-        # store vsed per class and per reach, of this day, in m/day
-        V_sed[t] = v_sed*(60*60*24)
+#         # store vsed per class and per reach, of this day, in m/day
+#         V_sed[t] = v_sed*(60*60*24)
             
-        del Qbi_tr_t,Q_out_t
+#         del Qbi_tr_t,Q_out_t
         
 
-        #in case of changing slope..
-        if update_slope == True:
-            #..change the slope accordingly to the bed elevation
-            Slope[t+1,:], Node_el[t+1,:] = change_slope( Node_el[t+1,:] ,ReachData['Length'], Network, s = min_slope )
+#         #in case of changing slope..
+#         if update_slope == True:
+#             #..change the slope accordingly to the bed elevation
+#             Slope[t+1,:], Node_el[t+1,:] = change_slope( Node_el[t+1,:] ,ReachData['Length'], Network, s = min_slope )
             
-        #measure time of routing
-        #time2   = clock;
+#         #measure time of routing
+#         #time2   = clock;
 
-        #if np.remainder(10, t) == 0:  # save time only at certain timesteps 
-        #   timerout = etime(time2, time1);
+#         #if np.remainder(10, t) == 0:  # save time only at certain timesteps 
+#         #   timerout = etime(time2, time1);
         
-        """end of the time loop"""
+#         """end of the time loop"""
         
 
     # output processing

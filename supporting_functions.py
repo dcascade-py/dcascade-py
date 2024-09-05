@@ -82,8 +82,8 @@ def layer_search(Qbi_incoming, V_dep_old , V_lim_tot_n, roundpar):
         # find active layer
          
         if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty # EB check again 
-            # if the cascades in the deposit have combined
-            # volume that is less then the active layer volume (i've reached the bottom)
+            # if the cascades in the deposit have combined volume,
+            # that is less then the active layer volume (i've reached the bottom)
             
             print(' reach the bottom ....')
 
@@ -463,15 +463,6 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     setplace[np.arange(len(v_sed_day)), reach_dest]  = 1
             
     setplace[setout==1,:] = 0
-
-    # ## place volume to destination reach (old version)
-    
-    # Qbi_tr_t = np.zeros((len(Lngt), len(Lngt) , len(setplace)))
-    # Q_out_t = np.zeros ((len(Lngt), len(setplace)))
-    
-    # for c in range(len(setplace)): 
-    #     Qbi_tr_t[[V_mob[:,0].astype(int)],:,c] = V_mob[:,c+1][:,None] * setplace[c,:][None,:]
-    #     Q_out_t[[V_mob[:,0].astype(int)],:] = V_mob[:,1:] * setout
                
     ## place volume to destination reach (new version)
     ## AND place the same volume object in the middle reaches
@@ -497,7 +488,6 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
             Qtrans[r]= subVmob
         
     return Qstop, Qtrans
-    # return Qbi_tr_t, Q_out_t , setplace, setout (old version)
 
 
 
