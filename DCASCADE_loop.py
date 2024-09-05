@@ -65,7 +65,7 @@ def compute_sediment_velocity_from_tr_cap(v_sed, n, h, Wac, tr_cap_per_s, phi, m
     return v_sed
 
 def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, ReachData, Network, Q,
-                   Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer):
+                   Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer, ts_length):
     """INPUT :
     indx_tr_cap    = the index indicating the transport capacity formula
     indx_partition = the index indicating the type of sediment flux partitioning
@@ -480,7 +480,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         for c in range(n_classes): 
             for t in range(timescale-1): 
                 q_m = Qc_class_all[t,:,c]
-                Qc_classes[c][t,:] = q_m  
+                Qc_class[c][t,:] = q_m  
             
     Q_out_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
     for c in range(n_classes): 

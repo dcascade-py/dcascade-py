@@ -156,7 +156,7 @@ indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red,
                                              ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                             roundpar, update_slope, eros_max, save_dep_layer)
+                                             roundpar, update_slope, eros_max, save_dep_layer, ts_length)
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
