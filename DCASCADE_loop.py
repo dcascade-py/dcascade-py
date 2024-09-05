@@ -34,7 +34,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def compute_sediment_velocity_from_tr_cap(v_sed, n, h, Wac, tr_cap_per_s, phi, minvel):
+def compute_sediment_velocity_from_tr_cap(v_sed, n, Hvel, Wac, tr_cap_per_s, phi, minvel):
     """
     Infer the sediment velocities for each sediment class from the transport capacity,
     expressed in m3/s.
@@ -47,16 +47,13 @@ def compute_sediment_velocity_from_tr_cap(v_sed, n, h, Wac, tr_cap_per_s, phi, m
     INPUT :
     v_sed          = sediment velocities to compute
     n              = reach number
-    h              = water height of the reach
+    Hvel           = height of the section from which the velocity is calculated
     Wac            = river width of the reach
     tr_cap_per_s   = transport capacity per sediment class in the reach (m3/s)
     phi            = sediment porosity in the maximum active layer
     minvel         = minimum velocity to apply
     """
 
-    coef_AL_vel = 0.1
-    Hvel = coef_AL_vel * h                    # the section height is proportional to the water height h
-    # Hvel = AL_depth_all[t,n]                # the section height is the same as the active layer
     Svel = Hvel * Wac * (1 - phi)             # the global section where sediments pass through
     v_sed_n = np.sum(tr_cap_per_s) / Svel     # the velocities are the same for each class
     v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
@@ -251,9 +248,13 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             tr_cap_sum[t,n] = np.sum(tr_cap)
             
             if indx_tr_cap == 7:
-                Qc_class_all[t,n,:]=Qc
-
-            v_sed = compute_sediment_velocity_from_tr_cap(v_sed, n, h.values[n], ReachData['Wac'].values[n], tr_cap_per_s, phi, minvel)
+                Qc_class_all[t][n,:]=Qc
+            
+            # Compute velocity (in m/s) from tr_cap , using a section of height Hvel
+            # coef_AL_vel = 0.1
+            # Hvel = coef_AL_vel * h                # the section height is proportional to the water height h
+            Hvel = AL_depth_all[t,n]                # the section height is the same as the active layer
+            v_sed = compute_sediment_velocity_from_tr_cap(v_sed, n, Hvel, ReachData['Wac'].values[n], tr_cap_per_s, phi, minvel)
              
               
             #----3) Finds the volume of sediment from the total incoming load of that day [m3/d] and of the deposit layer to be included in the maximum erodible layer
