@@ -370,8 +370,9 @@ def Rickenmann_formula(D50, Slope, Q, Wac):
     #Q is on whole width, Qunit = Q/w
     
     Qunit = Q / Wac
-
-    Qc = 0.065 * ((R - 1) ** 1.67) * (g ** 0.5) * (D50 ** 1.5) * (Slope ** (-1.12)) #critical unit discharge
+    
+    factor_e = 1.5
+    Qc = 0.065 * ((R - 1) ** 1.67) * (g ** 0.5) * (D50 ** factor_e) * (Slope ** (-1.12)) #critical unit discharge
 
     #Check if Q is smaller than Qc
     Qarr = np.full_like(Qc, Qunit)

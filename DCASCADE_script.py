@@ -39,7 +39,6 @@ from widget import read_user_input
 import profile
 import os
 
-a=1
 
 
 '''user defined input data'''
@@ -66,10 +65,9 @@ path_results = "..\\cascade_results\\"
 sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
 n_classes = 6        # number of classes
 
-
 #---Timescale 
 timescale = 10 # days 
-
+ts_length = 60*60*24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
@@ -93,6 +91,8 @@ ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) 
 
 # Define the initial deposit layer per each reach in [m3/m]
 ReachData['deposit'] = np.repeat(deposit_layer, len(ReachData))
+
+
 
 # Read/define the water discharge 
 # but first, we check automatically the delimiter (; or ,) and if Q file has headers or not:
@@ -163,6 +163,7 @@ data_output_t = copy.deepcopy(data_output)
 variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
 for item in variable_names: 
     del data_output_t[item]
+    
 
 # Save results as pickled files     
 import pickle 
@@ -173,8 +174,8 @@ if not os.path.exists(path_results):   #does the output folder exist ?
 name_file = path_results + 'save_all.p'
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-name_file_ext = path_results + 'save_all_ext.p'
-pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+#name_file_ext = path_results + 'save_all_ext.p'
+#pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
 
 # ## Plot results 
