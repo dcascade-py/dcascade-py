@@ -66,7 +66,7 @@ n_classes = 10       # number of classes
 
 #---Timescale 
 timescale = 50 #3287  # days 
-timestep = 60*60*24 # seconds per timescale unit - 60*60*24 = daily; 60*60 = hourly
+ts_length = 60*60*24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
@@ -166,7 +166,7 @@ for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
 
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer, timestep) 
+data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer, ts_length) 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)
