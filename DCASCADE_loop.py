@@ -51,16 +51,15 @@ def compute_sediment_velocity_from_tr_cap(v_sed, n, h, Wac, tr_cap_per_s, phi, m
     h              = water height of the reach
     Wac            = river width of the reach
     tr_cap_per_s   = transport capacity per sediment class in the reach (m3/s)
-    phi            =
+    phi            = sediment porosity in the maximum active layer
     minvel         = minimum velocity to apply
     """
 
     coef_AL_vel = 0.1
-    Hvel = coef_AL_vel * h     # the section height is proportional to the water height h
-    # Hvel = AL_depth_all[t,n]               # the section height is the same as the active layer
-    Svel_i = (Hvel * Wac) * (tr_cap_per_s / np.sum(tr_cap_per_s)) * (1 - phi)    # the section for each sediment class is proportional to the fraction in tr_cap, in turn, the velocities are the same for each class
-    v_sed_n = tr_cap_per_s / Svel_i
-    v_sed_n[np.isnan(v_sed_n)] = 0            # if the resulting section Svel_i is 0 (due to 0 fluxes for this class), v_sed is also 0
+    Hvel = coef_AL_vel * h                    # the section height is proportional to the water height h
+    # Hvel = AL_depth_all[t,n]                # the section height is the same as the active layer
+    Svel = Hvel * Wac * (1 - phi)             # the global section where sediments pass through
+    v_sed_n = np.sum(tr_cap_per_s) / Svel     # the velocities are the same for each class
     v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
     v_sed[:,n] = v_sed_n
 
