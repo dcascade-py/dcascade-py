@@ -133,7 +133,7 @@ print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90,
 
 n_reaches = len(ReachData)
 # External sediment for all reaches, all classes and all timesteps 
-Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
+Qbi_input = np.zeros((timescale,n_reaches,n_classes))
 
 # Define input sediment load in the deposit layer
 deposit = ReachData.deposit*ReachData.Length
@@ -142,17 +142,17 @@ deposit = ReachData.deposit*ReachData.Length
 Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84 , psi) 
 
 # Initialise deposit layer 
-Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] 
+Qbi_dep_in = np.zeros((n_reaches,1,n_classes))
 for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
 
 # Formula selection
-indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+# indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
 # If you want to fix indexes, comment the line above and fix manually the indexes
-#indx_tr_cap = 2 # Wilkock and Crowe 2003
-#indx_partition = 4 # Shear stress correction
-#indx_flo_depth = 1 # Manning
-#indx_slope_red = 1 # None
+indx_tr_cap = 2 # Wilkock and Crowe 2003
+indx_partition = 4 # Shear stress correction
+indx_flo_depth = 1 # Manning
+indx_slope_red = 1 # None
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red,
                                              ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
