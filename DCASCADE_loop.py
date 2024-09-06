@@ -502,7 +502,6 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     outcum_tot = np.array([np.sum(x) for x in Q_out])
     
     
-    
     #set all NaN transport capacity to 0
     tr_cap_sum[np.isnan(tr_cap_sum)] = 0 
     
@@ -539,7 +538,8 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
                    'Active layer [m]': AL_depth_all,
                    'Maximum erosion layer [m]': eros_max_all,
                    'Q_out [m^3]' : Q_out,
-                   'Q_out_class [m^3]' : Q_out_class,                   
+                   'Q_out_class [m^3]' : Q_out_class,  
+                   'Q_out_last':outcum_tot
                    }
 
     if indx_tr_cap == 7:
