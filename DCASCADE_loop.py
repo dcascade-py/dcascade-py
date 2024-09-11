@@ -142,6 +142,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         dep_save_number=timescale
     Qbi_dep = [[np.expand_dims(np.zeros(n_classes+1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)] for _ in range(dep_save_number)]
     
+    # Other saving matrices
     Qbi_tr = np.zeros((timescale, n_reaches, n_reaches, n_classes), dtype=numpy.float32) # sediment within the reach AFTER transfer, which also gives the provenance
     Qbi_mob = np.zeros((timescale, n_reaches, n_reaches, n_classes), dtype=numpy.float32) # sediment within the reach BEFORE transfer, which also gives the provenance
     Fi_r_act = np.empty((timescale, n_classes, n_reaches)) # contains grain size distribution of the active layer
