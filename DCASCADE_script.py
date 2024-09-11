@@ -38,7 +38,7 @@ from DCASCADE_loop import DCASCADE_main
 import profile
 import os
 
-a=1
+
 
 
 '''user defined input data'''
@@ -55,7 +55,6 @@ name_q = 'Q_Vjosa.csv'
 
 #--------path to the output folder
 path_results = "..\\cascade_results\\"
-
 
 #--------Parameters of the simulation
 
