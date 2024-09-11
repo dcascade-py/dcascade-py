@@ -301,7 +301,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             # i.e. add the cascade to Qbi_tr[t+1].
             # If the cascade does not stop, 
             # i.e. add the volume to Qbi_pass[n], Qbi_tr[t].
-            t_travel_n = ReachData['Length'][n] / v_sed[:,n]
+            t_travel_n = ReachData['Length'][n] / (v_sed[:,n]*ts_length)
             for cascade in Qbi_pass_from_n_up:
                 t_new = cascade[1] + t_travel_n
                 Vm_stop, Vm_continue = stop_or_not(t_new, cascade[2])
