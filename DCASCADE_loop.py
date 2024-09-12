@@ -539,7 +539,8 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
                    'Active layer [m]': AL_depth_all,
                    'Maximum erosion layer [m]': eros_max_all,
                    'Q_out [m^3]' : Q_out,
-                   'Q_out_class [m^3]' : Q_out_class,                   
+                   'Q_out_class [m^3]' : Q_out_class, 
+                   'Q_out_tot [m^3]': outcum_tot
                    }
 
     if indx_tr_cap == 7:
