@@ -229,8 +229,6 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         
         # loop for all reaches:
         for n in Network['NH']:
-            if n == 1:
-                print('blop')
             #---1) Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
             V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
 
@@ -290,7 +288,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             # concatenate the Qbi_pass if we have many reaches upstream.
             reach_upstream=np.squeeze(Network['Upstream_Node'][n], axis = 1)
             if len(reach_upstream)!=0:
-                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[i] for i in reach_upstream])) 
+                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] for i in reach_upstream])) 
             else:
                 # Case if there is no reach upstream
                 Qbi_pass_from_n_up = [] 
