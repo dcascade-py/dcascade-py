@@ -310,7 +310,11 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
                     Qbi_tr[t, [Vm_continue[:,0].astype(int)], n, :] += Vm_continue[:, 1:]
                 
             
-            # Etape ccompare Qbi_incoming n to tr_cap
+            # Compare Qbi_pass[n] to tr_cap
+            
+            
+            
+            
             #--> depose. Add Qbi_tr[t+1]
             #--> mobilise. Update tr_cap
 

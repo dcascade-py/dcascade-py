@@ -44,19 +44,17 @@ import os
 '''user defined input data'''
 
 
-#----Shape files 
-path_river_network = '..\\Po_case_16y\\Inputs\\06-shp_with_tributaries_updated\\'
-# path_river_network = '..\\Inputs\\04-shp_name_corrected\\'
-name_river_network = 'Po_river_network.shp'
+#-------River shape files 
+path_river_network = 'Input\\input_trial\\'
+name_river_network = 'River_Network.shp'
 
-#----Q files    
-path_q = '..\\Po_case_16y\\Inputs\\'
-# path_q = '..\\Inputs\\'
-name_q = 'Po_Qdaily_16y.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+#--------Q files
+path_q = 'Input\\input_trial\\'
+# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+name_q = 'Q_Vjosa.csv' 
 
-#----output file    
-path_results = "..\\Po_case_16y\\Cascade_outputs\\"
-# path_results = "..\\Cascade_outputs\\"
+#--------path to the output folder
+path_results = "..\\cascade_results\\"
 
 
 #--------Parameters of the simulation
@@ -68,7 +66,7 @@ sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 6        # number of classes
 
 #---Timescale 
-timescale = 100 # days 
+timescale = 10 # days 
 ts_length = 60*60*24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
