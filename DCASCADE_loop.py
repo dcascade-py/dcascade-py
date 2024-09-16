@@ -92,7 +92,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
                     of direct provenance, elapsed time, and the Vmob (p, t, Vmob)
     '''
     removed_Vm_all = []    
-    # order cascade list according to time
+    # order cascade list according to time (DD: verify if this time if the one we want)
     ordered_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x[1]))
     for cascade in ordered_cascade_list:
         Vm = cascade[2]
