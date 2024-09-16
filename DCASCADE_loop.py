@@ -121,8 +121,9 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         dep_save_number=timescale
     Qbi_dep = [[np.expand_dims(np.zeros(n_classes+1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)] for _ in range(dep_save_number)]
     
-    Qbi_tr = np.zeros((timescale, n_reaches, n_reaches, n_classes), dtype=numpy.float32) # sediment within the reach AFTER transfer, which also gives the provenance
-    Qbi_mob = np.zeros((timescale, n_reaches, n_reaches, n_classes), dtype=numpy.float32) # sediment within the reach BEFORE transfer, which also gives the provenance
+    Qbi_tr = [np.zeros((n_reaches,n_reaches,n_classes), dtype=numpy.float32) for _ in range(timescale)] # sediment within the reach AFTER transfer, which also gives the provenance 
+    Qbi_mob = [np.zeros((n_reaches,n_reaches,n_classes), dtype=numpy.float32) for _ in range(timescale)] # sediment within the reach BEFORE transfer, which also gives the provenance 
+    # Note Qbi_tr and Qbi_mob are 3D matrices, if we add the time as a 4th dimension, we can not look at the matrix in spyder. 
     Fi_r_act = np.empty((timescale, n_classes, n_reaches)) # contains grain size distribution of the active layer
     Fi_r_act[0,:] = np.nan
     Q_out = np.zeros((timescale, n_reaches, n_classes)) # amount of material delivered outside the network in each timestep
@@ -211,7 +212,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             else: 
                 vect = np.c_[np.repeat(n, Qbi_input[t,n,:].shape[0]), Qbi_input[t,n,:]]
             
-            Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t,:, n,:]]), vect] # the material present at that time step + potential external mat
+            Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
             Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
             
             if Qbi_incoming.size == 0:
@@ -275,7 +276,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             Qbi_dep_0[n] = Qbi_dep_0[n][np.sum(Qbi_dep_0[n][:,1:],axis = 1)!= 0]
 
             # Qbi_mob contains the volume mobilized in the reach, that is about to be transfer downstream
-            Qbi_mob[t,V_mob[:,0].astype(int),n,:] = np.float32(V_mob[:,1:])
+            Qbi_mob[t][V_mob[:,0].astype(int),n,:] = np.float32(V_mob[:,1:])
 
             #if removing empty rows leaves only an Qbi_dep{t,n} empty
             # matrix, put an empty layer
@@ -318,7 +319,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             
             V_mob = np.zeros((n_reaches,n_classes+1))
             V_mob[:,0] = np.arange(n_reaches)
-            V_mob[:,1:n_classes+1] = np.squeeze(Qbi_mob[t,:,[n],:], axis = 0)
+            V_mob[:,1:n_classes+1] = np.squeeze(Qbi_mob[t][:,[n],:], axis = 1)
             V_mob = matrix_compact(V_mob)
             
             # # OLD: calculate GSD of mobilized volume
@@ -442,7 +443,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             q_t = Qbi_dep[t] # get the time step
             for i, reaches in enumerate(q_t): # get the elements of that class per reach 
                 q_d[0,i] = np.sum(reaches[:,c+1])
-            q_tt = Qbi_tr[t,:,:,c]
+            q_tt = Qbi_tr[t][:,:,c]
             tot_sed_class[c][t,:] = q_d + np.sum(q_tt, axis = 0)
             
     #--Deposited per class         
@@ -459,7 +460,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     
     for c in range(n_classes): 
         for t in range(timescale-1): 
-            q_m = Qbi_mob[t,:,:,c]
+            q_m = Qbi_mob[t][:,:,c]
             mobilised_class[c][t,:] = np.sum(q_m, axis = 0)
 
     #--Transported per class        
@@ -467,7 +468,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     
     for c in range(n_classes): 
         for t in range(timescale-1): 
-            q_m = Qbi_tr[t,:,:,c]
+            q_m = Qbi_tr[t][:,:,c]
             transported_class[c][t,:] = np.sum(q_m, axis = 0)
                         
     #--Tranport capacity per class (put in same format as mob and trans per class)
