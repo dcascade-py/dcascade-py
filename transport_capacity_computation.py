@@ -494,10 +494,63 @@ def tr_cap_function( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap 
     return Qtr_cap, Qc
 
 
-def sed_velocity( Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel , phi , indx_tr_cap, indx_partition, indx_velocity): 
+def sed_velocity(hVel, Wac, tr_cap_per_s, phi, indx_velocity, minvel):
+                 
+    '''
+    This function compute the sediment velocity (in m/s), for each sediment 
+    classes of a given reach n. This calculation is directly done from the 
+    estimated flux (tr_cap) in m3/s, and by dividing it by a section (Active width x transport height). 
+    This function directly impacts the path lengths. 
     
-    """VELOCITY_AW returns the velocity of the sediment (in m/s) for each sediment
-    %lass for each reach using the Engelund Hansen equations (1967)
+    INPUTS:
+    hVel:           height of the total section that we choose for infering velocity from a flux.(reaches x classes) 
+    Wac:            Active width of the reach
+    tr_cap_per_s:   transport capacity of each sediment class in the reach (m3/s)
+    phi:            sediment porosity
+    indx_velocity:  index for choosing the method.
+            1- The same velocity is assigned to all classes, based on the total flux. 
+            Even sediment classes that have 0 fluxes are given a velocity, 
+            in order to make travel sediment of this class that are passing through
+            Conceptually, providing the same velocity to all classes, 
+            is like weighting the section of this class i by its fraction in the flux. 
+            (Si=Stot*Qi/Qtot)
+            2- The class velocity is proportional to the flux. 
+            Sediment class with 0 flux will have 0 velocity, which can be a 
+            problem for sediments of this class that are passing trough..
+            The section is divided by the number of classes, equally ditributing
+            vertical space among classes.
+    minvel:         minimum value for velocity
+    
+    RETURN:
+    v_sed_n:        velocities per class of a given reach.
+    '''
+    Svel = hVel * Wac * (1 - phi)  # the global section where all sediments pass through
+    if indx_velocity == 1:                     
+        v_sed_n = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
+        v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
+        v_sed_n = np.full(len(tr_cap_per_s), v_sed_n) # put the same value for all classes
+    elif indx_velocity == 2:
+        Si = Svel / len(tr_cap_per_s)             # same section for all sediments
+        v_sed_n = np.maximum(tr_cap_per_s/Si , minvel)
+    return v_sed_n
+
+def sed_velocity_OLD(Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel, phi, indx_tr_cap, indx_partition, indx_velocity): 
+    
+    """Function for calculating velocities.
+    OLD method that recalculate the transport capacity in each reach, 
+    using the Fi_r and D50 of the mobilised volume in reach n. 
+    The velocity in each reach (in m/s) is then estimated by dividing the new transport
+    capacity by a section.
+    
+    INPUTS:
+    Fi_r: sediment fractions per class in each reach
+    Slope_t: All reaches slopes at time step t
+    Q_t: All reaches' discharge at time step t
+    Wac_t: All reaches' discharge at time step t
+    v: All reaches' water velocities
+    h: All reaches' water heights 
+    minvel: minimum velocity threshold
+    phi: sediment size class
     
     OUTPUTS:
     v_sed: [cxn] matrix reporting the velocity for each sediment class c for each reach n [m/s]"""
@@ -520,7 +573,7 @@ def sed_velocity( Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel , phi , indx_tr_c
     #  by measuring the trasport capacity for the single sed.classes
     #  indipendenty, we obtain different values of sed. velocity
     
-    if indx_velocity == 1:
+    if indx_velocity == 3:
     
         #choose transport capacity formula
         if indx_tr_cap == 1:
@@ -583,7 +636,7 @@ def sed_velocity( Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel , phi , indx_tr_c
     ## sediment velocity with total transport capacity
     
     # sediment velocity found in this way is constant for all sed.classes
-    if indx_velocity == 2:
+    if indx_velocity == 4:
         [ Qtr_cap, pci ] = tr_cap_function( Fi_r , D50 ,  Slope_t, Q_t, Wac_t, v , h, psi, indx_tr_cap , indx_partition)
         v_sed = np.maximum( Qtr_cap/( Wac_t * L_a*(1-phi) * pci ) , minvel)
         

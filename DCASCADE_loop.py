@@ -27,6 +27,7 @@ from supporting_functions import sed_transfer_simple
 from supporting_functions import change_slope
 from transport_capacity_computation import tr_cap_function
 from transport_capacity_computation import sed_velocity
+from transport_capacity_computation import sed_velocity_OLD
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 
@@ -34,35 +35,11 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def compute_sediment_velocity_from_tr_cap(v_sed, n, Hvel, Wac, tr_cap_per_s, phi, minvel):
-    """
-    Infer the sediment velocities for each sediment class from the transport capacity,
-    expressed in m3/s.
-    The transport capacity is divided by a section of active transport. This section of active
-    transport represents the section of the channel where active transport effectively takes
-    place. Here, we assume that transport only occurs for 10% of the total water height.
-    Furthermore, we assume that this section is proportional to the sediment class fraction,
-    which allows us to have the same velocity for all present sediment classes.
-    
-    INPUT :
-    v_sed          = sediment velocities to compute
-    n              = reach number
-    Hvel           = height of the section from which the velocity is calculated
-    Wac            = river width of the reach
-    tr_cap_per_s   = transport capacity per sediment class in the reach (m3/s)
-    phi            = sediment porosity in the maximum active layer
-    minvel         = minimum velocity to apply
-    """
 
-    Svel = Hvel * Wac * (1 - phi)             # the global section where sediments pass through
-    v_sed_n = np.sum(tr_cap_per_s) / Svel     # the velocities are the same for each class
-    v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
-    v_sed[:,n] = v_sed_n
 
-    return v_sed
-
-def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, ReachData, Network, Q,
-                   Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer, ts_length):
+def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
+                  ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
+                  update_slope, eros_max, save_dep_layer, ts_length):
     """INPUT :
     indx_tr_cap    = the index indicating the transport capacity formula
     indx_partition = the index indicating the type of sediment flux partitioning
@@ -86,8 +63,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     OUTPUT: 
     data_output      = struct collecting the main aggregated output matrices 
     extended_output  = struct collecting the raw D-CASCADE output datasets"""
-    
-    indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
+         
 
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
@@ -253,12 +229,14 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             if indx_tr_cap == 7:
                 Qc_class_all[t,n,:]=Qc
             
-            # Compute velocity (in m/s) from tr_cap , using a section of height Hvel
-            # coef_AL_vel = 0.1
-            # Hvel = coef_AL_vel * h                # the section height is proportional to the water height h
-            Hvel = AL_depth_all[t,n]                # the section height is the same as the active layer
-            v_sed = compute_sediment_velocity_from_tr_cap(v_sed, n, Hvel, ReachData['Wac'].values[n], tr_cap_per_s, phi, minvel)
-             
+            
+            # Compute velocity (in m/s) directly from tr_cap, using a section of height Hvel
+            if indx_velocity == 1 or indx_velocity == 2:
+                # coef_AL_vel = 0.1
+                # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
+                hVel = AL_depth_all[t,n]                # the section height is the same as the active layer
+                v_sed_n = sed_velocity(hVel, ReachData['Wac'].values[n], tr_cap_per_s, phi, indx_velocity, minvel)
+                v_sed[:,n] = v_sed_n 
               
             #----3) Finds the volume of sediment from the total incoming load of that day [m3/d] and of the deposit layer to be included in the maximum erodible layer
             V_inc_EL , V_dep_EL ,  V_dep , _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
@@ -322,13 +300,15 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             V_mob[:,1:n_classes+1] = np.squeeze(Qbi_mob[t][:,[n],:], axis = 1)
             V_mob = matrix_compact(V_mob)
             
-            # # OLD: calculate GSD of mobilized volume
-            # Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
-            # if np.isnan(Fi_mob).any():
-            #     Fi_mob = Fi_r_act[t,:,n]
+            # Calculate sediment velocity by re-aplying the transport capacity 
+            # formula on the mobilised volume Vmob, and in each reach. 
+            if indx_velocity == 3 or indx_velocity == 4:
+                # GSD of mobilized volume
+                Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
+                if np.isnan(Fi_mob).any():
+                    Fi_mob = Fi_r_act[t,:,n]
                 
-            # #OLD: calculate sediment velocity for the mobilized volume in each reach
-            # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, n_reaches), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
+                v_sed = sed_velocity_OLD( np.matlib.repmat(Fi_mob, 1, n_reaches), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
             #transfer the sediment volume downstream according to vsed in m/day
             Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple(V_mob , n , v_sed * ts_length , ReachData['Length'], Network, psi)
