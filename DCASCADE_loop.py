@@ -27,6 +27,7 @@ from supporting_functions import sed_transfer_simple
 from supporting_functions import change_slope
 from transport_capacity_computation import tr_cap_function
 from transport_capacity_computation import sed_velocity
+from transport_capacity_computation import sed_velocity_OLD
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 import itertools
@@ -35,30 +36,7 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-def compute_sediment_velocity_from_tr_cap(v_sed, n, Hvel, Wac, tr_cap_per_s, phi, minvel):
-    """
-    Infer the sediment velocities for each sediment class from the transport capacity,
-    expressed in m3/s.
-    The transport capacity is divided by a section of active transport. This section of active
-    transport represents the section of the channel where active transport effectively takes
-    place. Here, we assume that transport only occurs for 10% of the total water height.
-    Furthermore, we assume that this section is proportional to the sediment class fraction,
-    which allows us to have the same velocity for all present sediment classes.
-    
-    INPUT :
-    v_sed          = sediment velocities to compute
-    n              = reach number
-    Hvel           = height of the section from which the velocity is calculated
-    Wac            = river width of the reach
-    tr_cap_per_s   = transport capacity per sediment class in the reach (m3/s)
-    phi            = sediment porosity in the maximum active layer
-    minvel         = minimum velocity to apply
-    """
 
-    Svel = Hvel * Wac * (1 - phi)             # the global section where sediments pass through
-    v_sed_n = np.sum(tr_cap_per_s) / Svel     # the velocities are the same for each class
-    v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
-    v_sed[:,n] = v_sed_n
 
     return v_sed
 
@@ -150,8 +128,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     OUTPUT: 
     data_output      = struct collecting the main aggregated output matrices 
     extended_output  = struct collecting the raw D-CASCADE output datasets"""
-    
-    indx_velocity = 1 #    # EB: will need to create the option also for the index velocity (with fractional and total transport capacity)
+         
 
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
@@ -185,9 +162,9 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         dep_save_number=timescale
     Qbi_dep = [[np.expand_dims(np.zeros(n_classes+1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)] for _ in range(dep_save_number)]
     
-    # Other saving matrices
-    Qbi_tr = np.zeros((timescale, n_reaches, n_reaches, n_classes), dtype=numpy.float32) # sediment within the reach AFTER transfer, which also gives the provenance
-    Qbi_mob = np.zeros((timescale, n_reaches, n_reaches, n_classes), dtype=numpy.float32) # sediment within the reach BEFORE transfer, which also gives the provenance
+    Qbi_tr = [np.zeros((n_reaches,n_reaches,n_classes), dtype=numpy.float32) for _ in range(timescale)] # sediment within the reach AFTER transfer, which also gives the provenance 
+    Qbi_mob = [np.zeros((n_reaches,n_reaches,n_classes), dtype=numpy.float32) for _ in range(timescale)] # sediment within the reach BEFORE transfer, which also gives the provenance 
+    # Note Qbi_tr and Qbi_mob are 3D matrices, if we add the time as a 4th dimension, we can not look at the matrix in spyder. 
     Fi_r_act = np.empty((timescale, n_classes, n_reaches)) # contains grain size distribution of the active layer
     Fi_r_act[0,:] = np.nan
     Q_out = np.zeros((timescale, n_reaches, n_classes)) # amount of material delivered outside the network in each timestep
@@ -280,8 +257,8 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             else: 
                 vect = np.c_[np.repeat(n, Qbi_input[t,n,:].shape[0]), Qbi_input[t,n,:]]
             
-            Qbi_incoming =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t,:, n,:]]), vect] # the material present at that time step + potential external mat
-            Qbi_incoming = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
+            Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
+            Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
             
             if Qbi_incoming.size == 0:
                 Qbi_incoming = np.hstack((n, np.zeros(n_classes))) # put an empty cascade if no incoming volumes are present (for computation)
@@ -553,7 +530,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             q_t = Qbi_dep[t] # get the time step
             for i, reaches in enumerate(q_t): # get the elements of that class per reach 
                 q_d[0,i] = np.sum(reaches[:,c+1])
-            q_tt = Qbi_tr[t,:,:,c]
+            q_tt = Qbi_tr[t][:,:,c]
             tot_sed_class[c][t,:] = q_d + np.sum(q_tt, axis = 0)
             
     #--Deposited per class         
@@ -570,7 +547,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     
     for c in range(n_classes): 
         for t in range(timescale-1): 
-            q_m = Qbi_mob[t,:,:,c]
+            q_m = Qbi_mob[t][:,:,c]
             mobilised_class[c][t,:] = np.sum(q_m, axis = 0)
 
     #--Transported per class        
@@ -578,7 +555,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     
     for c in range(n_classes): 
         for t in range(timescale-1): 
-            q_m = Qbi_tr[t,:,:,c]
+            q_m = Qbi_tr[t][:,:,c]
             transported_class[c][t,:] = np.sum(q_m, axis = 0)
                         
     #--Tranport capacity per class (put in same format as mob and trans per class)
@@ -651,8 +628,8 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
                    'Active layer [m]': AL_depth_all,
                    'Maximum erosion layer [m]': eros_max_all,
                    'Q_out [m^3]' : Q_out,
-                   'Q_out_class [m^3]' : Q_out_class,  
-                   'Q_out_tot': outcum_tot
+                   'Q_out_class [m^3]' : Q_out_class, 
+                   'Q_out_tot [m^3]': outcum_tot
                    }
 
     if indx_tr_cap == 7:

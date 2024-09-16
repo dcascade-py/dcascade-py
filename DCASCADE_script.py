@@ -44,17 +44,19 @@ import os
 '''user defined input data'''
 
 
-#-------River shape files 
-path_river_network = 'Input\\input_trial\\'
-name_river_network = 'River_Network.shp'
+#----Shape files 
+path_river_network = '..\\Po_case_16y\\Inputs\\06-shp_with_tributaries_updated\\'
+# path_river_network = '..\\Inputs\\04-shp_name_corrected\\'
+name_river_network = 'Po_river_network.shp'
 
-#--------Q files
-path_q = 'Input\\input_trial\\'
-# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Q_Vjosa.csv' 
+#----Q files    
+path_q = '..\\Po_case_16y\\Inputs\\'
+# path_q = '..\\Inputs\\'
+name_q = 'Po_Qdaily_16y.csv' # csv file that specifies the water flows as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
-#--------path to the output folder
-path_results = "..\\cascade_results\\"
+#----output file    
+path_results = "..\\Po_case_16y\\Cascade_outputs\\"
+# path_results = "..\\Cascade_outputs\\"
 
 
 #--------Parameters of the simulation
@@ -66,7 +68,7 @@ sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 6        # number of classes
 
 #---Timescale 
-timescale = 10 # days 
+timescale = 100 # days 
 ts_length = 60*60*24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
@@ -153,8 +155,9 @@ indx_tr_cap = 2 # Wilkock and Crowe 2003
 indx_partition = 4 # Shear stress correction
 indx_flo_depth = 1 # Manning
 indx_slope_red = 1 # None
+indx_velocity = 1 # same velocity for all classes
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red,
+data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, indx_velocity,                            
                                              ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                              roundpar, update_slope, eros_max, save_dep_layer, ts_length)
 
