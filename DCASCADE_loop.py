@@ -38,8 +38,6 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 
-    return v_sed
-
 def stop_or_not(t_new, Vm):
     ''' 
     Function that decides if traveling cascades of sediments will stop in this 
@@ -49,12 +47,16 @@ def stop_or_not(t_new, Vm):
     Vm: traveling cascade of sediments
     '''
     cond_stop = np.insert([t_new>1], 0, True)
-    Vm_stop = Vm[:, cond_stop]
+    Vm_stop = np.zeros_like(Vm)
+    Vm_stop[:, cond_stop] = Vm[:, cond_stop]
+    
     cond_continue = np.insert([t_new<=1], 0, True)
-    Vm_continue = Vm[:, cond_continue]
-    if np.all(Vm_stop[:,1:])==True:
+    Vm_continue = np.zeros_like(Vm)
+    Vm_continue[:, cond_continue] = Vm[:, cond_continue]
+    
+    if np.all(Vm_stop[:,1:] == 0) == True:
         Vm_stop = None
-    elif np.all(Vm_continue[:,1:])==True: 
+    if np.all(Vm_continue[:,1:] == 0) == True: 
         Vm_continue = None
         
     return Vm_stop, Vm_continue
@@ -103,8 +105,10 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
     
     return r_Vmob, cascade_list
 
-def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, ReachData, Network, Q,
-                   Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer, ts_length):
+def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
+                  ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
+                  update_slope, eros_max, save_dep_layer, ts_length):
+    
     """INPUT :
     indx_tr_cap    = the index indicating the transport capacity formula
     indx_partition = the index indicating the type of sediment flux partitioning
@@ -128,8 +132,10 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     OUTPUT: 
     data_output      = struct collecting the main aggregated output matrices 
     extended_output  = struct collecting the raw D-CASCADE output datasets"""
-         
-
+    
+    # Option for the cascade algorithm:
+    stop_with_tr_cap = True
+    
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
     minvel = 0.0000001
@@ -272,7 +278,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             #---Finds cascades from the total incoming load of that day [m3/d] 
             # and of the deposit layer to be included in the maximum erodible layer
             V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
-            #--> verifier que mettre cette etape avant ne change rien aux inputs          
+            #--> DD: verifier que mettre cette etape avant ne change rien à Qbi_incoming et V_dep_old         
 
             #---Finds cascades of the incoming load in [m3/s], 
             # and of the deposit layer, to be included into the active layer, 
@@ -299,12 +305,14 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             if indx_tr_cap == 7:
                 Qc_class_all[t,n,:]=Qc
             
-            # Compute velocity (in m/s) from tr_cap , using a section of height Hvel
-            # coef_AL_vel = 0.1
-            # Hvel = coef_AL_vel * h                # the section height is proportional to the water height h
-            Hvel = AL_depth_all[t,n]                # the section height is the same as the active layer
-            v_sed = compute_sediment_velocity_from_tr_cap(v_sed, n, Hvel, ReachData['Wac'].values[n], tr_cap_per_s, phi, minvel)
-                       
+            # Compute velocity (in m/s) directly from tr_cap, using a section of height Hvel
+            if indx_velocity == 1 or indx_velocity == 2:
+                # coef_AL_vel = 0.1
+                # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
+                hVel = AL_depth_all[t,n]                # the section height is the same as the active layer
+                v_sed_n = sed_velocity(hVel, ReachData['Wac'].values[n], tr_cap_per_s, phi, indx_velocity, minvel)
+                v_sed[:,n] = v_sed_n 
+                
             # Get the Qbi_pass of the reach(es) upstream, 
             # concatenate the Qbi_pass if we have many reaches upstream.
             reach_upstream=np.squeeze(Network['Upstream_Node'][n], axis = 1)
@@ -325,39 +333,45 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
                 t_new = cascade[1] + t_travel_n
                 Vm_stop, Vm_continue = stop_or_not(t_new, cascade[2])
                 if Vm_stop is not None:
-                    Qbi_tr[t+1, [Vm_stop[:,0].astype(int)], n, :] += Vm_stop[:, 1:]                  
-                elif Vm_continue is not None:
+                    Qbi_tr[t+1][[Vm_stop[:,0].astype(int)], n, :] += Vm_stop[:, 1:]                  
+                if Vm_continue is not None:
                     Qbi_pass[n].append((cascade[0], t_new, Vm_continue))
-                    Qbi_tr[t, [Vm_continue[:,0].astype(int)], n, :] += Vm_continue[:, 1:]
-                    Qbi_mob[t, Vm_continue[:,0].astype(int), n, :] += Vm_continue[:, 1:]
-                      
-            # Compare Qbi_pass[n] to tr_cap (for each sediment class)
-            if Qbi_pass[n] == []:
-                sum_pass = np.zeros(len(tr_cap))
+                    Qbi_tr[t][[Vm_continue[:,0].astype(int)], n, :] += Vm_continue[:, 1:]
+                    Qbi_mob[t][Vm_continue[:,0].astype(int), n, :] += Vm_continue[:, 1:]
+            
+            if stop_with_tr_cap == True:
+                # Compare Qbi_pass[n] to tr_cap (for each sediment class)
+                if Qbi_pass[n] == []:
+                    sum_pass = np.zeros(len(tr_cap))
+                else:
+                    concat_cascades = np.concatenate([cascade[2] for cascade in Qbi_pass[n]], axis=0)
+                    sum_pass = np.sum(concat_cascades[:,1:], axis=0)
+                diff_with_capacity = tr_cap - sum_pass
+                
+                # Sediment classes with negative values in diff_with_capacity are deposited, 
+                # ie added to Qbi_tr[t+1]
+                diff_neg=-np.where(diff_with_capacity > 0, 0, diff_with_capacity)           
+                if np.any(diff_neg):  
+                    Vm_removed, Qbi_pass[n] = deposit_from_passing_sediments(diff_neg, Qbi_pass[n])
+                    Qbi_tr[t+1][[Vm_removed[:,0].astype(int)], n, :] += Vm_removed[:, 1:]
+                
+                # Sediment classes with positive values are mobilised from the reach,
+                # V_mob is the mobilised cascade, V_dep is the new deposit layer           
+                diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)
+                if np.any(diff_pos):                                             
+                    [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)         
+                else:
+                    V_mob=None
             else:
-                concat_cascades = np.concatenate([cascade[2] for cascade in Qbi_pass[n]], axis=0)
-                sum_pass = np.sum(concat_cascades[:,1:], axis=0)
-            diff_with_capacity = tr_cap - sum_pass
-            
-            # Sediment classes with negative values in diff_with_capacity are deposited, 
-            # ie added to Qbi_tr[t+1]
-            diff_neg=-np.where(diff_with_capacity > 0, 0, diff_with_capacity)           
-            if np.any(diff_neg):  
-                Vm_removed, Qbi_pass[n] = deposit_from_passing_sediments(diff_neg, Qbi_pass[n])
-                Qbi_tr[t+1][[Vm_removed[:,0].astype(int)], n, :] += Vm_removed[:, 1:]
-            
-            # Sediment classes with positive values are mobilised from the reach,
-            # V_mob is the mobilised cascade, V_dep is the new deposit layer           
-            diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)
-            if np.any(diff_pos):                                             
-                [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)         
-                                 
-            # Add the V_mob cascade to Qbi_pass[n], and Qbi_mob[t]
-            elapsed_time = np.zeros(n_classes)
-            provenance = n
-            Qbi_pass[n].append((provenance, elapsed_time, V_mob))           
-            Qbi_mob[t, V_mob[:,0].astype(int), n, :] += np.float32(V_mob[:, 1:])
-                                          
+                [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, tr_cap, roundpar)                       
+           
+            # Add the possible V_mob cascade to Qbi_pass[n], and Qbi_mob[t]
+            if V_mob is not None:
+                elapsed_time = np.zeros(n_classes)
+                provenance = n
+                Qbi_pass[n].append((provenance, elapsed_time, V_mob))           
+                Qbi_mob[t][V_mob[:,0].astype(int), n, :] += np.float32(V_mob[:, 1:])
+                                              
             # Update Qbi_dep_0 to be used for the next time step.
             Qbi_dep_0[n] = np.float32(V_dep)
             # Remove empty rows from Qbi_dep_0
