@@ -453,5 +453,79 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
 
 
 
+def stop_or_not(t_new, Vm):
+    ''' 
+    Function that decides if traveling cascades of sediments will stop in this 
+    reach or not, depending on time.
+    
+    t_new: elapsed time since beginning of time step for Vm, for each sed class
+    Vm: traveling cascade of sediments
+    '''
+    cond_stop = np.insert([t_new>1], 0, True)
+    Vm_stop = np.zeros_like(Vm)
+    Vm_stop[:, cond_stop] = Vm[:, cond_stop]
+    
+    cond_continue = np.insert([t_new<=1], 0, True)
+    Vm_continue = np.zeros_like(Vm)
+    Vm_continue[:, cond_continue] = Vm[:, cond_continue]
+    
+    if np.all(Vm_stop[:,1:] == 0) == True:
+        Vm_stop = None
+    if np.all(Vm_continue[:,1:] == 0) == True: 
+        Vm_continue = None
+        
+    return Vm_stop, Vm_continue
+
+
+def deposit_from_passing_sediments(V_remove, cascade_list):
+    ''' This function remove the quantity V_remove from the list of cascades. 
+    The order in which we take the cascade is from smallest times (arriving first) 
+    to longest times (arriving later). If two cascades have the same time
+
+    V_remove : quantity to remove, per sediment class.
+    cascade_list : list of cascades. Reminder, a cascade is a tuple 
+                    of direct provenance, elapsed time, and the Vmob (p, t, Vmob)
+    '''
+    removed_Vm_all = []    
+    
+    # order volumes Vm according to their elapsed time, 
+    # and concatenate Vm with same time to be treated together in the loop
+    df = pd.DataFrame(cascade_list, columns=['provenance', 'times', 'Vm'])   
+    df['sum_times'] = df['times'].apply(np.sum)
+    ordered_Vm_list = df.groupby('sum_times')['Vm'].apply(lambda x: np.concatenate(x, axis=0)).tolist()
+    
+    for Vm in ordered_Vm_list:
+        if np.any(Vm[:,1:]) == False: #In case V_m is full of 0
+            del Vm
+            continue 
+        removed_Vm = np.zeros_like(Vm)
+        removed_Vm[:,0]=Vm[:,0] #first col with initial provenance
+        for col_idx in range(Vm[:,1:].shape[1]):  # Loop over sediment classes
+            if V_remove[col_idx] > 0:
+                col_sum = np.sum(Vm[:, col_idx+1])        
+                if col_sum > 0:
+                    fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
+                    removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
+                    # Subtract the removed quantities from V_m
+                    Vm[:, col_idx+1] -= removed_quantities       
+                    # Ensure no negative values
+                    Vm[:, col_idx] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])       
+                    # Store the removed quantities in the new matrix
+                    removed_Vm[:, col_idx+1] = removed_quantities               
+                    # Update V_remove by subtracting the total removed quantity
+                    V_remove[col_idx] -= col_sum * fraction_to_remove                                
+                    # Ensure V_remove doesn't go negative
+                    V_remove[col_idx] = max(V_remove[col_idx], 0)                                                               
+        removed_Vm_all.append(removed_Vm)
+    # Concatenate all removed quantities into a single matrix
+    r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
+    # Gather layers in r_Vmob 
+    r_Vmob = matrix_compact(r_Vmob)
+    
+    return r_Vmob, cascade_list
+
+
+
+
 
 

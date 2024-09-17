@@ -23,8 +23,10 @@ from supporting_functions import sortdistance
 from supporting_functions import layer_search
 from supporting_functions import tr_cap_deposit
 from supporting_functions import matrix_compact 
-from supporting_functions import sed_transfer_simple
+# from supporting_functions import sed_transfer_simple
 from supporting_functions import change_slope
+from supporting_functions import stop_or_not
+from supporting_functions import deposit_from_passing_sediments
 from transport_capacity_computation import tr_cap_function
 from transport_capacity_computation import sed_velocity
 from transport_capacity_computation import sed_velocity_OLD
@@ -37,73 +39,6 @@ np.seterr(divide='ignore', invalid='ignore')
 """ MAIN FUNCTION SECTION """
 
 
-
-def stop_or_not(t_new, Vm):
-    ''' 
-    Function that decides if traveling cascades of sediments will stop in this 
-    reach or not, depending on time.
-    
-    t_new: elapsed time since beginning of time step for Vm, for each sed class
-    Vm: traveling cascade of sediments
-    '''
-    cond_stop = np.insert([t_new>1], 0, True)
-    Vm_stop = np.zeros_like(Vm)
-    Vm_stop[:, cond_stop] = Vm[:, cond_stop]
-    
-    cond_continue = np.insert([t_new<=1], 0, True)
-    Vm_continue = np.zeros_like(Vm)
-    Vm_continue[:, cond_continue] = Vm[:, cond_continue]
-    
-    if np.all(Vm_stop[:,1:] == 0) == True:
-        Vm_stop = None
-    if np.all(Vm_continue[:,1:] == 0) == True: 
-        Vm_continue = None
-        
-    return Vm_stop, Vm_continue
-
-
-def deposit_from_passing_sediments(V_remove, cascade_list):
-    ''' This function remove the quantity V_remove from the list of cascades. 
-    The order in which we take the cascade is from smallest times (arriving first) 
-    to longest times (arriving later).
-
-    V_remove : quantity to remove, per sediment class.
-    cascade_list : list of cascades. Reminder, a cascade is a tuple 
-                    of direct provenance, elapsed time, and the Vmob (p, t, Vmob)
-    '''
-    removed_Vm_all = []    
-    # order cascade list according to time (DD: verify if this time if the one we want)
-    ordered_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x[1]))
-    for cascade in ordered_cascade_list:
-        Vm = cascade[2]
-        if np.any(Vm[:,1:]) == False: #In case V_m is full of 0
-            del Vm
-            continue 
-        removed_Vm = np.zeros_like(Vm)
-        removed_Vm[:,0]=Vm[:,0] #first col with initial provenance
-        for col_idx in range(Vm[:,1:].shape[1]):  # Loop over sediment classes
-            if V_remove[col_idx] > 0:
-                col_sum = np.sum(Vm[:, col_idx+1])        
-                if col_sum > 0:
-                    fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
-                    removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
-                    # Subtract the removed quantities from V_m
-                    Vm[:, col_idx+1] -= removed_quantities       
-                    # Ensure no negative values
-                    Vm[:, col_idx] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])       
-                    # Store the removed quantities in the new matrix
-                    removed_Vm[:, col_idx+1] = removed_quantities               
-                    # Update V_remove by subtracting the total removed quantity
-                    V_remove[col_idx] -= col_sum * fraction_to_remove                                
-                    # Ensure V_remove doesn't go negative
-                    V_remove[col_idx] = max(V_remove[col_idx], 0)                                                               
-        removed_Vm_all.append(removed_Vm)
-    # Concatenate all removed quantities into a single matrix
-    r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
-    # Gather layers in r_Vmob 
-    r_Vmob = matrix_compact(r_Vmob)
-    
-    return r_Vmob, cascade_list
 
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
                   ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
@@ -339,8 +274,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                     Qbi_tr[t][[Vm_continue[:,0].astype(int)], n, :] += Vm_continue[:, 1:]
                     Qbi_mob[t][Vm_continue[:,0].astype(int), n, :] += Vm_continue[:, 1:]
             
-            if stop_with_tr_cap == True:
-                # Compare Qbi_pass[n] to tr_cap (for each sediment class)
+            # Compare Qbi_pass[n] to tr_cap (for each sediment class)
+            if stop_with_tr_cap == True:           
                 if Qbi_pass[n] == []:
                     sum_pass = np.zeros(len(tr_cap))
                 else:
@@ -358,12 +293,13 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 # Sediment classes with positive values are mobilised from the reach,
                 # V_mob is the mobilised cascade, V_dep is the new deposit layer           
                 diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)
-                if np.any(diff_pos):                                             
-                    [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)         
+                if np.any(diff_pos):                               
+                    [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)         
                 else:
-                    V_mob=None
+                    V_mob = None
+                    V_dep = V_dep_old #in this case, V_dep has not changed in reach n
             else:
-                [V_mob, V_dep ] = tr_cap_deposit( V_inc_EL, V_dep_EL, V_dep, tr_cap, roundpar)                       
+                [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, tr_cap, roundpar)                       
            
             # Add the possible V_mob cascade to Qbi_pass[n], and Qbi_mob[t]
             if V_mob is not None:
