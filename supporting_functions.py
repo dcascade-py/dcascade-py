@@ -24,6 +24,7 @@ This script was adapted from the Matlab version by Marco Tangi
 @author: Elisa Bozzolan 
 """
 import numpy as np
+import pandas as pd
 
 # ignore divide by 0 
 np.seterr(divide='ignore', invalid='ignore')
