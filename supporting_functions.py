@@ -25,6 +25,7 @@ This script was adapted from the Matlab version by Marco Tangi
 """
 import numpy as np
 import pandas as pd
+from itertools import groupby
 
 # ignore divide by 0 
 np.seterr(divide='ignore', invalid='ignore')
@@ -491,28 +492,36 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
     
     # order volumes Vm according to their elapsed time, 
     # and concatenate Vm with same time to be treated together in the loop
-    df = pd.DataFrame(cascade_list, columns=['provenance', 'times', 'Vm'])   
-    df['sum_times'] = df['times'].apply(np.sum)
-    ordered_Vm_list = df.groupby('sum_times')['Vm'].apply(lambda x: np.concatenate(x, axis=0)).tolist()
+    # df = pd.DataFrame(cascade_list, columns=['provenance', 'times', 'Vm'])   
+    # df['sum_times'] = df['times'].apply(np.sum)
+    # ordered_Vm_list = df.groupby('sum_times')['Vm'].apply(lambda x: np.concatenate(x, axis=0)).tolist()
     
-    for Vm in ordered_Vm_list:
-        if np.any(Vm[:,1:]) == False: #In case V_m is full of 0
-            del Vm
+    # Order cascades according to their elapsed time 
+    # and put cascade with same time in a sublist, in order to treat them together
+    sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x[1]))
+    sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x[1]))]
+
+    for cascades in sorted_and_grouped_cascade_list:        
+        Vm_same_time = np.concatenate([casc[2] for casc in cascades], axis=0)
+        if np.any(Vm_same_time[:,1:]) == False: #In case Vm_same_time is full of 0
+            del cascades
             continue 
-        removed_Vm = np.zeros_like(Vm)
-        removed_Vm[:,0]=Vm[:,0] #first col with initial provenance
-        for col_idx in range(Vm[:,1:].shape[1]):  # Loop over sediment classes
+        removed_Vm = np.zeros_like(Vm_same_time)
+        removed_Vm[:,0]=Vm_same_time[:,0] #first col with initial provenance
+        for col_idx in range(Vm_same_time[:,1:].shape[1]):  # Loop over sediment classes
             if V_remove[col_idx] > 0:
-                col_sum = np.sum(Vm[:, col_idx+1])        
+                col_sum = np.sum(Vm_same_time[:, col_idx+1])        
                 if col_sum > 0:
                     fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
-                    removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
-                    # Subtract the removed quantities from V_m
-                    Vm[:, col_idx+1] -= removed_quantities       
-                    # Ensure no negative values
-                    Vm[:, col_idx] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])       
-                    # Store the removed quantities in the new matrix
-                    removed_Vm[:, col_idx+1] = removed_quantities               
+                    # Subtract the fraction_to_remove from the cascades (original tuples)
+                    for casc in cascades:   
+                        Vm = casc[2]                        
+                        removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
+                        Vm[:, col_idx+1] -= removed_quantities 
+                        # Ensure no negative values
+                        Vm[:, col_idx] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])       
+                        # Store the removed quantities in the new matrix
+                        removed_Vm[:, col_idx+1] = removed_quantities               
                     # Update V_remove by subtracting the total removed quantity
                     V_remove[col_idx] -= col_sum * fraction_to_remove                                
                     # Ensure V_remove doesn't go negative
