@@ -320,7 +320,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 if n==1:
                     print('ok')
                 if np.any(diff_neg):  
-                    Vm_removed, Qbi_pass[n] = deposit_from_passing_sediments(diff_neg, Qbi_pass[n])
+                    Vm_removed, Qbi_pass[n] = deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n])
                     Qbi_tr[t+1][[Vm_removed[:,0].astype(int)], n, :] += Vm_removed[:, 1:]
                 
                 # Sediment classes with positive values are mobilised from the reach,

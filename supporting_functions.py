@@ -519,9 +519,9 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
                         removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
                         Vm[:, col_idx+1] -= removed_quantities 
                         # Ensure no negative values
-                        Vm[:, col_idx] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])       
-                        # Store the removed quantities in the new matrix
-                        removed_Vm[:, col_idx+1] = removed_quantities               
+                        Vm[:, col_idx+1] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])        
+                    # Store the removed quantities in the new matrix
+                    removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove               
                     # Update V_remove by subtracting the total removed quantity
                     V_remove[col_idx] -= col_sum * fraction_to_remove                                
                     # Ensure V_remove doesn't go negative
@@ -532,6 +532,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
     # Gather layers in r_Vmob 
     r_Vmob = matrix_compact(r_Vmob)
     
+    # The returned cascade_list is directly modified by the operations on Vm
     return r_Vmob, cascade_list
 
 
