@@ -83,7 +83,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     # Option 3: If True, we consider a time lag between the beginning of the time step,
     # and the arrival of the first cascade to the ToN of the reach, 
     # during which we are able to mobilise from the reach itself
-    time_lag_for_Vmob = False
+    time_lag_for_Vmob = True
     
     
     ################### Fixed parameters
@@ -306,9 +306,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 if time_lag_for_Vmob == True:
                     # Note: time lag is in time step units (not in seconds)
                     if Qbi_pass[n] == []:
-                        time_lag = 1
+                        time_lag = 1 # the complete time step is considered 
                     else:
-                        time_lag = min(Qbi_pass[n], key=lambda x: x[1])     
+                        time_arrays = np.array([x[1] for x in Qbi_pass[n]])
+                        time_lag = np.min(time_arrays, axis=0)
+                        # time_lag = min(Qbi_pass[n], key=lambda x: np.mean(x[1]))[1]     
                     # Quantities to mobilise during the time lag
                     volume_time_lag = tr_cap * time_lag 
                     # The volume mobilised during the time lag is considered in the budget
@@ -317,8 +319,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 # Sediment classes with negative values in diff_with_capacity are deposited, 
                 # i.e. added to Qbi_tr[t+1]
                 diff_neg=-np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
-                if n==1:
-                    print('ok')
                 if np.any(diff_neg):  
                     Vm_removed, Qbi_pass[n] = deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n])
                     Qbi_tr[t+1][[Vm_removed[:,0].astype(int)], n, :] += Vm_removed[:, 1:]
@@ -342,12 +342,17 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 elapsed_time = np.zeros(n_classes)
                 provenance = n
                 Qbi_pass[n].append((provenance, elapsed_time, V_mob))
+                # We only consider Vmob of the reach if this option is False.
+                if consider_overtaking_sed_in_outputs == False:
+                    Qbi_mob[t][V_mob[:,0].astype(int), n, :] += np.float32(V_mob[:, 1:])
+                      
 
             # Store the Qbi_pass[n] cascades in Qbi_mob of reach n
-            for cascade in Qbi_pass[n]:
-                Vm = cascade[2]
-                Qbi_mob[t][Vm[:,0].astype(int), n, :] += np.float32(Vm[:, 1:])
-                           
+            if consider_overtaking_sed_in_outputs == True:
+                for cascade in Qbi_pass[n]:
+                    Vm = cascade[2]
+                    Qbi_mob[t][Vm[:,0].astype(int), n, :] += np.float32(Vm[:, 1:])
+                               
                               
             # Update Qbi_dep_0 to be used for the next time step.
             Qbi_dep_0[n] = np.float32(V_dep)

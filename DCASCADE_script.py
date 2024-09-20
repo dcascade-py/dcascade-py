@@ -121,7 +121,7 @@ ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
 Network = graph_preprocessing(ReachData)
 
 # Sediment classes defined in Krumbein phi (φ) scale   
-psi=np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
+psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
 
 # Sediment classes in mm
 dmi = 2**(-psi).reshape(-1,1)
