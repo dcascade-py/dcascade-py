@@ -3,7 +3,7 @@
 Created on Mon Oct 10 15:21:34 2022
 
 Input that are required in the ReachData dataframe which define your river network:
-- reach FromN - ToN (FRom Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
+- reach FromN - ToN (From Node - To Node) which define the relation between reaches (from upstream to downstream), these must be ordered from the smaller to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
 - deposit = initial deposit layer expressed in m3/m2 - this value will be then multiplied by the reach width and length 
@@ -35,23 +35,27 @@ from numpy import random
 from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
-
 import profile
+import os
 import pickle
+
+
+
 
 '''user defined input data'''
 
 
-path_river_network = "E:\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
-name_river_network = "Po_river_network.shp"
+#-------River shape files 
+path_river_network = "C:\\Sahansila\\cascade\\input\\shp_file_slopes_hydro_and_LR\\02-shp_trib_GSD_updated\\"
+name_river_network = 'Po_river_network.shp'
 
-
-path_q = "E:\\cascade\\input\\"
+#--------Q files
+path_q = 'C:\\Sahansila\\cascade\\input\\Discharge\\'
+# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 name_q = 'Po_Qdaily_3y.csv' 
 
-path_results = "E:\\cascade\\sensitivity_analysis_results\\activewidth_decrease_modified_code\\"
-
-
+#--------path to the output folder
+path_results = "C:\\Sahansila\\cascade\\Sensitivity_OAT\\ActiveWidth_GSD\\"
 
 
 #--------Parameters of the simulation
@@ -62,21 +66,24 @@ path_results = "E:\\cascade\\sensitivity_analysis_results\\activewidth_decrease_
 sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
 n_classes = 6        # number of classes
 
+
 #---Timescale 
-timescale = 10 # days 
+timescale = 365 # days 
+ts_length = 60*60*24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
+
 
 #---Change slope or not
 update_slope = False #if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes
 deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
-eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+eros_max = 1             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
+#---Storing Deposit layer
+save_dep_layer = 'never' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
 roundpar = 0 #mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-
-
 
 
 ################ MAIN ###############
@@ -86,6 +93,8 @@ ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) 
 
 # Define the initial deposit layer per each reach in [m3/m]
 ReachData['deposit'] = np.repeat(deposit_layer, len(ReachData))
+
+
 
 # Read/define the water discharge 
 # but first, we check automatically the delimiter (; or ,) and if Q file has headers or not:
@@ -103,7 +112,6 @@ else:
 
 
 # Sort ReachData according to the FromN, and organise the Q file accordingly
-
 ReachData = ReachData.sort_values(by = 'FromN')
 Q_new = np.zeros((Q.shape))
 for i, idx in enumerate(ReachData.index): 
@@ -111,13 +119,11 @@ for i, idx in enumerate(ReachData.index):
 Q = pd.DataFrame(Q_new)
 ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
 
-
 # Extract network properties
 Network = graph_preprocessing(ReachData)
 
 # Sediment classes defined in Krumbein phi (φ) scale   
 psi=np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
-
 
 # Sediment classes in mm
 dmi = 2**(-psi).reshape(-1,1)
@@ -129,8 +135,7 @@ print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90,
 
 n_reaches = len(ReachData)
 # External sediment for all reaches, all classes and all timesteps 
-Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
-
+Qbi_input = np.zeros((timescale,n_reaches,n_classes))
 
 # Define input sediment load in the deposit layer
 deposit = ReachData.deposit*ReachData.Length
@@ -139,18 +144,22 @@ deposit = ReachData.deposit*ReachData.Length
 Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84 , psi) 
 
 # Initialise deposit layer 
-Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] 
+Qbi_dep_in = np.zeros((n_reaches,1,n_classes))
 for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
-    
-# to add deposit layer at a given reach 
-#row = np.array(range(n_classes)).reshape(1,n_classes)  
-#Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
+
+# Formula selection
+# indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+# If you want to fix indexes, comment the line above and fix manually the indexes
+indx_tr_cap = 3 # Engulend and Hansen
+indx_partition = 2 # Bed Material Fraction(BMF)
+indx_flo_depth = 1 # Manning
+indx_slope_red = 1 # None
 
 
 # Iterate over each percentage decrement in active width 
 # Define the list of percentage changes for sensitivity analysis
-activewidth_changes = [-5, -10,-15]
+activewidth_changes = [-5, -10,-15, -20, -30, -50]
 # slope_changes = [+5, +10, +15, +20]
 
 for activewidth_change in activewidth_changes:
@@ -169,7 +178,10 @@ for activewidth_change in activewidth_changes:
 
 
     # Call dcascade main
-    data_output, extended_output = DCASCADE_main(ReachData_copy, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max) 
+    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red,
+                                                 ReachData_copy, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length)
+
 
 
    # Save the output data for each percentage change
@@ -179,7 +191,6 @@ for activewidth_change in activewidth_changes:
     
     
 
-    
 
 
  

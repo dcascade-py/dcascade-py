@@ -18,15 +18,15 @@ from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 mobilized_volumes = {}  # List to store mobilized volumes from each file
 
 
-path = "E:\\cascade\\cascade_results\\"
-name_output = "Po_results_H03newslope.p"
+path = "C:\\Sahansila\\cascade\\cascade_results\\"
+name_output = "data_output_GSD_updated.p"
 
 data_output = pickle.load(open(path + name_output, "rb"))
 
-mobilized_volume_original = data_output['Mobilized volume [m^3]']
+mobilized_volume_original = data_output['Mobilized [m^3]']
 
-path_river_network = "E:\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
-name_river_network = "Po_river_network.shp"
+path_river_network = "C:\\Sahansila\\cascade\\input\\shp_file_slopes_hydro_and_LR\\02-shp_trib_GSD_updated\\"
+name_river_network = 'Po_river_network.shp'
 
 # figure_folder = "E:\\cascade\\figure\\"
 
@@ -51,14 +51,14 @@ output_data_dict = {}
 percentages = [-5, -10, -15, -20, -30, -50]
 for percent in percentages:
     # Load the pickled file
-    path = "E:\\cascade\\sensitivity_analysis_results\\activewidth_decrease_modified_code\\"
+    path = "C:\\sahansila\\cascade\\Sensitivity_OAT\\ActiveWidth_GSD_updated\\"
     filename = f'output_change_{percent}percent.pkl'
     data_output = pickle.load(open(path + filename, "rb"))
     
  
     # Extract the transported volume from the current data_output
     # 'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
-    mobilized_volume = data_output['Mobilized volume [m^3]']
+    mobilized_volume = data_output['Mobilized [m^3]']
     mobilized_volumes[percent] = mobilized_volume
 
 annual_sums = {}

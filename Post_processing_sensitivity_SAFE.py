@@ -13,7 +13,7 @@ import copy
 import os
 
 # Define the directory where the pickled files are stored
-directory = "E:\\cascade\\SAFE_output\\Sensitivity_lhs_norm_dist\\"
+directory = "C:\\Sahansila\\cascade\\SAFE_output\\lhs_unif\\"
 
 # Initialize an empty dictionary to store the data outputs
 output_data_dict = {}
@@ -48,7 +48,7 @@ mobilized_volumes_dict = {}
 # Iterate over each combination in output_data_dict
 for combination, data_output in output_data_dict.items():
     # Extract the desired output from the data_output
-    output_name = 'Mobilized volume [m^3]'    #'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
+    output_name = 'Mobilized [m^3]'    #'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
     mobilized_volume = data_output[output_name]
  
 
@@ -95,7 +95,7 @@ df_mob = df_mob.sort_index()
 
 
 # Define the path to your Excel file
-file_path = "E:\\cascade\\ReachData_Xvalues\\ReachData_Xvalues.xlsx"
+file_path = "C:\\Sahansila\\cascade\\Modified_Reachdata\\ReachData_Xvalues\\ReachData_Xvalues_test.xlsx"
 
 # Read the Excel file, skip the first row (header), and read the next 10 rows
 X_values = pd.read_excel(file_path, sheet_name='Parameter_Values', skiprows=1, nrows=200, header=None)
