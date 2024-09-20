@@ -83,7 +83,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     # Option 3: If True, we consider a time lag between the beginning of the time step,
     # and the arrival of the first cascade to the ToN of the reach, 
     # during which we are able to mobilise from the reach itself
-    time_lag_for_Vmob = True
+    time_lag_for_Vmob = False
     
     
     ################### Fixed parameters
@@ -291,7 +291,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                         Qbi_tr[t][[Vm_continue[:,0].astype(int)], n, :] += Vm_continue[:, 1:]
                 # DD: think about this strange fact, that we put the transported
                 # volumes either at t or t+1 depending if they finish the day there or not
-
+            
             # Compare sum of Qbi_pass[n] to tr_cap volume (for each sediment class)
             if compare_with_tr_cap == True:           
                 if Qbi_pass[n] == []:
@@ -317,12 +317,16 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                     diff_with_capacity -= volume_time_lag
                           
                 # Sediment classes with negative values in diff_with_capacity are deposited, 
-                # i.e. added to Qbi_tr[t+1]
+                # i.e. directly added to Qbi_dep
                 diff_neg=-np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
                 if np.any(diff_neg):  
                     Vm_removed, Qbi_pass[n] = deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n])
-                    Qbi_tr[t+1][[Vm_removed[:,0].astype(int)], n, :] += Vm_removed[:, 1:]
-                
+                    # Vm_removed is directly added to Qbi_dep for the next time step
+                    # but we do it after we mobilise from the reach
+                    to_be_deposited = Vm_removed
+                    # Qbi_tr[t+1][[Vm_removed[:,0].astype(int)], n, :] += Vm_removed[:, 1:]
+                else:
+                    to_be_deposited = None
                 # Sediment classes with positive values are mobilised from the reach,
                 # V_mob is the mobilised cascade, V_dep is the new deposit layer           
                 diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)
@@ -336,7 +340,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                     V_dep = V_dep_old #in this case, V_dep has not changed in reach n
             else:
                 [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, tr_cap, roundpar)                       
-           
+                to_be_deposited = None
+                
             # Add the possible V_mob cascade coming from reach n to Qbi_pass[n]
             if V_mob is not None:
                 elapsed_time = np.zeros(n_classes)
@@ -352,7 +357,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 for cascade in Qbi_pass[n]:
                     Vm = cascade[2]
                     Qbi_mob[t][Vm[:,0].astype(int), n, :] += np.float32(Vm[:, 1:])
-                               
+            
+            # Add the to_be_deposited volume from passing sediment to the V_dep
+            if to_be_deposited is not None:
+                V_dep = np.concatenate([V_dep, to_be_deposited], axis=0)
                               
             # Update Qbi_dep_0 to be used for the next time step.
             Qbi_dep_0[n] = np.float32(V_dep)
