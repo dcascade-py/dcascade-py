@@ -494,8 +494,10 @@ def stop_or_not(t_new, Vm):
 
 def deposit_from_passing_sediments(V_remove, cascade_list):
     ''' This function remove the quantity V_remove from the list of cascades. 
-    The order in which we take the cascade is from smallest times (arriving first) 
-    to longest times (arriving later). If two cascades have the same time
+    The order in which we take the cascade is from largest times (arriving later) 
+    to shortest times (arriving first). Cascade arriving first are passing in priority,
+    cascade arriving later are deposited if needed.
+    If two cascades have the same time, they are processed as one same cascade.
 
     V_remove : quantity to remove, per sediment class.
     cascade_list : list of cascades. Reminder, a cascade is a tuple 
@@ -509,9 +511,9 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
     # df['sum_times'] = df['times'].apply(np.sum)
     # ordered_Vm_list = df.groupby('sum_times')['Vm'].apply(lambda x: np.concatenate(x, axis=0)).tolist()
     
-    # Order cascades according to their elapsed time 
+    # Order cascades according to the inverse of their elapsed time 
     # and put cascade with same time in a sublist, in order to treat them together
-    sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x[1]))
+    sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x[1]), reverse=True)
     sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x[1]))]
 
     for cascades in sorted_and_grouped_cascade_list:        
@@ -520,7 +522,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
             del cascades
             continue 
         removed_Vm = np.zeros_like(Vm_same_time)
-        removed_Vm[:,0]=Vm_same_time[:,0] #first col with initial provenance
+        removed_Vm[:,0] = Vm_same_time[:,0] #first col with initial provenance
         for col_idx in range(Vm_same_time[:,1:].shape[1]):  # Loop over sediment classes
             if V_remove[col_idx] > 0:
                 col_sum = np.sum(Vm_same_time[:, col_idx+1])        
@@ -531,8 +533,10 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
                         Vm = casc[2]                        
                         removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
                         Vm[:, col_idx+1] -= removed_quantities 
-                        # Ensure no negative values
-                        Vm[:, col_idx+1] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])        
+                        # Ensure no negative values 
+                        if np.any(Vm[:, col_idx+1] < 0) == True:
+                            print('negative value in VM ??')
+                        # Vm[:, col_idx+1] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])            
                     # Store the removed quantities in the new matrix
                     removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove               
                     # Update V_remove by subtracting the total removed quantity
@@ -544,6 +548,12 @@ def deposit_from_passing_sediments(V_remove, cascade_list):
     r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
     # Gather layers in r_Vmob 
     r_Vmob = matrix_compact(r_Vmob)
+    
+    # Delete cascades that are now only 0    
+    cascade_list = [cascade for cascade in cascade_list if not np.all(cascade[2][:, 1:] == 0)]
+    # for cascade in cascade_list:
+    #     if np.all(cascade[2][:,1:] == 0) == True:
+    #         del cascade
     
     # The returned cascade_list is directly modified by the operations on Vm
     return r_Vmob, cascade_list

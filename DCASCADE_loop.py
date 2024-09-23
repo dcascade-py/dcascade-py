@@ -83,7 +83,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     # Option 3: If True, we consider a time lag between the beginning of the time step,
     # and the arrival of the first cascade to the ToN of the reach, 
     # during which we are able to mobilise from the reach itself
-    time_lag_for_Vmob = False
+    time_lag_for_Vmob = True
     
     
     ################### Fixed parameters
@@ -247,7 +247,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             # Calculate transport capacity in m3/s
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
-            tr_cap=tr_cap_per_s * ts_length
+            tr_cap = np.round(tr_cap_per_s * ts_length, decimals=roundpar)
             # Store tr_cap
             tr_cap_all[t,n,:] = tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
