@@ -492,71 +492,75 @@ def stop_or_not(t_new, Vm):
     return Vm_stop, Vm_continue
 
 
-def deposit_from_passing_sediments(V_remove, cascade_list):
+def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     ''' This function remove the quantity V_remove from the list of cascades. 
     The order in which we take the cascade is from largest times (arriving later) 
     to shortest times (arriving first). Cascade arriving first are passing in priority,
-    cascade arriving later are deposited if needed.
+    in turn, cascades arriving later are deposited in priority.
     If two cascades have the same time, they are processed as one same cascade.
-
-    V_remove : quantity to remove, per sediment class.
+    
+    INPUTS:
+    V_remove : quantity to remove, per sediment class (array of size number of sediment classes).
     cascade_list : list of cascades. Reminder, a cascade is a tuple 
-                    of direct provenance, elapsed time, and the Vmob (p, t, Vmob)
+                    of direct provenance, elapsed time, and the Vm (p, t, Vm)
+    roundpar : number of decimals to round the cascade volumes (Vm)
+    RETURN:
+    r_Vmob : removed volume from cascade list
+    cascade_list : the new cascade list, after removing the volumes
+    V_remove : residual volume to remove 
     '''
     removed_Vm_all = []    
-    
-    # order volumes Vm according to their elapsed time, 
-    # and concatenate Vm with same time to be treated together in the loop
-    # df = pd.DataFrame(cascade_list, columns=['provenance', 'times', 'Vm'])   
-    # df['sum_times'] = df['times'].apply(np.sum)
-    # ordered_Vm_list = df.groupby('sum_times')['Vm'].apply(lambda x: np.concatenate(x, axis=0)).tolist()
     
     # Order cascades according to the inverse of their elapsed time 
     # and put cascade with same time in a sublist, in order to treat them together
     sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x[1]), reverse=True)
     sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x[1]))]
-
+    
+    # Loop over the sorted and grouped cascades
     for cascades in sorted_and_grouped_cascade_list:        
         Vm_same_time = np.concatenate([casc[2] for casc in cascades], axis=0)
         if np.any(Vm_same_time[:,1:]) == False: #In case Vm_same_time is full of 0
             del cascades
             continue 
+        # Storing matrix for removed volumes
         removed_Vm = np.zeros_like(Vm_same_time)
-        removed_Vm[:,0] = Vm_same_time[:,0] #first col with initial provenance
+        removed_Vm[:,0] = Vm_same_time[:,0] # same first col with initial provenance
         for col_idx in range(Vm_same_time[:,1:].shape[1]):  # Loop over sediment classes
             if V_remove[col_idx] > 0:
                 col_sum = np.sum(Vm_same_time[:, col_idx+1])        
                 if col_sum > 0:
                     fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
-                    # Subtract the fraction_to_remove from the cascades (original tuples)
+                    # Subtract the fraction_to_remove from the input cascades objects (to modify them directly)
                     for casc in cascades:   
                         Vm = casc[2]                        
                         removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
                         Vm[:, col_idx+1] -= removed_quantities 
+                        # Round Vm
+                        Vm[:, col_idx+1] = np.round(Vm[:, col_idx+1], decimals = roundpar)
                         # Ensure no negative values 
-                        if np.any(Vm[:, col_idx+1] < 0) == True:
-                            print('negative value in VM ??')
-                        # Vm[:, col_idx+1] = np.where(Vm[:, col_idx+1] < 0, 0, Vm[:, col_idx+1])            
-                    # Store the removed quantities in the new matrix
+                        if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) == True:
+                            raise ValueError("Negative value in VM is strange")
+                    
+                    # Store the removed quantities in the removed volumes matrix
                     removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove               
                     # Update V_remove by subtracting the total removed quantity
                     V_remove[col_idx] -= col_sum * fraction_to_remove                                
-                    # Ensure V_remove doesn't go negative
-                    V_remove[col_idx] = max(V_remove[col_idx], 0)                                                               
+                    # Ensure V_remove doesn't go under the number fixed by roundpar 
+                    if np.any(V_remove[col_idx] < -10**(-roundpar)) == True:
+                        raise ValueError("Negative value in V_remove is strange")
+        # Round and store removed volumes
+        removed_Vm[:, 1:] = np.round(removed_Vm[:, 1:], decimals = roundpar)                                                  
         removed_Vm_all.append(removed_Vm)
     # Concatenate all removed quantities into a single matrix
     r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
-    # Gather layers in r_Vmob 
+    # Gather layers of same original provenance in r_Vmob 
     r_Vmob = matrix_compact(r_Vmob)
     
-    # Delete cascades that are now only 0    
+    # Delete cascades that are now only 0 in input cascade list  
     cascade_list = [cascade for cascade in cascade_list if not np.all(cascade[2][:, 1:] == 0)]
-    # for cascade in cascade_list:
-    #     if np.all(cascade[2][:,1:] == 0) == True:
-    #         del cascade
-    
+           
     # The returned cascade_list is directly modified by the operations on Vm
-    return r_Vmob, cascade_list
+    return r_Vmob, cascade_list, V_remove
 
 
 
