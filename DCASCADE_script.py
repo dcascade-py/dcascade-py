@@ -158,8 +158,9 @@ indx_tr_cap = 2 # Wilkock and Crowe 2003
 indx_partition = 4 # Shear stress correction
 indx_flo_depth = 1 # Manning
 indx_slope_red = 1 # None
+indx_velocity = 1 # same velocity for all classes
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red,
+data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, indx_velocity,                            
                                              ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                              roundpar, update_slope, eros_max, save_dep_layer, ts_length)
 
