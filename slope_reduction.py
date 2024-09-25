@@ -31,6 +31,7 @@ The formula by Nitsche et al. (2011) is based on the flow depth and the D84
 factor_a = 1.5 #factopr a between 1-2, tipically 1.5
 
 def slopeRed_Rickenmann(Slope, h, ReachData, t):  
+
    if 'D90' not in ReachData.columns:
        Slope[t] = Slope[t] * (0.092 * Slope[t] ** (-0.35) * (h / ReachData['D84']) ** (0.33)) ** factor_a  
    else:
@@ -42,6 +43,7 @@ def slopeRed_Chiari_Rickenmann(Slope, Q, ReachData, t):
         Slope[t] = Slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * ReachData['D84']**0.47 * Slope[t]**0.19)) ** factor_a
     else:
         Slope[t] = Slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * ReachData['D90']**0.47 * Slope[t]**0.19)) ** factor_a
+
     
     return Slope
 
