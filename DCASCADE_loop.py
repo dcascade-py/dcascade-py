@@ -233,7 +233,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             # Compute velocity (in m/s) directly from tr_cap, using a section of height Hvel
             if indx_velocity == 1 or indx_velocity == 2:
                 # coef_AL_vel = 0.1
-                # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
+                # hVel = coef_AL_vel * h[n]                # the section height is proportional to the water height h
                 hVel = AL_depth_all[t,n]                # the section height is the same as the active layer
                 v_sed_n = sed_velocity(hVel, ReachData['Wac'].values[n], tr_cap_per_s, phi, indx_velocity, minvel)
                 v_sed[:,n] = v_sed_n 
