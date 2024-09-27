@@ -501,8 +501,8 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     
     INPUTS:
     V_remove : quantity to remove, per sediment class (array of size number of sediment classes).
-    cascade_list : list of cascades. Reminder, a cascade is a tuple 
-                    of direct provenance, elapsed time, and the Vm (p, t, Vm)
+    cascade_list : list of cascades. Reminder, a cascade is a Cascade class with attributes: 
+                    direct provenance, elapsed time, and the volume
     roundpar : number of decimals to round the cascade volumes (Vm)
     RETURN:
     r_Vmob : removed volume from cascade list
@@ -513,12 +513,12 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     
     # Order cascades according to the inverse of their elapsed time 
     # and put cascade with same time in a sublist, in order to treat them together
-    sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x[1]), reverse=True)
-    sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x[1]))]
+    sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x.elapsed_time), reverse=True)
+    sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x.elapsed_time))]
     
     # Loop over the sorted and grouped cascades
     for cascades in sorted_and_grouped_cascade_list:        
-        Vm_same_time = np.concatenate([casc[2] for casc in cascades], axis=0)
+        Vm_same_time = np.concatenate([casc.volume for casc in cascades], axis=0)
         if np.any(Vm_same_time[:,1:]) == False: #In case Vm_same_time is full of 0
             del cascades
             continue 
@@ -532,7 +532,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
                     fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
                     # Subtract the fraction_to_remove from the input cascades objects (to modify them directly)
                     for casc in cascades:   
-                        Vm = casc[2]                        
+                        Vm = casc.volume                        
                         removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
                         Vm[:, col_idx+1] -= removed_quantities 
                         # Round Vm
@@ -557,7 +557,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     r_Vmob = matrix_compact(r_Vmob)
     
     # Delete cascades that are now only 0 in input cascade list  
-    cascade_list = [cascade for cascade in cascade_list if not np.all(cascade[2][:, 1:] == 0)]
+    cascade_list = [cascade for cascade in cascade_list if not np.all(cascade.volume[:, 1:] == 0)]
            
     # The returned cascade_list is directly modified by the operations on Vm
     return r_Vmob, cascade_list, V_remove

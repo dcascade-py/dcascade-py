@@ -39,6 +39,12 @@ np.seterr(divide='ignore', invalid='ignore')
 """ MAIN FUNCTION SECTION """
 
 
+class Cascade:
+    def __init__(self, provenance, elapsed_time, volume):
+        self.provenance = provenance
+        self.elapsed_time = elapsed_time
+        self.volume = volume
+
 
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
                   ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
@@ -108,7 +114,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     Node_el[0,:] = pd.concat([ReachData['el_FN'], ReachData['el_TN'][[outlet]]])
     Node_el[1,:] = pd.concat([ReachData['el_FN'], ReachData['el_TN'][[outlet]]])
     Node_el[:,-1] =  Node_el[1,-1]
-    
     
     # Initialise all sediment variables 
     
@@ -293,12 +298,12 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             # Note: time is expressed in time_step units (not seconds)
             t_travel_n = ReachData['Length'][n] / (v_sed[n,:]*ts_length)
             for cascade in Qbi_pass_from_n_up:
-                t_new = cascade[1] + t_travel_n
-                Vm_stop, Vm_continue = stop_or_not(t_new, cascade[2])
+                t_new = cascade.elapsed_time + t_travel_n
+                Vm_stop, Vm_continue = stop_or_not(t_new, cascade.volume)
                 if Vm_stop is not None:
                     Qbi_tr[t+1][[Vm_stop[:,0].astype(int)], n, :] += Vm_stop[:, 1:]                  
                 if Vm_continue is not None:
-                    Qbi_pass[n].append((cascade[0], t_new, Vm_continue))
+                    Qbi_pass[n].append(Cascade(cascade.provenance, t_new, Vm_continue))
                     if consider_overtaking_sed_in_outputs == True:
                         Qbi_tr[t][[Vm_continue[:,0].astype(int)], n, :] += Vm_continue[:, 1:]
                 # DD: think about this strange fact, that we put the transported
@@ -309,7 +314,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 if Qbi_pass[n] == []:
                     sum_pass = np.zeros(len(tr_cap))
                 else:
-                    concat_cascades = np.concatenate([cascade[2] for cascade in Qbi_pass[n]], axis=0)
+                    [print(cascade) for cascade in Qbi_pass[n]]
+                    concat_cascades = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
                     sum_pass = np.sum(concat_cascades[:,1:], axis=0)
                 diff_with_capacity = tr_cap - sum_pass 
                 
@@ -320,7 +326,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                     if Qbi_pass[n] == []:
                         time_lag = 1 # the complete time step is considered 
                     else:
-                        time_arrays = np.array([x[1] for x in Qbi_pass[n]])
+                        time_arrays = np.array([cascade.elapsed_time for cascade in Qbi_pass[n]])
                         time_lag = np.min(time_arrays, axis=0)
                           
                     # Quantities to mobilise during the time lag
@@ -362,7 +368,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             if V_mob is not None:
                 elapsed_time = np.zeros(n_classes) #it elapsed time is 0
                 provenance = n
-                Qbi_pass[n].append((provenance, elapsed_time, V_mob))
+                Qbi_pass[n].append(Cascade(provenance, elapsed_time, V_mob))
                 # We only consider Vmob of the reach if this option is False.
                 if consider_overtaking_sed_in_outputs == False:
                     Qbi_mob[t][V_mob[:,0].astype(int), n, :] += np.float32(V_mob[:, 1:])
@@ -370,7 +376,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             # Store all the Qbi_pass[n] cascades in Qbi_mob of reach n
             if consider_overtaking_sed_in_outputs == True:
                 for cascade in Qbi_pass[n]:
-                    Vm = cascade[2]
+                    Vm = cascade.volume
                     Qbi_mob[t][Vm[:,0].astype(int), n, :] += np.float32(Vm[:, 1:])
             
             # Add the to_be_deposited volume from passing sediment to the V_dep
@@ -405,7 +411,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         # Compute Qout for this time step.
         outlet = Network['NH'][-1]
         for cascade in Qbi_pass[outlet]:
-            Vm=cascade[2]
+            Vm = cascade.volume
             Q_out[t, [Vm[:,0].astype(int)], :] += Vm[:,1:]
             
         #Save Qbi_dep according to saving frequency
