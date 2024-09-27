@@ -52,7 +52,7 @@ def Parker_Klingeman_formula( Fi_r_reach , D50 , Slope , Wac , h, psi, **kwargs 
     
     return tr_cap, tau, tau_r50
     
-    
+   
 def Wilcock_Crowe_formula( Fi_r_reach , D50 , Slope , Wac , h, psi): 
     
     """WILCOCK_CROWE_TR_CAP returns the value of the transport capacity  [m3/s] 
@@ -104,9 +104,48 @@ def Wilcock_Crowe_formula( Fi_r_reach , D50 , Slope , Wac , h, psi):
     tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
 
 
-    return tr_cap, tau, tau_r50
+    return tr_cap, tau, tau_r50   
 
-def Engelund_Hansen_formula( D50 , Slope , Wac, v , h):
+def inverted_Wilcock_Crowe_formula(tr_cap, Fi_r_reach, D50, Slope, h, psi):
+    """
+    Inverts the Wilcock and Crowe (2003) formula based on the river width.
+    """
+    dmi = 2**(-psi)/1000 #sediment classes diameter (m) 
+    rho_w = 1000 #water density
+    rho_s = 2650 #sediment density
+    g = 9.81 #gravity acceleration 
+    
+    R = rho_s / rho_w - 1  #submerged specific gravity of sediment
+    if Fi_r_reach.ndim == 1: 
+        Fi_r_reach = Fi_r_reach[:,None]
+        Fr_s = np.sum((psi > - 1)[:,None]*1* Fi_r_reach) # Fraction of sand in river bed (sand considered as sediment with phi > -1)
+    else: 
+        Fr_s = np.sum((psi > - 1)[:,None]*1 * Fi_r_reach, axis = 0)[None,:]
+    ## Transport capacity from Wilcock-Crowe equations
+
+    tau = np.array(rho_w * g * h * Slope ) # bed shear stress [Kg m-1 s-1]
+    if tau.ndim != 0:  
+        tau = tau[None,:] # add a dimension for computation 
+        
+    tau_r50 = (0.021 + 0.015*np.exp( -20 * Fr_s ) ) * (rho_w * R * g * D50) # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
+    
+    b = 0.67 / (1 + np.exp(1.5 - dmi/D50)) #hiding factor
+    
+    fact = (dmi/D50)**b
+    tau_ri = tau_r50 * fact[:,None] # reference shear stress for each sediment class [Kg m-1 s-1]
+    
+    phi_ri = tau/tau_ri
+    #Dimensionless transport rate for each sediment class [-]
+    #The formula changes for each class according to the phi_ri of the class
+    #is higher or lower then 1.35
+    W_i = (phi_ri >= 1.35 ) * (14 * (np.maximum(1 - 0.894/np.sqrt(phi_ri),0))**4.5) + (phi_ri < 1.35 )* (0.002*(phi_ri)**7.5)
+    
+    # Dimensionful transport rate for each sediment class [m3/s]
+    Wac = tr_cap / (W_i * Fi_r_reach * (tau/rho_w)**(3/2) / (R*g))
+    
+    return Wac
+
+def unit_Engelund_Hansen_formula(D50, Slope, Wac, v, h):
     """ENGELUND_HANSEN_TR_CAP returns the value of the transport capacity (in m3/s) 
     for each sediment class in the reach measured using the Engelund and Hansen equations
     
@@ -133,7 +172,11 @@ def Engelund_Hansen_formula( D50 , Slope , Wac, v , h):
     
     tr_cap = QS_EH #m3/s
     
-    return tr_cap
+    return tr_cap_unit
+
+def Engelund_Hansen_formula(D50, Slope, Wac, v, h):
+    
+def inverted_
 
 
 def Yang_formula(Fi_r_reach, D50,  Slope , Q, v, h, psi): 
@@ -387,6 +430,35 @@ def Rickenmann_formula(D50, Slope, Q, Wac):
 
     return tr_cap, Qc
 
+def inverted_Rickenmann_formula(tr_cap, D50, Slope, Qunit):
+    """
+    Inverts the Rickenmann formula based on the river width.
+    """
+    
+    rho_s = 2650 # sediment densit [kg/m^3]
+    rho_w = 1000 # water density [kg/m^3]
+    R = rho_s/rho_w # Ratio of solid to fluid density []
+    g = 9.81 
+    
+    #Q is on whole width, Qunit = Q/w
+    
+    Qunit = Q / Wac
+    
+    factor_e = 1.5
+    Qc = 0.065 * ((R - 1) ** 1.67) * (g ** 0.5) * (D50 ** factor_e) * (Slope ** (-1.12)) #critical unit discharge
+
+    #Check if Q is smaller than Qc
+    Qarr = np.full_like(Qc, Qunit)
+    
+    Qb = np.zeros_like(Qc)
+    
+    condition = (Qarr - Qc) < 0
+    Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * (Slope ** 1.5))
+
+    Wac = tr_cap / Qb
+
+    return Wac
+
 def Molinas_rates( Fi_r, h, v, Slope, dmi_finer, D50_finer):
     """MOLINAS_rates returns the Molinas coefficient of fractional transport rates Pci, to be multiplied
     by the total sediment load to split it into different classes. 
@@ -426,7 +498,7 @@ def Molinas_rates( Fi_r, h, v, Slope, dmi_finer, D50_finer):
     return pci  
 
 
-def choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition ): # EB D50 entries change according to formula index - it would be good to create a class to call with the string name of the formula 
+def choose_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap): # EB D50 entries change according to formula index - it would be good to create a class to call with the string name of the formula 
     # calculate transport capacity
 
     tau = np.nan
@@ -457,39 +529,96 @@ def choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , 
    
     return tr_cap, Qc
 
-def tr_cap_function( Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition ): 
+def choose_inverted_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap): # EB D50 entries change according to formula index - it would be good to create a class to call with the string name of the formula 
+    # calculate transport capacity
+
+    tau = np.nan
+    taur50 = np.nan
+    Qc = np.nan
+
+    #choose transport capacity formula
+    if indx_tr_cap == 1:
+        [tr_cap, tau, taur50] = Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi) 
+
+    elif indx_tr_cap == 2:            
+        Wac_left = inverted_Wilcock_Crowe_formula(Qtr_cap, Fi_r_reach, D50, Slope, h, psi) 
+
+    elif indx_tr_cap == 3: 
+        tr_cap = Engelund_Hansen_formula(D50, Slope, Wac, v, h)
+
+    elif indx_tr_cap == 4: 
+        tr_cap = Yang_formula(Fi_r_reach, D50, Slope, Q, v, h, psi) 
+
+    elif indx_tr_cap == 5: 
+        tr_cap = Wong_Parker_formula(D50, Slope, Wac, h)
+
+    elif indx_tr_cap == 6: 
+        tr_cap = Ackers_White_formula(D50, Slope, Q, v, h)        
+
+    elif indx_tr_cap == 7:
+        Wac_left = inverted_Rickenmann_formula(tr_cap, D50, Slope, Q, Wac)
+
+    return tr_cap, Qc
+
+def tr_cap_function(Fi_r_reach, D50,  Slope, Q, Wac, v, h, psi, indx_tr_cap, indx_partition): 
     """TR_CAP_JUNCTION refers to the transport capacity equation and partitioning 
     formula chosen by the  user and return the value of the transport capacity 
     and the relative Grain Size Distrubution (pci) for each sediment class in the reach """  
-    dmi = 2**(-psi)/1000 #sediment classes diameter (m)
-        
+    dmi = 2**(-psi) / 1000 #sediment classes diameter (m)
+
     ##choose partitioning formula for computation of sediment transport rates for individual size fractions
-    
+
     #formulas from: 
     #Molinas, A., & Wu, B. (2000): Comparison of fractional bed material load computation methods in sand?bed channels. 
     #Earth Surface Processes and Landforms: The Journal of the British Geomorphological Research Group
 
     Qtr_cap = np.zeros(len(psi))[None]
-    
+
     if indx_partition == 1: # Direct computation by the size fraction approach  
-        
-        Qtr_cap,Qc = choose_formula(Fi_r_reach , dmi ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
+        Qtr_cap, Qc = choose_formula(Fi_r_reach, dmi, Slope, Q, Wac, v, h, psi, indx_tr_cap)
         pci = Fi_r_reach
         
     elif indx_partition == 2: # The BMF approach (Bed Material Fraction)
-        tr_cap, Qc =  choose_formula(Fi_r_reach , dmi ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition)
-        Qtr_cap = Fi_r_reach*tr_cap
+        tr_cap, Qc =  choose_formula(Fi_r_reach, dmi, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        Qtr_cap = Fi_r_reach * tr_cap
         pci = Fi_r_reach 
         
     elif indx_partition == 3: # The TCF approach (Transport Capacity Fraction) with the Molinas formula (Molinas and Wu, 2000)
         pci = Molinas_rates(Fi_r_reach, h, v, Slope, dmi*1000, D50*1000)
-        tr_cap, Qc = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition)
-        Qtr_cap = pci*tr_cap
+        tr_cap, Qc = choose_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        Qtr_cap = pci * tr_cap
     
     elif indx_partition == 4: #Shear stress correction approach (for fractional transport formulas)
-        tr_cap, Qc = choose_formula(Fi_r_reach , D50 ,  Slope, Q, Wac, v , h, psi, indx_tr_cap , indx_partition )
+        tr_cap, Qc = choose_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap)
         Qtr_cap = tr_cap #these formulas returns already partitioned results;
-        pci = Qtr_cap/np.sum(Qtr_cap)
+        pci = Qtr_cap / np.sum(Qtr_cap)
+      
+    return Qtr_cap, Qc
+
+def inverting_tr_cap_function(V_missing, Fi_r_reach, D50,  Slope, Q, Wac, v, h, psi, indx_tr_cap, indx_partition):
+    dmi = 2**(-psi) / 1000 #sediment classes diameter (m)
+    Qtr_cap = V_missing
+
+    if indx_partition == 1: # Direct computation by the size fraction approach  
+        Qtr_cap, Qc = choose_inverted_formula(Qtr_cap, Fi_r_reach, dmi, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        #pci = Fi_r_reach
+        
+    elif indx_partition == 2: # The BMF approach (Bed Material Fraction)
+        # Qtr_cap = Fi_r_reach * tr_cap
+        tr_cap = Qtr_cap / Fi_r_reach 
+        tr_cap, Qc =  choose_inverted_formula(Qtr_cap, Fi_r_reach, dmi, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        #pci = Fi_r_reach 
+        
+    elif indx_partition == 3: # The TCF approach (Transport Capacity Fraction) with the Molinas formula (Molinas and Wu, 2000)
+        #Qtr_cap = pci * tr_cap
+        pci = Molinas_rates(Fi_r_reach, h, v, Slope, dmi*1000, D50*1000)
+        tr_cap = Qtr_cap / pci
+        tr_cap, Qc = choose_inverted_formula(Qtr_cap, Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+    
+    elif indx_partition == 4: #Shear stress correction approach (for fractional transport formulas)
+        tr_cap, Qc = choose_inverted_formula(Qtr_cap, Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        #Qtr_cap = tr_cap #these formulas returns already partitioned results;
+        #pci = Qtr_cap / np.sum(Qtr_cap)
       
     return Qtr_cap, Qc
 

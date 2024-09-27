@@ -38,7 +38,17 @@ np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
 
-
+def to_second(Qbi_incoming, ts_length):
+    """ Converts the unit of Qbi_incoming to m3/s.
+    
+    INPUT :
+    Qbi_incoming = the sediment input
+    ts_length    = the length in seconds of the timestep (60*60*24 for daily timesteps)
+    """
+    Qbi_incoming_per_s = copy.deepcopy(Qbi_incoming)
+    Qbi_incoming_per_s[:,1:] = Qbi_incoming_per_s[:,1:] / ts_length
+    
+    return Qbi_incoming_per_s
 
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
                   ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
@@ -252,24 +262,38 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             if len(reach_upstream) != 0:
                 Qbi_pass_t = np.concatenate([cascade[2] for cascade in Qbi_pass_from_n_up], axis=0)             
                 Qbi_incoming = np.concatenate([Qbi_pass_t, Qbi_incoming], axis=0)
-                Qbi_incoming = matrix_compact(Qbi_incoming)         # group layers by initial provenance            
+                Qbi_incoming = matrix_compact(Qbi_incoming)         # group layers by initial provenance
+
+#######################
+            Qbi_incoming_t_per_s = to_second(Qbi_incoming, ts_length)
+            # Fraction of sediments in the incoming layer Fi_r_incoming.
+            # CHECK: V_dep_old, AL_vol_all CHANGE TO WHAT??
+            _,_,_, Fi_r_incoming[t,:,n] = layer_search(Qbi_incoming_t_per_s, V_dep_old, AL_vol_all[0,n], roundpar)  
+            # Calculate the D50 of the passing sediments
+            D50_incoming[t,n] = D_finder(Fi_r_incoming[t,:,n], 50, psi) 
+            tr_cap_incoming_per_s, Qc = tr_cap_function(Fi_r_incoming[t][:,n], D50_incoming[t,n], Slope[t,n], Q.iloc[t,n], ReachData['Wac'][n], v[n], h[n], psi, indx_tr_cap, indx_partition)
+            if tr_cap_incoming_per_s > Qbi_incoming_t_per_s:
+                # Finding the residual energy left, by inverting the transport capacity based on river width.
+                volume_missing = tr_cap_incoming_per_s - Qbi_incoming_t_per_s
+                inverting_tr_cap_function(volume_missing, Fi_r_incoming[t][:,n], D50_incoming[t,n], Slope[t,n], Q.iloc[t,n], ReachData['Wac'][n], v[n], h[n], psi, indx_tr_cap, indx_partition)
+            else:
+                # Needs to deposit the passing sediments that cannot be passed through.
+                
+#######################
 
             #---Finds cascades of the incoming load in [m3/s], 
             # and of the deposit layer, to be included into the active layer, 
-            # and use its cumulative GSD to compute tr_cap            
-            Qbi_incoming_per_s = copy.deepcopy(Qbi_incoming)
-            Qbi_incoming_per_s[:,1:] = Qbi_incoming_per_s[:,1:] / ts_length                                            
+            # and use its cumulative GSD to compute tr_cap
+            Qbi_incoming_per_s = to_second(Qbi_incoming, ts_length)
+
             # Fraction of sediments in the active layer Fi_r_act. 
-            _,_,_, Fi_r_act[t,:,n] = layer_search(Qbi_incoming_per_s, V_dep_old, AL_vol_all[0,n], roundpar)            
+            _,_,_, Fi_r_act[t,:,n] = layer_search(Qbi_incoming_per_s, V_dep_old, AL_vol_all[0,n], roundpar)
             # Calculate the D50 of the AL
             D50_AL[t,n] = D_finder(Fi_r_act[t,:,n], 50, psi)
             
             # In case the active layer is empty, I use the GSD of the previous timestep
             if np.sum(Fi_r_act[t,:,n]) == 0:
                Fi_r_act[t,:,n] = Fi_r_act[t-1,:,n] 
-                      
-            # Calculate transport capacity in m3/s
-            # tr_cap_per_s, Qc = tr_cap_function(np.array([0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]), D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
 
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
