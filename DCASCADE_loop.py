@@ -208,9 +208,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         for n in Network['NH']:
             if n==1:
                 print('ok')
-            #---Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
-            V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
-
+            #---Extracts the deposit layer left in previous time step          
+            V_dep_old = Qbi_dep_old[n] # extract the deposit layer of the reach 
+            
+            #---Extract the cascades, that had stopped in reach n at t-1 [m3/d]
             if Qbi_input[t,n,:].ndim == 1:
                 vect = np.expand_dims(np.append(n, Qbi_input[t,n,:]), axis = 0)
             else: 
@@ -225,13 +226,33 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             if Qbi_incoming.ndim == 1:
                 Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
 
-            # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first 
+            # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first (DD: relative to original provenance ?)
             Qbi_incoming = sortdistance(Qbi_incoming, Network['upstream_distance_list'][n])
+            
 
             #---Finds cascades from the total incoming load of that day [m3/d] 
             # and of the deposit layer to be included in the maximum erodible layer
             V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
-            #--> DD: verifier que mettre cette etape avant ne change rien à Qbi_incoming et V_dep_old         
+            #--> DD: verify that this step does not modify Qbi_incoming and V_dep_old 
+                       
+            # Get the cascades entering the reach n, at this time step (Qbi_pass_from_n_up) [m3/d],
+            # concatenate the Qbi_pass if we have many reaches upstream.
+            reach_upstream = np.squeeze(Network['Upstream_Node'][n], axis = 1)
+            if len(reach_upstream) != 0:
+                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] for i in reach_upstream])) 
+            else:
+                # Case if there is no reach upstream
+                Qbi_pass_from_n_up = []    
+                
+            # Include the cascades arriving from the reach(es) upstream in this time step (Qbi_pass_from_n_up) 
+            # to cascasde that stopped here at t-1 (Qbi_incoming), 
+            # in order to compute the transport capacity.
+            # This way we compute the transport capacity based on all the sediments 
+            # present in the reach during that time step.
+            if len(reach_upstream) != 0:
+                Qbi_pass_t = np.concatenate([cascade[2] for cascade in Qbi_pass_from_n_up], axis=0)             
+                Qbi_incoming = np.concatenate([Qbi_pass_t, Qbi_incoming], axis=0)
+                Qbi_incoming = matrix_compact(Qbi_incoming)         # group layers by initial provenance            
 
             #---Finds cascades of the incoming load in [m3/s], 
             # and of the deposit layer, to be included into the active layer, 
@@ -248,6 +269,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                Fi_r_act[t,:,n] = Fi_r_act[t-1,:,n] 
                       
             # Calculate transport capacity in m3/s
+            # tr_cap_per_s, Qc = tr_cap_function(np.array([0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]), D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
             tr_cap = np.round(tr_cap_per_s * ts_length, decimals=roundpar)
@@ -266,14 +289,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 v_sed_n = sed_velocity(hVel, ReachData['Wac'].values[n], tr_cap_per_s, phi, indx_velocity, minvel)
                 v_sed[:,n] = v_sed_n 
                 
-            # Get the Qbi_pass of the reach(es) upstream, 
-            # concatenate the Qbi_pass if we have many reaches upstream.
-            reach_upstream = np.squeeze(Network['Upstream_Node'][n], axis = 1)
-            if len(reach_upstream) != 0:
-                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] for i in reach_upstream])) 
-            else:
-                # Case if there is no reach upstream
-                Qbi_pass_from_n_up = [] 
+
                     
             # Update the time in each cascade, by adding the time to pass 
             # trought the current reach.
