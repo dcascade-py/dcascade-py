@@ -2,9 +2,10 @@
 """
 Created on Mon Oct 10 18:00:36 2022
 
-This script contains the time-space loop which assess the sediment routing through the network 
+This script contains the time-space loop which assess the sediment routing
+through the network.
 
-This script was adapted from the Matlab version by Marco Tangi 
+This script was adapted from the Matlab version by Marco Tangi.
 
 @author: Elisa Bozzolan
 """
@@ -75,10 +76,22 @@ class ReachData:
         self.geometry = geodataframe['geometry'].values
         
         # Optional attributes
-        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else np.nan
-        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else np.nan
-        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else np.nan
-        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else np.nan
+        if 'Id' in geodataframe.columns:
+            self.id = geodataframe['Id'].values
+        else:
+            self.id = np.nan
+        if 'Wac_BF' in geodataframe.columns:
+            self.wac_bf = geodataframe['Wac_BF'].values
+        else:
+            self.wac_bf = np.nan
+        if 'D90' in geodataframe.columns:
+            self.D90 = geodataframe['D90'].values
+        else:
+            self.D90 = np.nan
+        if 'S_LR_GIS' in geodataframe.columns:
+            self.s_lr_gis = geodataframe['S_LR_GIS'].values
+        else:
+            self.s_lr_gis = np.nan
         
     def sort_values_by(self, sorting_array):
         """
@@ -95,15 +108,17 @@ class ReachData:
 
             # Check if these are reach attributes
             attr_value = vars(self)[attr_name]
-            if isinstance(attr_value, np.ndarray) and len(attr_value) == self.n_reaches:
+            if isinstance(attr_value, np.ndarray) \
+            and len(attr_value) == self.n_reaches:
                 vars(self)[attr_name] = attr_value[sorted_indices]
                 
         return sorted_indices
         
 
-def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
-                  reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
-                  update_slope, eros_max, save_dep_layer, ts_length):
+def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
+                  indx_velocity, reach_data, network, Q, Qbi_input, Qbi_dep_in,
+                  timescale, psi, roundpar, update_slope, eros_max, save_dep_layer,
+                  ts_length):
     """
     Main function of the D-CASCADE software.
     
@@ -113,16 +128,22 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     indx_flo_depth = the index indicating the flow depth formula
     indx_slope_red = the index indicating the slope reduction formula
     reach_data     = nx1 Struct defining the features of the network reaches
-    network        = 1x1 struct containing for each node info on upstream and downstream nodes
+    network        = 1x1 struct containing for each node info on upstream and 
+                     downstream nodes
     Q              = txn matrix reporting the discharge for each timestep
-    Qbi_input      = per each reach and per each timestep is defined an external sediment input of a certain sediment class
+    Qbi_input      = per each reach and per each timestep is defined an external 
+                     sediment input of a certain sediment class
     Qbi_dep_in     = deposit of a sediment material known to be at a certain reach
-                     (it could be that for the same reach id, there are two strata defined so two rows of the dataframe with the top row is the deepest strata)
+                     (it could be that for the same reach id, there are two strata
+                     defined so two rows of the dataframe with the top row is the
+                     deepest strata)
     timescale      = length for the time horizion considered
     psi            = sediment classes considered (from coarse to fine)
     roundpar       = mimimum volume to be considered for mobilization of subcascade
-                     (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-    update_slope   = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope changes according to sediment deposit.
+                     (as decimal digit, so that 0 means not less than 1m3; 1 means
+                     no less than 10m3 etc.)
+    update_slope   = bool to chose if we change slope trought time or not. If Flase,
+                     constant slope. If True, slope changes according to sediment deposit.
     eros_max       = maximum erosion depth per time step [m]
     save_dep_layer = saves the deposit layer for each time step
     ts_length      = the length in seconds of the timestep (60*60*24 for daily timesteps)
@@ -136,7 +157,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     # If all these option are False, we are normally reproducing the results
     # of the old version. These option appear in order of complexity. 
     
-    # Option 1: If True, we add the overpassing volumes in the outputs, at the 
+    # Option 1: If True, we add the overpassing volumes in the outputs, at the
     # time step t, so in Qbi_tr[t] and in Qbi_mob[t]
     consider_overtaking_sed_in_outputs = True
     
@@ -144,8 +165,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     # volumes must be partly deposited or if completed by the reach
     compare_with_tr_cap = True
     
-    # Option 3: If True, we consider a time lag between the beginning of the time step,
-    # and the arrival of the first cascade to the ToN of the reach, 
+    # Option 3: If True, we consider a time lag between the beginning of the 
+    # time step, and the arrival of the first cascade to the ToN of the reach, 
     # during which we are able to mobilise from the reach itself
     time_lag_for_Vmob = True
     
@@ -180,24 +201,35 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         dep_save_number = int(timescale/365)+1 #+1 because we also keep t0.
     if save_dep_layer=='always':
         dep_save_number=timescale
-    Qbi_dep = [[np.expand_dims(np.zeros(n_classes + 1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)] for _ in range(dep_save_number)]
-    
-    Qbi_tr = [np.zeros((n_reaches, n_reaches, n_classes), dtype=numpy.float32) for _ in range(timescale)] # sediment within the reach AFTER transfer, which also gives the provenance 
-    Qbi_mob = [np.zeros((n_reaches, n_reaches, n_classes), dtype=numpy.float32) for _ in range(timescale)] # sediment within the reach BEFORE transfer, which also gives the provenance 
-    # Note Qbi_tr and Qbi_mob are 3D matrices, if we add the time as a 4th dimension, we can not look at the matrix in spyder. 
-    Fi_r_act = np.empty((timescale, n_reaches, n_classes)) # contains grain size distribution of the active layer
+    Qbi_dep = [[np.expand_dims(np.zeros(n_classes + 1, dtype=numpy.float32), axis = 0)
+                for _ in range(n_reaches)] 
+                for _ in range(dep_save_number)]
+    # Sediment within the reach AFTER transfer, which also gives the provenance:
+    Qbi_tr = [np.zeros((n_reaches, n_reaches, n_classes), dtype=numpy.float32) 
+              for _ in range(timescale)]
+    # Sediment within the reach BEFORE transfer, which also gives the provenance:
+    Qbi_mob = [np.zeros((n_reaches, n_reaches, n_classes), dtype=numpy.float32) 
+               for _ in range(timescale)] 
+    # Note Qbi_tr and Qbi_mob are 3D matrices, if we add the time as a 4th dimension,
+    # we can not look at the matrix in spyder. 
+    # Contains grain size distribution of the active layer:
+    Fi_r_act = np.empty((timescale, n_reaches, n_classes))
     Fi_r_act[:,0] = np.nan
-    Q_out = np.zeros((timescale, n_reaches, n_classes)) # amount of material delivered outside the network in each timestep
-    D50_AL = np.zeros((timescale, n_reaches)) # D50 of the active layer in each reach in each timestep
-    V_sed = np.zeros((timescale, n_reaches, n_classes)) #velocities
+    # Amount of material delivered outside the network in each timestep:
+    Q_out = np.zeros((timescale, n_reaches, n_classes))
+    # D50 of the active layer in each reach in each timestep:
+    D50_AL = np.zeros((timescale, n_reaches))
+    V_sed = np.zeros((timescale, n_reaches, n_classes)) # Velocities
 
-    tr_cap_all = np.zeros((timescale, n_reaches, n_classes)) #transport capacity per each sediment class
-    tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity 
+    # Transport capacity per each sediment class:
+    tr_cap_all = np.zeros((timescale, n_reaches, n_classes))
+    tr_cap_sum = np.zeros((timescale, n_reaches)) # Total transport capacity 
 
     Qc_class_all = np.zeros((timescale, n_reaches, n_classes))
     flow_depth = np.zeros((timescale, n_reaches)) 
     
-    Delta_V_all = np.zeros((timescale, n_reaches)) # reach mass balance (volumes eroded or deposited)
+    # Reach mass balance (volumes eroded or deposited):
+    Delta_V_all = np.zeros((timescale, n_reaches))
     Delta_V_class_all = np.zeros((timescale, n_reaches, n_classes))
     
     # In case of constant slope
@@ -206,29 +238,31 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         node_el[:,: ] = node_el[0,:]
     
     # Initialise sediment deposit in the reaches 
-
-    Qbi_dep_0 = [np.expand_dims(np.zeros(n_classes+1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)]
+    Qbi_dep_0 = [np.expand_dims(np.zeros(n_classes+1, dtype=numpy.float32), axis = 0)
+                 for _ in range(n_reaches)]
     for n in network['n_hier']:  
-        # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
+        # If no inputs are defined, initialize deposit layer with a single cascade
+        # with no volume and GSD equal to 0.
         q_bin = np.array(Qbi_dep_in[n])
-        if not q_bin.any(): #if all zeros 
+        if not q_bin.any(): # if all zeros 
             Qbi_dep_0[n] = np.hstack((n, np.zeros(n_classes))).reshape(1,-1)
         else:           
-            Qbi_dep_0[n] = np.float32(np.hstack((np.ones(q_bin.shape[0]) * n, Qbi_dep_in[n, 0]))).reshape(1,-1)
+            Qbi_dep_0[n] = np.float32(np.hstack((np.ones(q_bin.shape[0]) * n, \
+                                                 Qbi_dep_in[n, 0]))).reshape(1,-1)
             Fi_r_act[0,n,:] = np.sum(q_bin, axis=0) / np.sum(q_bin)
             D50_AL[0,n] = D_finder(Fi_r_act[0,n,:], 50, psi)
 
-    Qbi_dep[0] = copy.deepcopy(Qbi_dep_0) #store init condition of dep layer
+    Qbi_dep[0] = copy.deepcopy(Qbi_dep_0) # store init condition of dep layer
 
     # Set maximum volume in meters that can be eroded for each reach, for each time step.
     eros_max_all = np.ones((1, n_reaches)) * eros_max
     eros_max_vol = np.round(eros_max_all * reach_data.wac * reach_data.length, roundpar)
 
     # Set active layer volume, the one used for calculating the tr_cap in [m3/s]
-    # corresponds to the depth that the river can see every second (more like a continuum carpet ...)  
-    # defined here as 2.D90 [Parker 2008]
-    al_vol_all = np.zeros((timescale, n_reaches)) #store the volumes
-    al_depth_all = np.zeros((timescale, n_reaches)) #store also the depths 
+    # corresponds to the depth that the river can see every second (more like a   
+    # continuum carpet ...) defined here as 2.D90 [Parker 2008].
+    al_vol_all = np.zeros((timescale, n_reaches)) # store the volumes
+    al_depth_all = np.zeros((timescale, n_reaches)) # store also the depths 
     for n in network['n_hier']:
         fi_r = Fi_r_act[0,n,:]
         D90 = D_finder(fi_r, 90, psi)[0,0]
@@ -271,50 +305,60 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             else: 
                 vect = np.c_[np.repeat(n, Qbi_input[t,n,:].shape[0]), Qbi_input[t,n,:]]
             
-            Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
-            Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
+            # The material present at that time step + potential external mat:
+            Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n,:]]), vect]
+            # Sum all classes and delete the zeros  (rows represents provenance):
+            Qbi_incoming  = np.delete(Qbi_incoming, \
+                                      np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0)
             
             if Qbi_incoming.size == 0:
-                Qbi_incoming = np.hstack((n, np.zeros(n_classes))) # put an empty cascade if no incoming volumes are present (for computation)
+                # Put an empty cascade if no incoming volumes are present (for computation)
+                Qbi_incoming = np.hstack((n, np.zeros(n_classes)))
             
             if Qbi_incoming.ndim == 1:
                 Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
 
-            # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first (DD: relative to original provenance ?)
+            # Sort incoming matrix according to distance, in this way sediment 
+            # coming from closer reaches will be deposited first (DD: relative
+            # to original provenance ?)
             Qbi_incoming = sortdistance(Qbi_incoming, network['upstream_distance_list'][n])
             
 
             #---Finds cascades from the total incoming load of that day [m3/d] 
             # and of the deposit layer to be included in the maximum erodible layer
-            V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
+            V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, 
+                                                        eros_max_vol[0,n], roundpar)
             #--> DD: verify that this step does not modify Qbi_incoming and V_dep_old 
                        
             # Get the cascades entering the reach n, at this time step (Qbi_pass_from_n_up) [m3/d],
             # concatenate the Qbi_pass if we have many reaches upstream.
             reach_upstream = np.squeeze(network['upstream_node'][n], axis = 1)
             if len(reach_upstream) != 0:
-                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] for i in reach_upstream])) 
+                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] 
+                                                            for i in reach_upstream])) 
             else:
                 # Case if there is no reach upstream
                 Qbi_pass_from_n_up = []    
                 
-            # Include the cascades arriving from the reach(es) upstream in this time step (Qbi_pass_from_n_up) 
-            # to cascasde that stopped here at t-1 (Qbi_incoming), 
-            # in order to compute the transport capacity.
+            # Include the cascades arriving from the reach(es) upstream in this 
+            # time step (Qbi_pass_from_n_up) to cascasde that stopped here at t-1 
+            # (Qbi_incoming), in order to compute the transport capacity.
             # This way we compute the transport capacity based on all the sediments 
             # present in the reach during that time step.
-            #if len(reach_upstream) != 0:
-            #    Qbi_pass_t = np.concatenate([cascade[2] for cascade in Qbi_pass_from_n_up], axis=0)             
-            #    Qbi_incoming = np.concatenate([Qbi_pass_t, Qbi_incoming], axis=0)
-            #    Qbi_incoming = matrix_compact(Qbi_incoming)         # group layers by initial provenance            
+            if len(reach_upstream) != 0:
+                Qbi_pass_t = np.concatenate([cascade.volume for cascade in Qbi_pass_from_n_up],
+                                            axis=0)
+                Qbi_incoming = np.concatenate([Qbi_pass_t, Qbi_incoming], axis=0)
+                Qbi_incoming = matrix_compact(Qbi_incoming) # group layers by initial provenance
 
             #---Finds cascades of the incoming load in [m3/s], 
             # and of the deposit layer, to be included into the active layer, 
-            # and use its cumulative GSD to compute tr_cap            
+            # and use its cumulative GSD to compute tr_cap
             Qbi_incoming_per_s = copy.deepcopy(Qbi_incoming)
             Qbi_incoming_per_s[:,1:] = Qbi_incoming_per_s[:,1:] / ts_length                                            
             # Fraction of sediments in the active layer Fi_r_act. 
-            _,_,_, Fi_r_act[t,n,:] = layer_search(Qbi_incoming_per_s, V_dep_old, al_vol_all[0,n], roundpar)            
+            _,_,_, Fi_r_act[t,n,:] = layer_search(Qbi_incoming_per_s, V_dep_old,
+                                                  al_vol_all[0,n], roundpar)            
             # Calculate the D50 of the AL
             D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)
             
@@ -323,9 +367,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                Fi_r_act[t,n,:] = Fi_r_act[t-1,n,:] 
                       
             # Calculate transport capacity in m3/s
-            # tr_cap_per_s, Qc = tr_cap_function(np.array([0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]), D50_AL[t,n], slope[t,n] , Q.iloc[t,n], reach_data.Wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
-
-            tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+            tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:], D50_AL[t,n], slope[t,n],
+                                               Q[t,n], reach_data.wac[n], v[n], h[n], psi,
+                                               indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
             tr_cap = np.round(tr_cap_per_s * ts_length, decimals=roundpar)
             # Store tr_cap
@@ -338,9 +382,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             # Compute velocity (in m/s) directly from tr_cap, using a section of height Hvel
             if indx_velocity == 1 or indx_velocity == 2:
                 # coef_AL_vel = 0.1
-                # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
-                hVel = al_depth_all[t,n]                # the section height is the same as the active layer
-                v_sed_n = sed_velocity(hVel, reach_data.wac[n], tr_cap_per_s, phi, indx_velocity, minvel)
+                # hVel = coef_AL_vel * h # the section height is proportional to the water height h
+                hVel = al_depth_all[t,n] # the section height is the same as the active layer
+                v_sed_n = sed_velocity(hVel, reach_data.wac[n], tr_cap_per_s, phi, 
+                                       indx_velocity, minvel)
                 v_sed[n,:] = v_sed_n
                     
             # Update the time in each cascade, by adding the time to pass 
@@ -368,7 +413,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 if Qbi_pass[n] == []:
                     sum_pass = np.zeros(len(tr_cap))
                 else:
-                    concat_cascades = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
+                    concat_cascades = np.concatenate([cascade.volume 
+                                                      for cascade in Qbi_pass[n]], axis=0)
                     sum_pass = np.sum(concat_cascades[:,1:], axis=0)
                 diff_with_capacity = tr_cap - sum_pass
                 
@@ -391,7 +437,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 # i.e. directly added to Qbi_dep
                 diff_neg=-np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
                 if np.any(diff_neg):  
-                    Vm_removed, Qbi_pass[n], residual = deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n], roundpar)
+                    Vm_removed, Qbi_pass[n], residual = \
+                    deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n], roundpar)
                     # Vm_removed is directly added to Qbi_dep for the next time step
                     # but we do it after we mobilise from the reach
                     to_be_deposited = Vm_removed
@@ -407,7 +454,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 if time_lag_for_Vmob == True:
                     diff_pos += volume_time_lag        
                 if np.any(diff_pos):                               
-                    [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)         
+                    [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)
                 else:
                     # Case when there is no mobilised volume from the reach n
                     V_mob = None
@@ -452,12 +499,13 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             # Record Delta_V
             Delta_V_all[t,n] = Delta_V 
             # And Delta_V per class
-            Delta_V_class = np.sum(Qbi_dep_0[n][:,1:], axis=0) - np.sum(Qbi_dep_old[n][:,1:], axis=0)
+            Delta_V_class = np.sum(Qbi_dep_0[n][:,1:], axis=0) - np.sum(Qbi_dep_old[n][:,1:],
+                                                                        axis=0)
             Delta_V_class_all[t,n,:] = Delta_V_class            
             
             # Update slope if required.
             if update_slope == True:
-                node_el[t+1][n]= node_el[t,n] + Delta_V/( np.sum(reach_data.Wac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['Upstream_Node'][n])]) * (1-phi) )
+                node_el[t+1][n] = node_el[t,n] + Delta_V/( np.sum(reach_data.Wac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['Upstream_Node'][n])]) * (1-phi) )
             
         """End of the reach loop"""
             
@@ -475,7 +523,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 t_y = int((t+2)/365)
                 Qbi_dep[t_y] = copy.deepcopy(Qbi_dep_0)
                 
-        # #---5) Move the mobilized volumes to the destination reaches according to the sediment velocity
+        # #---5) Move the mobilized volumes to the destination reaches according to 
+        # #the sediment velocity
 
         # for n in network['n_hier']:
         #     #load mobilized volume for reach n
@@ -486,15 +535,19 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         #     V_mob = matrix_compact(V_mob)
             
         #     # # OLD: calculate GSD of mobilized volume
-        #     # Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
+        #     # EB: must be a column vector:
+        #     # Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None]
         #     # if np.isnan(Fi_mob).any():
         #     #     Fi_mob = Fi_r_act[t,:,n]
                 
         #     # #OLD: calculate sediment velocity for the mobilized volume in each reach
-        #     # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, n_reaches), slope[t,:] , Q.iloc[t,:], reach_data.Wac , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
+        #     # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, n_reaches), slope[t,:] , 
+        #                       Q.iloc[t,:], reach_data.Wac , v , h ,psi,  minvel , phi , 
+        #                       indx_tr_cap, indx_partition, indx_velocity )
             
         #     #transfer the sediment volume downstream according to vsed in m/day
-        #     Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple(V_mob , n , v_sed * ts_length , reach_data.length, network, psi)
+        #     Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple(V_mob , n , v_sed * \
+        #                                       ts_length , reach_data.length, network, psi)
 
         #     # Sum the volumes transported from reach n with all the other 
         #     # volumes mobilized by all the other reaches at time
@@ -510,7 +563,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         #in case of changing slope..
         if update_slope == True:
             #..change the slope accordingly to the bed elevation
-            slope[t+1,:], node_el[t+1,:] = change_slope(node_el[t+1,:] ,reach_data.length, network, s = min_slope)
+            slope[t+1,:], node_el[t+1,:] = change_slope(node_el[t+1,:] ,reach_data.length, 
+                                                        network, s = min_slope)
             
         #measure time of routing
         #time2   = clock;
@@ -524,28 +578,33 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     # output processing
     # aggregated matrixes
     
-    QB_mob_t = [np.sum(x, axis = 2) for x in Qbi_mob[0:timescale-1]] #sum along sediment classes
-    Qbi_mob_class = [np.sum(x, axis = 0) for x in Qbi_mob[0:timescale-1]] #sum along sediment classes
-    QB_mob = np.rollaxis(np.dstack(QB_mob_t),-1) 
-    QB_mob_sum = np.sum(QB_mob, 1) #total sediment mobilized in that reach for that time step (all sediment classes, from all reaches)
+    # Sum along sediment classes:
+    QB_mob_t = [np.sum(x, axis = 2) for x in Qbi_mob[0:timescale-1]]
+    # Sum along sediment classes:
+    Qbi_mob_class = [np.sum(x, axis = 0) for x in Qbi_mob[0:timescale-1]]
+    QB_mob = np.rollaxis(np.dstack(QB_mob_t),-1)
+    # Total sediment mobilized in that reach for that time step (all sediment classes,
+    # from all reaches):
+    QB_mob_sum = np.sum(QB_mob, 1)
     
-    #total sediment delivered in each reach (column), divided by reach provenance (row) 
+    #total sediment delivered in each reach (column), divided by reach provenance (row)
     QB_tr_t = [np.sum(x, axis = 2) for x in Qbi_tr[0:timescale-1]] 
     QB_tr = np.rollaxis(np.dstack(QB_tr_t),-1)
     
-    
-    V_dep_sum = np.zeros((len(Qbi_dep)-1, n_reaches ))  # EB : last time step would be equal to 0 - delete to avoid confusion 
-    V_class_dep = [[np.expand_dims(np.zeros(n_classes+1), axis = 0) for _ in range(n_reaches)] for _ in range(len(Qbi_dep))]
+    # EB : last time step would be equal to 0 - delete to avoid confusion:
+    V_dep_sum = np.zeros((len(Qbi_dep)-1, n_reaches )) 
+    V_class_dep = [[np.expand_dims(np.zeros(n_classes+1), axis = 0) 
+                    for _ in range(n_reaches)] for _ in range(len(Qbi_dep))]
    
     for t in (np.arange(len(Qbi_dep)-1)):
         for n in range(len(Qbi_dep[t])): 
             q_t = Qbi_dep[t][n] 
             #total material in the deposit layer 
             V_dep_sum[t,n] = np.sum(q_t[:,1:])
-            # total volume in the deposit layer for each timestep, divided by sed.class 
+            # total volume in the deposit layer for each timestep, divided by sed.class
             V_class_dep[t][n] = np.sum(q_t[:,1:], axis = 0) 
             
-    #--Total material in a reach in each timestep (both in the deposit layer and mobilized layer)                       
+    #--Total material in a reach in each timestep (both in the deposit layer and mobilized layer)
     if save_dep_layer=='always':           
         tot_sed = V_dep_sum + np.sum(QB_tr, axis = 1) 
     else:
@@ -673,7 +732,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     
     #--Output struct definition 
     #data_plot contains the most important D_CASCADE outputs 
-    data_output = {'Channel Width [m]': np.repeat(np.array(reach_data.wac).reshape(1,-1),len(Qbi_dep), axis = 0), 
+    data_output = {'Channel Width [m]': np.repeat(np.array(reach_data.wac).reshape(1,-1),
+                                                  len(Qbi_dep), axis = 0), 
                    'Reach slope': slope,
                    'Discharge [m^3/s]': Q[0:timescale,:],
                    'Mobilized [m^3]': QB_mob_sum,
@@ -714,21 +774,5 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                        }
     
     return data_output, extended_output
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
