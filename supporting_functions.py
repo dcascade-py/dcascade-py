@@ -92,14 +92,14 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
         # remaining active layer volume after considering incoming sediment cascades
         V_lim_dep = V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])
         # EB check again:
-        csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis= 0)) 
+        csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis=0)) 
 
         V_inc2act = Qbi_incoming  # all the incoming volume will end up in the active layer
 
         # find active layer
          
         # the vector is empty # EB check again:
-        if (np.argwhere(csum > V_lim_dep)).size == 0 : 
+        if (np.argwhere(csum > V_lim_dep)).size == 0: 
             # if the cascades in the deposit have combined
             # volume that is less then the active layer volume (i've reached the bottom)
             
@@ -170,7 +170,7 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
             V_dep = V_dep_old  # ... i leave the deposit as it was.
 
     # remove empty rows (if the matrix is not already empty)
-    if (np.sum(V_dep2act[:, 1:], axis=1)!=0).any():       
+    if (np.sum(V_dep2act[:, 1:], axis=1) != 0).any():       
         V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis=1) != 0, :]
 
     # find active layer GSD
@@ -181,8 +181,8 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
     # if V_act is empty, i put Fi_r equal to 0 for all classes
     Fi_r_reach[np.isinf(Fi_r_reach) | np.isnan(Fi_r_reach)] = 0
     
-
     return V_inc2act, V_dep2act, V_dep, Fi_r_reach
+
 
 def matrix_compact(V_layer):
     """
@@ -190,16 +190,15 @@ def matrix_compact(V_layer):
     with the same source reach id.
     """
     
-    ID = np.unique(V_layer[:, 0])  #, return_inverse=True
+    ID = np.unique(V_layer[:, 0])  # , return_inverse=True
     V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
     # sum elements with same ID 
     for ind, i in enumerate(ID): 
         vect = V_layer[V_layer[:, 0] == i, :]
         V_layer_cmpct[ind, :] = np.append(ID[ind], np.sum(vect[:, 1:], axis=0))
     
-    if V_layer_cmpct.shape[0]>1: 
-        V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:, 1:], axis=1)!=0]
-
+    if V_layer_cmpct.shape[0] > 1: 
+        V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:, 1:], axis=1) != 0]
 
     if V_layer_cmpct.size == 0: 
         V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:, 1:].shape[1]))))).reshape(1, -1)
@@ -216,7 +215,6 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
     # classes for which the tr_cap is more than the incoming volumes in the active layer
     class_sup_dep = tr_cap > np.sum(V_inc2act[:, 1:], axis=0)
     
-
     # if there are sed classes for which the tr cap is more than the volume in V_inc2act...
     if np.any(class_sup_dep):
         # ...  sediment from V_dep2act will have to be mobilized, taking into consideration
@@ -224,14 +222,14 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
 
         # remaining active layer volume per class after considering V_inc2act
         tr_cap_remaining = tr_cap[class_sup_dep] \
-        - np.sum(V_inc2act[:, np.append(False, class_sup_dep)], axis=0)
+            - np.sum(V_inc2act[:, np.append(False, class_sup_dep)], axis=0)
         # take only the columns with the cascades of the classes class_sup_dep
         V_dep2act_class = V_dep2act[:, np.append(False, class_sup_dep)]
 
         csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis=0)) 
 
         # find the indexes of the first cascade above the tr_cap threshold, for each class
-        mapp =csum > tr_cap_remaining  
+        mapp = csum > tr_cap_remaining  
 
         mapp[0, np.any(~mapp, axis=0)] = True   # EB: force the first deposit layer to be true 
 
@@ -259,18 +257,18 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         V_dep2act_new[:, np.append(False, class_sup_dep) is True] = map_perc * V_dep2act_class
 
         if ~np.isnan(roundpar): 
-            V_dep2act_new[:, 1:] = np.around(V_dep2act_new[:, 1:], decimals = roundpar)
+            V_dep2act_new[:, 1:] = np.around(V_dep2act_new[:, 1:], decimals=roundpar)
 
         # the matrix V_2dep contains the cascades that will be deposited into the 
         # deposit layer. (the new volumes for the classes in class_sup_dep and all
         # the volumes in the remaining classes)
         V_2dep = np.zeros((V_dep2act.shape))
         V_2dep[:, np.append(True, ~class_sup_dep) is True] = \
-        V_dep2act[:, np.append(True, ~class_sup_dep) is True]
+            V_dep2act[:, np.append(True, ~class_sup_dep) is True]
         V_2dep[:, np.append(False, class_sup_dep) is True] = (1 - map_perc) * V_dep2act_class
 
         if ~np.isnan(roundpar): 
-            V_2dep[:, 1:]  = np.around(V_2dep[:, 1:], decimals = roundpar)
+            V_2dep[:, 1:] = np.around(V_2dep[:, 1:], decimals=roundpar)
 
     else:
         V_dep2act_new = np.zeros((V_dep2act.shape))
@@ -291,15 +289,15 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
     V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act * (np.append(True, class_sup_dep)) + V_inc2act * np.append(False, class_perc_inc))))
     
     if ~np.isnan(roundpar):
-        V_mob[:, 1:] = np.around(V_mob[:, 1:], decimals = roundpar)
+        V_mob[:, 1:] = np.around(V_mob[:, 1:], decimals=roundpar)
 
     class_residual = np.zeros((class_sup_dep.shape));
     class_residual[class_sup_dep is False] = 1 - perc_inc
 
-    V_2dep = np.vstack((V_2dep, V_inc2act * np.hstack((1, class_residual))))  ## EB check again EB: here the 1 instead of the 0 should be correct + 
+    V_2dep = np.vstack((V_2dep, V_inc2act * np.hstack((1, class_residual))))  # EB check again EB: here the 1 instead of the 0 should be correct + 
    
     if ~np.isnan(roundpar):
-        V_2dep[:, 1:]  = np.around(V_2dep[:, 1:], decimals = roundpar) 
+        V_2dep[:, 1:] = np.around(V_2dep[:, 1:], decimals=roundpar) 
 
     # Put the volume exceeding the transport capacity back in the deposit
 
@@ -316,6 +314,7 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         V_dep = V_dep[np.sum(V_dep[:, 1:], axis=1) != 0]  
     
     return V_mob, V_dep
+
 
 def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
   
@@ -357,7 +356,7 @@ def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
     # find position and destination reach ID
     
     # isolate the velocity of the downstream reaches
-    v_sed_path = v_sed_day[:,path2out]
+    v_sed_path = v_sed_day[:, path2out]
     
     if v_sed_path.ndim == 1:
         v_sed_path = v_sed_path[:, None]
@@ -365,10 +364,10 @@ def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
     # change the length of the starting reach according to the starting
     # position, different for each tr.cap
     Lngt_pathout = np.repeat(np.array(Lngt[path2out]).reshape(1, -1), len(psi), axis=0)
-    Lngt_pathout[:, 0]  = Lngt_pathout[:, 0] * (1 - start_pos) 
+    Lngt_pathout[:, 0] = Lngt_pathout[:, 0] * (1 - start_pos) 
     
     # calculate the time (in days) it takes to completely cross a reach 
-    transit_time = Lngt_pathout/v_sed_path
+    transit_time = Lngt_pathout / v_sed_path
     
     # the cumulate of transit_time defines how long it takes to reach each
     # downstream To_Node comnsidering the whole path to the reach
@@ -450,7 +449,7 @@ def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
         
     # setout is equal to 1 if the volume in the sed.class left the network
     # via the outlet
-    setout = (np.squeeze(p_dest) - np.array(Lngt[reach_dest]) - downdist[reach_dest].T> 0)*1
+    setout = (np.squeeze(p_dest) - np.array(Lngt[reach_dest]) - downdist[reach_dest].T > 0) * 1
      
     # in each row, setplace is equal to 1 in the reach where the sed. volume
     # of each class is delivered 
@@ -568,30 +567,30 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
         removed_Vm[:, 0] = Vm_same_time[:, 0]  # same first col with initial provenance
         for col_idx in range(Vm_same_time[:, 1:].shape[1]):  # Loop over sediment classes
             if V_remove[col_idx] > 0:
-                col_sum = np.sum(Vm_same_time[:, col_idx+1])        
+                col_sum = np.sum(Vm_same_time[:, col_idx + 1])        
                 if col_sum > 0:
                     fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
                     # Subtract the fraction_to_remove from the input cascades objects
                     # (to modify them directly)
                     for casc in cascades:   
                         Vm = casc.volume                        
-                        removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
-                        Vm[:, col_idx+1] -= removed_quantities 
+                        removed_quantities = Vm[:, col_idx + 1] * fraction_to_remove
+                        Vm[:, col_idx + 1] -= removed_quantities 
                         # Round Vm
-                        Vm[:, col_idx+1] = np.round(Vm[:, col_idx+1], decimals = roundpar)
+                        Vm[:, col_idx + 1] = np.round(Vm[:, col_idx + 1], decimals=roundpar)
                         # Ensure no negative values 
                         if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) is True:
                             raise ValueError("Negative value in VM is strange")
                     
                     # Store the removed quantities in the removed volumes matrix
-                    removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove               
+                    removed_Vm[:, col_idx + 1] = Vm_same_time[:, col_idx + 1] * fraction_to_remove               
                     # Update V_remove by subtracting the total removed quantity
                     V_remove[col_idx] -= col_sum * fraction_to_remove                                
                     # Ensure V_remove doesn't go under the number fixed by roundpar 
                     if np.any(V_remove[col_idx] < -10**(-roundpar)) is True:
                         raise ValueError("Negative value in V_remove is strange")
         # Round and store removed volumes
-        removed_Vm[:, 1:] = np.round(removed_Vm[:, 1:], decimals = roundpar)                                                  
+        removed_Vm[:, 1:] = np.round(removed_Vm[:, 1:], decimals=roundpar)                                                  
         removed_Vm_all.append(removed_Vm)
     # Concatenate all removed quantities into a single matrix
     r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
