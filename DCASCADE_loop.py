@@ -75,10 +75,10 @@ class ReachData:
         self.geometry = geodataframe['geometry'].values
         
         # Optional attributes
-        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else numpy.empty()
-        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else numpy.empty()
-        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else numpy.empty()
-        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else numpy.empty()
+        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else np.nan
+        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else np.nan
+        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else np.nan
+        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else np.nan
         
     def sort_values_by(self, sorting_array):
         """
