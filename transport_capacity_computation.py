@@ -10,12 +10,12 @@ Different formula for the calculation of the tranport capacity and for the assig
 import numpy as np
 import numpy.matlib
 from supporting_functions import D_finder
-
-# CONSTANTS (MUST BE WRITTEN IN CAPITAL LETTERS)
-RHO_W = 1000           # water density [kg/m^3]
-RHO_S = 2650           # sediment density [kg/m^3]
-G = 9.81               # gravity acceleration
-R = RHO_S / RHO_W - 1  # submerged specific gravity of sediment []
+from constants import (
+    RHO_S,
+    RHO_W,
+    G,
+    R,
+)
 
 def Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi, **kwargs):
     """
@@ -68,12 +68,12 @@ def Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi):
     if Fi_r_reach.ndim == 1:
         Fi_r_reach = Fi_r_reach[:,None]
         # Fraction of sand in river bed (sand considered as sediment with phi > -1)
-        Fr_s = np.sum((psi > - 1)[:,None]*1* Fi_r_reach)
+        Fr_s = np.sum((psi > - 1)[:,None] * 1 * Fi_r_reach)
     else:
-        Fr_s = np.sum((psi > - 1)[:,None]*1 * Fi_r_reach, axis = 0)[None,:]
+        Fr_s = np.sum((psi > - 1)[:,None] * 1 * Fi_r_reach, axis = 0)[None,:]
     ## Transport capacity from Wilcock-Crowe equations
 
-    tau = np.array(RHO_W * G * h * Slope ) # bed shear stress [Kg m-1 s-1]
+    tau = np.array(RHO_W * G * h * Slope) # bed shear stress [Kg m-1 s-1]
     if tau.ndim != 0:
         tau = tau[None,:] # add a dimension for computation
     
