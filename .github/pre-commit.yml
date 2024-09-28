@@ -1,6 +1,14 @@
 name: Pre-Commit Checks
 
-on: [push, pull_request]  # Triggers on push and pull requests
+on:
+  push:
+    branches:
+      - main
+      - github_actions  # or whatever branch you're pushing to
+  pull_request:
+    branches:
+      - main  # trigger on PRs as well
+      - github_actions
 
 jobs:
   pre-commit:
