@@ -49,7 +49,7 @@ def extract_graph(from_n, to_n):
     nodes[:, 0] = from_n
     nodes[:, 1] = to_n
     # save from_n and to_n as text, necessary to run read_adjlst:
-    np.savetxt("nodes", nodes, fmt = '%d')
+    np.savetxt("nodes", nodes, fmt='%d')
     graph = nx.read_adjlist("nodes", create_using=nx.DiGraph, nodetype=int)
     os.remove("nodes")
 

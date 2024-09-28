@@ -80,9 +80,9 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     #                                        np.arange(0,100,i_class))
     #                                        ) for key, value in data_output.items() \
     #                      if key != 'Transported + deposited sed in the reach [m^3/s]'}
-    cClass = {key: np.unique(np.percentile(value[np.nonzero(value)], 
-                                           np.arange(0, 100, i_class)))
-                                           for key, value in data_output.items()}
+    cClass = {key: np.unique(np.percentile(
+        value[np.nonzero(value)], 
+        np.arange(0, 100, i_class))) for key, value in data_output.items()}
 
     # add tot_sed_class for the class defined in def_sed_class
     # def_sed_class = 0
