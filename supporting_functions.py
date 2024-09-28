@@ -174,7 +174,7 @@ def matrix_compact(V_layer):
     with the same source reach id.
     """
     
-    ID = np.unique(V_layer[:, 0]) #, return_inverse=True
+    ID = np.unique(V_layer[:, 0])  #, return_inverse=True
     V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
     # sum elements with same ID 
     for ind, i in enumerate(ID): 
@@ -226,66 +226,65 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         mapfirst = np.zeros((mapp.shape))
         mapfirst[firstoverthresh, np.arange(np.sum(class_sup_dep*1))] = 1 
 
-        perc_dep = np.minimum((tr_cap_remaining - np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0))/V_dep2act_class[firstoverthresh, np.arange(np.sum(class_sup_dep*1))], 1)   # percentage to be lifted from the layer "on the threshold"
+        perc_dep = np.minimum((tr_cap_remaining - np.sum(np.where(mapp is False, V_dep2act_class, 0), axis=0)) / V_dep2act_class[firstoverthresh, np.arange(np.sum(class_sup_dep * 1))], 1)   # percentage to be lifted from the layer "on the threshold"
 
-        map_perc = mapfirst*perc_dep + ~mapp*1 # # EB check again  EB: is it adding 1 when true ? 
+        map_perc = mapfirst * perc_dep + ~mapp * 1  # # EB check again  EB: is it adding 1 when true ? 
 
         # the matrix V_dep2act_new contains the mobilized cascades from the deposit layer, now corrected according to the tr_cap
         V_dep2act_new = np.zeros((V_dep2act.shape))
         V_dep2act_new[:, 0] = V_dep2act[:, 0]
-        V_dep2act_new[:, np.append(False, class_sup_dep) == True] = map_perc* V_dep2act_class
+        V_dep2act_new[:, np.append(False, class_sup_dep) is True] = map_perc * V_dep2act_class
 
         if ~np.isnan(roundpar): 
-            V_dep2act_new[:, 1:]  = np.around(V_dep2act_new[:, 1:], decimals = roundpar)
+            V_dep2act_new[:, 1:] = np.around(V_dep2act_new[:, 1:], decimals = roundpar)
 
         # the matrix V_2dep contains the cascades that will be deposited into the deposit layer.
         # (the new volumes for the classes in class_sup_dep and all the volumes in the remaining classes)
         V_2dep = np.zeros((V_dep2act.shape))
-        V_2dep[:, np.append(True, ~class_sup_dep) == True] = V_dep2act[:, np.append(True, ~class_sup_dep) == True]
-        V_2dep[:, np.append(False, class_sup_dep) == True] = (1 - map_perc)* V_dep2act_class
+        V_2dep[:, np.append(True, ~class_sup_dep) is True] = V_dep2act[:, np.append(True, ~class_sup_dep) is True]
+        V_2dep[:, np.append(False, class_sup_dep) is True] = (1 - map_perc)* V_dep2act_class
 
         if ~np.isnan(roundpar): 
-            V_2dep[:, 1: ]  = np.around(V_2dep[:, 1:], decimals = roundpar)
+            V_2dep[:, 1:]  = np.around(V_2dep[:, 1:], decimals = roundpar)
 
     else:
         V_dep2act_new = np.zeros((V_dep2act.shape))
-        V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
+        V_dep2act_new[0] = 0  # EB:0 because it should be the row index (check whether should be 1)
         V_2dep = V_dep2act
         # I re-deposit all the matrix V_dep2act into the deposit layer
 
     # for the classes where V_inc2act is enough, I deposit the cascades
     # proportionally
 
-    perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[:, np.append(False, ~class_sup_dep) == True], axis=0)
-    perc_inc[np.isnan(perc_inc)] = 0 #change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
+    perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[:, np.append(False, ~class_sup_dep) is True], axis=0)
+    perc_inc[np.isnan(perc_inc)] = 0  # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
     class_perc_inc = np.zeros((class_sup_dep.shape))
-    class_perc_inc[class_sup_dep == False] = perc_inc
+    class_perc_inc[class_sup_dep is False] = perc_inc
 
-    V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act*(np.append(True, class_sup_dep)) + V_inc2act*np.append(False, class_perc_inc))))
+    V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act * (np.append(True, class_sup_dep)) + V_inc2act * np.append(False, class_perc_inc))))
     
     if ~np.isnan(roundpar):
         V_mob[:, 1:] = np.around(V_mob[:, 1:], decimals = roundpar)
 
     class_residual = np.zeros((class_sup_dep.shape));
-    class_residual[class_sup_dep == False] = 1 - perc_inc
+    class_residual[class_sup_dep is False] = 1 - perc_inc
 
-    V_2dep = np.vstack((V_2dep, V_inc2act * np.hstack((1, class_residual)))) ## EB check again EB: here the 1 instead of the 0 should be correct + 
+    V_2dep = np.vstack((V_2dep, V_inc2act * np.hstack((1, class_residual))))  ## EB check again EB: here the 1 instead of the 0 should be correct + 
    
     if ~np.isnan(roundpar):
         V_2dep[:, 1:]  = np.around(V_2dep[:, 1:], decimals = roundpar) 
 
     # Put the volume exceeding the transport capacity back in the deposit
 
-    #If the upper layer in the deposit and the lower layer in the volume to be
-    #deposited are from the same reach, i sum them
+    # If the upper layer in the deposit and the lower layer in the volume to be
+    # deposited are from the same reach, i sum them
     if (V_dep[-1, 0] == V_2dep[0, 0]):
         V_dep[-1, 1:] = V_dep[-1, 1:] + V_2dep[0, 1:] 
         V_dep = np.vstack((V_dep, V_2dep[1:, :]))
     else:
         V_dep = np.vstack((V_dep, V_2dep))
-
     
-    #remove empty rows
+    # remove empty rows
     if not np.sum(V_dep2act[:, 1:]) == 0:
         V_dep = V_dep[np.sum(V_dep[:, 1:], axis=1) != 0]  
     
@@ -300,48 +299,48 @@ def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
     position of the volume is positioned in a location that guarantees that
     all of it passes through the ToNode and leaves the reach """
     
-    ## define starting position
-    #the starting position is the position on the reach n from which the
-    #parcel start, defined as fraction of reach length
-    #if start_pos = 0, the parcel starts form the From_Node
-    #if start_pos = 1, the parcel starts form the To_Node
+    # define starting position
+    # the starting position is the position on the reach n from which the
+    # parcel start, defined as fraction of reach length
+    # if start_pos = 0, the parcel starts form the From_Node
+    # if start_pos = 1, the parcel starts form the To_Node
 
     if len(kwargs) == 0:
         start_pos = 0
         
-    ## find path downstream
+    # find path downstream
 
-    #start_pos (between 0 and 1) defines the position in the reach n where the 
-    #sediment parcel start, if 1 start form the From_node, if 0 starts from
-    #the To_Node
-    #if nargin < 5
-    #  start_pos = 1;
-    #end
+    # start_pos (between 0 and 1) defines the position in the reach n where the 
+    # sediment parcel start, if 1 start form the From_node, if 0 starts from
+    # the To_Node
+    # if nargin < 5
+    #   start_pos = 1;
+    # end
 
     timestep = 1
     outlet = int(Network['outlet'])
     
-    #path2out contains the path from reach n to the outlet, defined as the IDs of the
-    #reach downstream ordered.
-    #downdist_path contains the distance from the reaches in path2out to the
-    #reach n From_node
+    # path2out contains the path from reach n to the outlet, defined as the IDs of the
+    # reach downstream ordered.
+    # downdist_path contains the distance from the reaches in path2out to the
+    # reach n From_node
     path2out = np.array([int(m) for m in Network['downstream_path'][str(n)][str(outlet)]])
     downdist_path = Network['downstream_distance'][n][path2out]
     
     # find position and destination reach ID
     
-    #isolate the velocity of the downstream reaches
+    # isolate the velocity of the downstream reaches
     v_sed_path = v_sed_day[:,path2out]
     
     if v_sed_path.ndim == 1:
         v_sed_path = v_sed_path[:, None]
     
-    #change the length of the starting reach according to the starting
-    #position, different for each tr.cap
+    # change the length of the starting reach according to the starting
+    # position, different for each tr.cap
     Lngt_pathout = np.repeat(np.array(Lngt[path2out]).reshape(1, -1), len(psi), axis=0)
     Lngt_pathout[:, 0]  = Lngt_pathout[:, 0] * (1 - start_pos) 
     
-    #calculate the time (in days) it takes to completely cross a reach 
+    # calculate the time (in days) it takes to completely cross a reach 
     transit_time = Lngt_pathout/v_sed_path
     
     # the cumulate of transit_time defines how long it takes to reach each
@@ -350,33 +349,32 @@ def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
     
     # given cum_tr_time, i can find the reach where the parcel is after the timestep  
     find_point = cum_tr_time - timestep 
-    find_point[find_point < 0] = 100000000000000000 # EB: maybe find a more elegant solution 
-    indx_pos = np.argmin(find_point, axis=1) # (note, this is not the reach ID, it is the position of the reach in the downstream path) 
-    indx_pos[find_point[:, -1] == 100000000000000000] = len(path2out) - 1 # EB check if len + 1 #if the whole row in find_point is nan, it means that the parcel left the network 
+    find_point[find_point < 0] = 100000000000000000  # EB: maybe find a more elegant solution 
+    indx_pos = np.argmin(find_point, axis=1)  # (note, this is not the reach ID, it is the position of the reach in the downstream path) 
+    indx_pos[find_point[:, -1] == 100000000000000000] = len(path2out) - 1  # EB check if len + 1 #if the whole row in find_point is nan, it means that the parcel left the network 
 
     # I can find the time remaining for the parcel after if enters reach
     # indx_pos, needed to find the position of the parcel 
     find_time = timestep - cum_tr_time
     find_time[find_time < 0] = 100000000000000000
-    indx_t = np.argmin(find_time, axis=1) #indx_t is the reach before indx_pos 
+    indx_t = np.argmin(find_time, axis=1)  # indx_t is the reach before indx_pos 
        
-    time_left = find_time[np.arange(len(find_time)), indx_t] # EB: check whether find_time has two dims also with one column
-    time_left[time_left == 100000000000000000] = timestep #if time_left is nan, it means that the parcel remained in the starting reach m
-
+    time_left = find_time[np.arange(len(find_time)), indx_t]  # EB: check whether find_time has two dims also with one column
+    time_left[time_left == 100000000000000000] = timestep  # if time_left is nan, it means that the parcel remained in the starting reach m
 
     sed_pos = time_left * v_sed_path[np.arange(len(psi)), indx_pos] + downdist_path[indx_pos] 
-    #If the whole row in find_point is nan (the parcel left the network), 
-    #use the velocity of the outlet to determine the final position
+    # If the whole row in find_point is nan (the parcel left the network), 
+    # use the velocity of the outlet to determine the final position
     # (that will be outside the network) 
     if (sed_pos[(find_point[:, -1] == 100000000000000000)]).size != 0: 
             sed_pos[(find_point[:, -1] == 100000000000000000)] = downdist_path[len(path2out) - 1] + Lngt[outlet] +  v_sed_path[(find_point[:, -1] == 100000000000000000), len(path2out)-1] * time_left[(find_point[:, -1] == 100000000000000000)]
     
-    #outind tells for which sed. size the point fell outside the
+    # outind tells for which sed. size the point fell outside the
     # network (1 - outside, 0 - inside) 
     outind = (find_point[:, -1] == 100000000000000000)
     
-    #sed_pos = sed_pos + Lngt(n) * (1 - start_pos); 
-    end_reach_ID = path2out[indx_pos] # i find the ID of the destination reach from indx_pos, given the order defined by path2out 
+    # sed_pos = sed_pos + Lngt(n) * (1 - start_pos); 
+    end_reach_ID = path2out[indx_pos]  # i find the ID of the destination reach from indx_pos, given the order defined by path2out 
     
     return sed_pos, end_reach_ID, outind
 
@@ -388,43 +386,41 @@ def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
     sediment parcel delivered from the ToN of the reach n. Thus the volume
     has a single destination reach and it never get split. """ 
     
-    ##initailize parameters
+    # initailize parameters
     outlet = Network['n_hier'][-1]
 
-    ## find start and end reach of the sed volume after the timestep
+    # find start and end reach of the sed volume after the timestep
     
     # reach_dest is the id of the reach where the sed. volume stops after the timestep 
-    #p_dest is the position from the from_node of the id reach where the sed. volume stops after the timestep 
+    # p_dest is the position from the from_node of the id reach where the sed. volume stops after the timestep 
 
     if n == outlet:  
         reach_dest = np.repeat(n, np.shape(v_sed_day)[0])
         p_dest = v_sed_day[:,n] + np.array(Lngt[n])
     else:
-        #to find p_end, i track the position of a sediment parcel starting
-        #from the To_Node of the reach n (i.e. the From_node of the downstream reach).
+        # to find p_end, i track the position of a sediment parcel starting
+        # from the To_Node of the reach n (i.e. the From_node of the downstream reach).
         p_dest, reach_dest, outind = track_sed_position(int(Network['downstream_node'][int(n)]), v_sed_day, Lngt, psi, Network)
         p_dest = p_dest + np.array(Lngt[n])
         
-    #downdist contains the distanche from the starting reach to all reaches
-    #downstream
+    # downdist contains the distanche from the starting reach to all reaches
+    # downstream
     downdist = Network['downstream_distance'][int(n)]
    
-    ## find position of the sediment volume
+    # find position of the sediment volume
         
-    #setout is equal to 1 if the volume in the sed.class left the network
-    #via the outlet
+    # setout is equal to 1 if the volume in the sed.class left the network
+    # via the outlet
     setout = (np.squeeze(p_dest) - np.array(Lngt[reach_dest]) - downdist[reach_dest].T> 0)*1
      
-    #in each row, setplace is equal to 1 in the reach where the sed. volume
-    #of each class is delivered 
+    # in each row, setplace is equal to 1 in the reach where the sed. volume
+    # of each class is delivered 
     setplace = np.zeros((len(v_sed_day), len(downdist)))
     setplace[np.arange(len(v_sed_day)), reach_dest]  = 1
     
-    
-    
     setplace[setout == 1, :] = 0
 
-    ## place volume to destination reach 
+    # place volume to destination reach 
     
     Qbi_tr_t = np.zeros((len(Lngt), len(Lngt), len(setplace)))
     Q_out_t = np.zeros ((len(Lngt), len(setplace)))
@@ -440,10 +436,9 @@ def change_slope(Node_el_t, Lngt, Network, **kwargs):
     the nodes: It also guarantees that the slope is not negative or lower then
     the min_slope value by changing the node elevation bofore findin the SLlpe""" 
     
-    #define minimum reach slope 
-       
+    # define minimum reach slope 
         
-    #initialization
+    # initialization
     if len(kwargs) != 0: 
         min_slope = kwargs['s'] 
     else: 
@@ -456,32 +451,29 @@ def change_slope(Node_el_t, Lngt, Network, **kwargs):
     
     Slope_t = np.zeros(Lngt.shape)
     
-    #loop for all reaches
+    # loop for all reaches
     for n in range(len(Lngt)): 
-        #find the minimum node elevation to guarantee Slope > min_slope
+        # find the minimum node elevation to guarantee Slope > min_slope
         min_node_el = min_slope * Lngt[n] + Node_el_t[down_node[n]]
 
-        #change the noide elevation if lower to min_node_el
+        # change the noide elevation if lower to min_node_el
         Node_el_t[n] = np.maximum(min_node_el, Node_el_t[n]) 
         
-        #find the new slope
+        # find the new slope
         Slope_t[n] = (Node_el_t[n] - Node_el_t[down_node[n]]) / Lngt[n]
-    
     
     return Slope_t, Node_el_t
 
 
-
-
 def stop_or_not(t_new, Vm):
-    ''' 
+    """
     Function that decides if traveling cascades of sediments will stop in this 
     reach or not, depending on time.
     
     t_new: elapsed time since beginning of time step for Vm, for each sed class
     Vm: traveling cascade of sediments
-    '''
-    cond_stop = np.insert([t_new>1], 0, True)
+    """
+    cond_stop = np.insert([t_new > 1], 0, True)
     Vm_stop = np.zeros_like(Vm)
     Vm_stop[:, cond_stop] = Vm[:, cond_stop]
     
@@ -489,9 +481,9 @@ def stop_or_not(t_new, Vm):
     Vm_continue = np.zeros_like(Vm)
     Vm_continue[:, cond_continue] = Vm[:, cond_continue]
     
-    if np.all(Vm_stop[:, 1:] == 0) == True:
+    if np.all(Vm_stop[:, 1:] == 0) is True:
         Vm_stop = None
-    if np.all(Vm_continue[:, 1:] == 0) == True: 
+    if np.all(Vm_continue[:, 1:] == 0) is True: 
         Vm_continue = None
         
     return Vm_stop, Vm_continue
@@ -525,12 +517,12 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     # Loop over the sorted and grouped cascades
     for cascades in sorted_and_grouped_cascade_list:        
         Vm_same_time = np.concatenate([casc.volume for casc in cascades], axis=0)
-        if np.any(Vm_same_time[:, 1:]) == False: #In case Vm_same_time is full of 0
+        if np.any(Vm_same_time[:, 1:]) is False: #In case Vm_same_time is full of 0
             del cascades
             continue 
         # Storing matrix for removed volumes
         removed_Vm = np.zeros_like(Vm_same_time)
-        removed_Vm[:, 0] = Vm_same_time[:, 0] # same first col with initial provenance
+        removed_Vm[:, 0] = Vm_same_time[:, 0]  # same first col with initial provenance
         for col_idx in range(Vm_same_time[:, 1:].shape[1]):  # Loop over sediment classes
             if V_remove[col_idx] > 0:
                 col_sum = np.sum(Vm_same_time[:, col_idx+1])        
@@ -544,7 +536,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
                         # Round Vm
                         Vm[:, col_idx+1] = np.round(Vm[:, col_idx+1], decimals = roundpar)
                         # Ensure no negative values 
-                        if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) == True:
+                        if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) is True:
                             raise ValueError("Negative value in VM is strange")
                     
                     # Store the removed quantities in the removed volumes matrix
@@ -552,7 +544,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
                     # Update V_remove by subtracting the total removed quantity
                     V_remove[col_idx] -= col_sum * fraction_to_remove                                
                     # Ensure V_remove doesn't go under the number fixed by roundpar 
-                    if np.any(V_remove[col_idx] < -10**(-roundpar)) == True:
+                    if np.any(V_remove[col_idx] < -10**(-roundpar)) is True:
                         raise ValueError("Negative value in V_remove is strange")
         # Round and store removed volumes
         removed_Vm[:, 1:] = np.round(removed_Vm[:, 1:], decimals = roundpar)                                                  
@@ -567,9 +559,3 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
            
     # The returned cascade_list is directly modified by the operations on Vm
     return r_Vmob, cascade_list, V_remove
-
-
-
-
-
-
