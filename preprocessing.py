@@ -40,101 +40,95 @@ def write_adj_matrix(FromN, ToN , Lngt):
 
 '''##########################################################################################'''
 
-def extract_graph (FromN,ToN):
-    '''
-    EXTRACT_GRAPH receives the informations on the FromN and ToN and 
-    returns G, a NetworkX direct graph corresponding to the lines in adjacency list 
+def extract_graph(from_n, to_n):
+    """
+    Receives the informations on the from_n and to_n and returns graph,
+    a NetworkX direct graph corresponding to the lines in adjacency list 
     format.
+    """  
     
-    '''  
-    
-    nodes = np.zeros([FromN.size,2])
-    nodes[:,0] = FromN
-    nodes[:,1] = ToN    
-    np.savetxt("nodes",nodes,fmt = '%d') #save fromN and ToN as text, necessary to run read_adjlst
-    G = nx.read_adjlist("nodes",create_using = nx.DiGraph)
+    nodes = np.zeros([from_n.size, 2])
+    nodes[:, 0] = from_n
+    nodes[:, 1] = to_n
+    np.savetxt("nodes", nodes, fmt = '%d') # save from_n and to_n as text, necessary to run read_adjlst.
+    graph = nx.read_adjlist("nodes", create_using = nx.DiGraph, nodetype=int)
     os.remove("nodes") 
     
-    return G
+    return graph
     
 '''##########################################################################################'''
 
 
 
-def graph_preprocessing( ReachData ):
-    '''
-    GRAPH_PREPROCESSING receives the informations about reach and node ID and
-    return the struct Network, that describes network connectivity
+def graph_preprocessing(reach_data):
+    """
+    Receives the informations about reach and node ID and
+    return the struct Network, that describes network connectivity.
     
-     INPUT: 
+    INPUT: 
+    reach_data = ReachData Class defining the features of the network reaches
     
-     ReachData    = Dataframe from shapefile defining the features of the network reaches
-    
-    ---
-     OUTPUT: 
+    OUTPUT: 
     
      Network  = dict containing for each node info on upstream and downstream nodes
          
          Attributes:
          - NH : position in the reach hierarchy of reach R. The 
              higher the ranking, the higher the number of upstream node of a reach
-         - Upstream_Node : ID of the fromN of the reaches direcly upstream each reach
-         - numberUpstreamNodes : max number of nodes between a reach and a source node (used to extract the ranking)
+         - upstream_node : ID of the fromN of the reaches direcly upstream each reach
+         - number_upstream_nodes : max number of nodes between a reach and a source node (used to extract the ranking)
          - outlet : IDs of the outlet reach
          - sources: IDs of the source nodes
     
       
-    '''
-    FromN = np.array(ReachData.FromN) -1
-    ToN = np.array(ReachData.ToN) -1
-    length = np.array(ReachData.Length)
-    
+    """
+    from_n = reach_data.from_n - 1
+    to_n = reach_data.to_n - 1
+    length = reach_data.length
 
-    # G represent the network as a direct graph, from which to extract 
+    # graph represent the network as a direct graph, from which to extract 
     # informations on the connection between nodes
-    
-    G = extract_graph (FromN,ToN)
-    # by running the function inverting the input FromN with ToN, we obtain a 
+    graph = extract_graph(from_n, to_n)
+
+    # by running the function inverting the input from_n with to_n, we obtain a 
     # graph directed from the outlet to the sources
-    G_down = extract_graph (ToN,FromN) 
+    graph_down = extract_graph(to_n, from_n) 
     
-    #shortest downstream path to each node
-    paths = nx.shortest_path(G)
+    # shortest downstream path to each node
+    paths = nx.shortest_path(graph)
     
-    
-    #shortest upstream path to each node
-    paths_up = nx.shortest_path(G_down)  
-    
+    # shortest upstream path to each node
+    paths_up = nx.shortest_path(graph_down)
     
     #find the number of upstream nodes
-    numberUpstreamNodes = np.zeros([np.size(FromN),1])
-    distanceUpstream = [None]*len(paths_up)
+    number_upstream_nodes = np.zeros([reach_data.n_reaches, 1])
+    distance_upstream = [None] * reach_data.n_reaches
 
     for i in paths_up.keys():
         length_dict_old = -1  
-        dist = np.full((len(FromN),),np.nan)
-        for j in paths_up[str(i)].keys():
+        dist = np.full((reach_data.n_reaches,), np.nan)
+        for j in paths_up[i].keys():
             length_dict = len(paths_up[i][j])
-            length_dict = max([length_dict_old,length_dict])
+            length_dict = max([length_dict_old, length_dict])
             length_dict_old = length_dict
         
-        collection = list(paths_up[str(i)].keys())
+        collection = list(paths_up[i].keys())
         
         for w, key in enumerate(collection):           
-            el = paths_up[str(i)][key]
+            el = paths_up[i][key]
             add = 0 
             if len(el) == 1 and el[0] == key: # source
                 dist[int(el[0])] = 0 
             else:
-                for z in range(len(el)-1):
+                for z in range(len(el) - 1):
                    # find relative distance 
-                   idx = np.where((ToN == int(el[z])) & (FromN == int(el[z+1])))
+                   idx = np.where((to_n == int(el[z])) & (from_n == int(el[z+1])))
                    if len(idx[0]) != 0: # if found the combination of nodes - find the distance between them 
                      dist[int(collection[w])] = length [idx] + add
                      add += length[idx]
         
-        distanceUpstream[int(i)] = dist
-        numberUpstreamNodes[int(i)] = length_dict
+        distance_upstream[i] = dist
+        number_upstream_nodes[i] = length_dict
         
     """
     # incoming node count 
@@ -154,94 +148,97 @@ def graph_preprocessing( ReachData ):
     
     # create upstream distance list
     upstream_distance_list = []
-    for i in range(len(ReachData)):
-        to_fill = np.empty((1,len(ReachData)))*np.nan
-        index = np.argsort(distanceUpstream[i])    
-        mask = ~(np.isnan(np.sort(distanceUpstream[i])))
+    for i in range(reach_data.n_reaches):
+        to_fill = np.empty((1, reach_data.n_reaches)) * np.nan
+        index = np.argsort(distance_upstream[i])
+        mask = ~(np.isnan(np.sort(distance_upstream[i])))
         keep = index[mask]
         to_fill[0, 0:len(keep)] = keep
         upstream_distance_list.append(to_fill)
         
     print('upstream paths and nodes done..')
-    #find the number of downstream nodes and their relative distance (EB)
-    numberDownstreamNodes = np.zeros([np.size(FromN),1])
-    distanceDownstream = [None]*len(paths_up)
+    # find the number of downstream nodes and their relative distance (EB)
+    number_downstream_nodes = np.zeros([np.size(from_n), 1])
+    distance_downstream = [None] * reach_data.n_reaches
 
     for i in paths.keys():
-        length_dict_old = -1  
-        dist = np.full((len(FromN),),np.nan)
-        for j in paths[str(i)].keys():
+        length_dict_old = -1
+        dist = np.full((reach_data.n_reaches,), np.nan)
+        for j in paths[i].keys():
             length_dict = len(paths[i][j])
-            length_dict = max([length_dict_old,length_dict])
-            length_dict = max([length_dict_old,length_dict])
+            length_dict = max([length_dict_old, length_dict])
+            length_dict = max([length_dict_old, length_dict])
             length_dict_old = length_dict
         
-        collection = list(paths[str(i)].keys())
+        collection = list(paths[i].keys())
         
         for w, key in enumerate(collection):           
-            el = paths[str(i)][key]
+            el = paths[i][key]
             add = 0 
             if len(el) == 1 and el[0] == key:
-                dist[int(el[0])] = 0 
+                dist[el[0]] = 0 
             else:
-                for z in range(len(el)-1):
-                   # find relative distance 
-                   idx = np.where((FromN == int(el[z])) & (ToN == int(el[z+1])))
-                   if len(idx[0]) != 0: # if found the combination of nodes - find the distance between them 
-                     dist[int(collection[w])] = length [idx] + add
-                     add += length[idx]
+                for z in range(len(el) - 1):
+                    # find relative distance 
+                    idx = np.where((from_n == el[z]) & (to_n == el[z+1]))
+                    if len(idx[0]) != 0: # if found the combination of nodes - find the distance between them 
+                        dist[collection[w]] = length [idx] + add
+                        add += length[idx]
         
-        distanceDownstream[int(i)] = dist 
-        numberDownstreamNodes[int(i)]  = length_dict        
+        distance_downstream[i] = dist 
+        number_downstream_nodes[i] = length_dict        
         
     # create upstream distance list
     downstream_distance_list = []
-    for i in range(len(ReachData)):
-        to_fill = np.empty((1,len(ReachData)))*np.nan
-        index = np.argsort(distanceDownstream[i])    
-        mask = ~(np.isnan(np.sort(distanceDownstream[i])))
+    for i in range(reach_data.n_reaches):
+        to_fill = np.empty((1, reach_data.n_reaches)) * np.nan
+        index = np.argsort(distance_downstream[i])    
+        mask = ~(np.isnan(np.sort(distance_downstream[i])))
         keep = index[mask]
         to_fill[0, 0:len(keep)] = keep
         downstream_distance_list.append(to_fill)
     
     print('downstream paths and nodes done..')
     # ID of directly upstream nodes
-    Upstream_Node = [None] * np.size(numberUpstreamNodes)
-    outlet = FromN[np.argwhere(FromN==ToN)]
+    upstream_node = [None] * np.size(number_upstream_nodes)
+    outlet = from_n[np.argwhere(from_n==to_n)]
     sources = np.array(-1)
     
-    for i in range(0,np.size(numberUpstreamNodes)):
-        node_id = FromN[i]            
-        Upstream_Node[i] =  FromN[np.argwhere(ToN ==  FromN[i])]
+    for i in range(0, reach_data.n_reaches):
+        node_id = from_n[i]            
+        upstream_node[i] =  from_n[np.argwhere(to_n ==  from_n[i])]
         if node_id == outlet:
-            Upstream_Node[i] = Upstream_Node[i][Upstream_Node[i]!=node_id].reshape(-1,1)
+            upstream_node[i] = upstream_node[i][upstream_node[i] != node_id].reshape(-1,1)
             
-        #find sources
-        if np.size(Upstream_Node[i]) == 0:
+        # find sources
+        if np.size(upstream_node[i]) == 0:
             if np.sum(sources) == -1:
-                sources =  FromN[i]
+                sources = from_n[i]
             else:
-                sources = np.append(sources, FromN[i])
-    
+                sources = np.append(sources, from_n[i])
     
     # ID of downstream nodes
-    Downstream_Node = [None] * np.size(numberDownstreamNodes)
+    downstream_node = [None] * reach_data.n_reaches
     
-    for i in range(0,np.size(numberDownstreamNodes)):
-        node_id = FromN[i]            
-        Downstream_Node[i] =  ToN[np.argwhere(FromN ==  node_id)]
+    for i in range(0, reach_data.n_reaches):
+        node_id = from_n[i]            
+        downstream_node[i] = to_n[np.argwhere(from_n == node_id)]
         if node_id == outlet:
-            Downstream_Node[i] = np.empty([1,1])
-            
+            downstream_node[i] = np.empty([1,1])
     
     # node hierarchy for CASCADE loop (refers to the position in ReachData, not the reach ID)
-    Nh = np.argsort(numberUpstreamNodes.transpose() , kind = 'mergesort')[0]
-
+    n_hier = np.argsort(number_upstream_nodes.transpose(), kind = 'mergesort')[0]
     
-    #create Network dict to collect all output data
-    Network ={'numberUpstreamNodes':numberUpstreamNodes,'Upstream_Node':Upstream_Node, 'Downstream_Node': Downstream_Node , 
-              'NH' : Nh , 'outlet':outlet , 'sources':sources,
-              'upstream_distance_list':upstream_distance_list, 'downstream_distance': distanceDownstream,
-              'downstream_path': paths}
+    #create network dict to collect all output data
+    network = {'number_upstream_nodes': number_upstream_nodes,
+               'upstream_node': upstream_node,
+               'downstream_node': downstream_node, 
+               'n_hier' : n_hier,
+               'outlet': outlet,
+               'sources': sources,
+               'upstream_distance_list': upstream_distance_list,
+               'downstream_distance': distance_downstream,
+               'downstream_path': paths
+               }
     print('preprocessing done!')
-    return Network
+    return network
