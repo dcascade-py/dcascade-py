@@ -69,9 +69,12 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
-def layer_search(Qbi_incoming, V_dep_old , V_lim_tot_n, roundpar):
-    ''' This function searches layers that are to be put in the maximum mobilisable  
+def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
+    """
+    This function searches layers that are to be put in the maximum mobilisable  
     layer of a time step. (i.e. the maximum depth to be mobilised). 
+
+    INPUTS:
     Qbi_incomimg :      is the cascade stopping there from the previous time step
     V_dep_old is :      the reach deposit layer
     V_lim_tot_n  :      is the total maximum volume to be mobilised
@@ -81,8 +84,7 @@ def layer_search(Qbi_incoming, V_dep_old , V_lim_tot_n, roundpar):
     V_dep2act    :      layers of the deposit volume to be put in the active layer
     V_dep        :      remaining deposit layer
     Fi_r_reach   :      fraction of sediment in the active layer
-    
-    '''
+    """
 
     # if, considering the incoming volume, I am still under the threshold of the active layer volume...
     if (V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])) > 0:
@@ -371,7 +373,7 @@ def track_sed_position( n , v_sed_day , Lngt , psi, Network ,  **kwargs):
     
     return sed_pos , end_reach_ID, outind
 
-def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
+def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
     """SED_TRANSFER_SIMPLE takes the matrix of the mobilized layers(V_mob) and the vector of
     the sed velocity for each class(v_sed_id) in a reach (n) and returns the 3D matrices containing the
     sed volumes in V_mob in their new position at the end of the timestep.
@@ -380,7 +382,7 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     has a single destination reach and it never get split. """ 
     
     ##initailize parameters
-    outlet = Network['NH'][-1]
+    outlet = Network['n_hier'][-1]
 
     ## find start and end reach of the sed volume after the timestep
     
@@ -388,12 +390,12 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
     #p_dest is the position from the from_node of the id reach where the sed. volume stops after the timestep 
 
     if n == outlet:  
-        reach_dest = np.repeat( n , np.shape(v_sed_day)[0])
+        reach_dest = np.repeat(n , np.shape(v_sed_day)[0])
         p_dest = v_sed_day[:,n] + np.array(Lngt[n])
     else:
         #to find p_end, i track the position of a sediment parcel starting
         #from the To_Node of the reach n (i.e. the From_node of the downstream reach).
-        p_dest , reach_dest , outind = track_sed_position( int(Network['Downstream_Node'][int(n)]) , v_sed_day , Lngt , psi, Network )
+        p_dest, reach_dest, outind = track_sed_position(int(Network['downstream_node'][int(n)]), v_sed_day, Lngt, psi, Network)
         p_dest = p_dest + np.array(Lngt[n])
         
     #downdist contains the distanche from the starting reach to all reaches
@@ -424,11 +426,7 @@ def sed_transfer_simple(V_mob , n , v_sed_day , Lngt, Network, psi):
         Qbi_tr_t[[V_mob[:,0].astype(int)],:,c] = V_mob[:,c+1][:,None] * setplace[c,:][None,:]
         Q_out_t[[V_mob[:,0].astype(int)],:] = V_mob[:,1:] * setout
                
-
-    
     return Qbi_tr_t, Q_out_t , setplace, setout
-
-
 
 def change_slope(Node_el_t, Lngt, Network , **kwargs):
     """"CHANGE_SLOPE modify the Slope vector according to the changing elevation of
@@ -444,9 +442,9 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
     else: 
         min_slope = 0
      
-    outlet = Network['NH'][-1]
-    down_node = Network['Downstream_Node']    
-    down_node = np.array([ int(n) for n in down_node])
+    outlet = Network['n_hier'][-1]
+    down_node = Network['downstream_node']    
+    down_node = np.array([int(n) for n in down_node])
     down_node[int(outlet)] = (len(Node_el_t)-1)
     
     Slope_t = np.zeros(Lngt.shape)
@@ -454,7 +452,7 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
     #loop for all reaches
     for n in range(len(Lngt)): 
         #find the minimum node elevation to guarantee Slope > min_slope
-        min_node_el = min_slope *  Lngt[n] + Node_el_t[down_node[n]]
+        min_node_el = min_slope * Lngt[n] + Node_el_t[down_node[n]]
 
         #change the noide elevation if lower to min_node_el
         Node_el_t[n] = np.maximum(min_node_el, Node_el_t[n] ) 

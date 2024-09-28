@@ -28,40 +28,39 @@ The formula by Nitsche et al. (2011) is based on the flow depth and the D84
 - change D values from Reach Data to values that D-Cascade calculates for each timestep
 '''
 
-factor_a = 1.5 #factopr a between 1-2, tipically 1.5
+exponent_a = 1.5 # exponent a between 1-2, typically 1.5
 
-def slopeRed_Rickenmann(Slope, h, ReachData, t):  
-   if 'D90' not in ReachData.columns:
-       Slope[t] = Slope[t] * (0.092 * Slope[t] ** (-0.35) * (h / ReachData['D84']) ** (0.33)) ** factor_a  
+def slopeRed_Rickenmann(slope, h, reach_data, t):  
+   if reach_data.D90.size == 0:
+       slope[t] = slope[t] * (0.092 * slope[t] ** (-0.35) * (h / reach_data.D84) ** (0.33)) ** exponent_a  
    else:
-       Slope[t] = Slope[t] * (0.092 * Slope[t] ** (-0.35) * (h / ReachData['D90']) ** (0.33)) ** factor_a   
-   return Slope
+       slope[t] = slope[t] * (0.092 * slope[t] ** (-0.35) * (h / reach_data.D90) ** (0.33)) ** exponent_a   
+   return slope
    
-def slopeRed_Chiari_Rickenmann(Slope, Q, ReachData, t):
-    if 'D90' not in ReachData.columns: 
-        Slope[t] = Slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * ReachData['D84']**0.47 * Slope[t]**0.19)) ** factor_a
+def slopeRed_Chiari_Rickenmann(slope, Q, reach_data, t):
+    if reach_data.D90.size == 0: 
+        slope[t] = slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * reach_data.D84**0.47 * slope[t]**0.19)) ** exponent_a
     else:
-        Slope[t] = Slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * ReachData['D90']**0.47 * Slope[t]**0.19)) ** factor_a
+        slope[t] = slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(9.81**0.096 * reach_data.D90**0.47 * slope[t]**0.19)) ** exponent_a
     
-    return Slope
+    return slope
 
-def slopeRed_Nitsche(Slope, h, ReachData, t):
-    Slope[t] = Slope[t] * ((2.5 *((h / ReachData['D84']) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  ReachData['D84'])**(5/3)))) ** factor_a
+def slopeRed_Nitsche(slope, h, reach_data, t):
+    slope[t] = slope[t] * ((2.5 *((h / reach_data.D84) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  reach_data.D84)**(5/3)))) ** exponent_a
     
-    return Slope
+    return slope
 
-
-def choose_slopeRed(ReachData, Slope, Q, t, h, slopeRed):
-    if slopeRed == 1:
-        Slope = Slope    
+def choose_slopeRed(reach_data, slope, Q, t, h, slope_red):
+    if slope_red == 1:
+        slope = slope    
     
-    elif slopeRed == 2:
-        Slope = slopeRed_Rickenmann(Slope, h, ReachData, t)
+    elif slope_red == 2:
+        slope = slopeRed_Rickenmann(slope, h, reach_data, t)
     
-    elif slopeRed == 3:
-        Slope = slopeRed_Chiari_Rickenmann(Slope, Q, ReachData, t)
+    elif slope_red == 3:
+        slope = slopeRed_Chiari_Rickenmann(slope, Q, reach_data, t)
     
-    elif slopeRed == 4:
-        Slope = slopeRed_Nitsche(Slope, h, ReachData, t)
+    elif slope_red == 4:
+        slope = slopeRed_Nitsche(slope, h, reach_data, t)
     
-    return Slope
+    return slope

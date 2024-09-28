@@ -75,10 +75,10 @@ class ReachData:
         self.geometry = geodataframe['geometry'].values
         
         # Optional attributes
-        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else None
-        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else None
-        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else None
-        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else None
+        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else numpy.empty()
+        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else numpy.empty()
+        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else numpy.empty()
+        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else numpy.empty()
         
     def sort_values_by(self, sorting_array):
         """
@@ -323,7 +323,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                Fi_r_act[t,n,:] = Fi_r_act[t-1,n,:] 
                       
             # Calculate transport capacity in m3/s
-            # tr_cap_per_s, Qc = tr_cap_function(np.array([0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]), D50_AL[t,n], slope[t,n] , Q.iloc[t,n], reach_data['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+            # tr_cap_per_s, Qc = tr_cap_function(np.array([0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]), D50_AL[t,n], slope[t,n] , Q.iloc[t,n], reach_data.Wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
 
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
@@ -457,7 +457,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             
             # Update slope if required.
             if update_slope == True:
-                node_el[t+1][n]= node_el[t,n] + Delta_V/( np.sum(reach_data['Wac'][np.append(n, network['Upstream_Node'][n])] * reach_data['Length'][np.append(n, network['Upstream_Node'][n])]) * (1-phi) )
+                node_el[t+1][n]= node_el[t,n] + Delta_V/( np.sum(reach_data.Wac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['Upstream_Node'][n])]) * (1-phi) )
             
         """End of the reach loop"""
             
@@ -477,7 +477,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 
         # #---5) Move the mobilized volumes to the destination reaches according to the sediment velocity
 
-        # for n in network['NH']:
+        # for n in network['n_hier']:
         #     #load mobilized volume for reach n
             
         #     V_mob = np.zeros((n_reaches,n_classes+1))
@@ -491,10 +491,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         #     #     Fi_mob = Fi_r_act[t,:,n]
                 
         #     # #OLD: calculate sediment velocity for the mobilized volume in each reach
-        #     # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, n_reaches), slope[t,:] , Q.iloc[t,:], reach_data['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
+        #     # v_sed = sed_velocity( np.matlib.repmat(Fi_mob, 1, n_reaches), slope[t,:] , Q.iloc[t,:], reach_data.Wac , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
         #     #transfer the sediment volume downstream according to vsed in m/day
-        #     Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple(V_mob , n , v_sed * ts_length , reach_data['Length'], network, psi)
+        #     Qbi_tr_t, Q_out_t, setplace, setout = sed_transfer_simple(V_mob , n , v_sed * ts_length , reach_data.length, network, psi)
 
         #     # Sum the volumes transported from reach n with all the other 
         #     # volumes mobilized by all the other reaches at time
@@ -510,7 +510,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         #in case of changing slope..
         if update_slope == True:
             #..change the slope accordingly to the bed elevation
-            slope[t+1,:], node_el[t+1,:] = change_slope(node_el[t+1,:] ,reach_data['Length'], network, s = min_slope)
+            slope[t+1,:], node_el[t+1,:] = change_slope(node_el[t+1,:] ,reach_data.length, network, s = min_slope)
             
         #measure time of routing
         #time2   = clock;
