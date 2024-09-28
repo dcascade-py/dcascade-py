@@ -33,24 +33,5 @@ jobs:
 
       # Step 4: Run pre-commit hooks on all files
       - name: Run pre-commit hooks
-        run: pre-commit run --all-files --show-diff-on-failure || true  # Ensure the pipeline doesn't fail here
+        run: pre-commit run --all-files
 
-      - name: Check for file changes (detect if pre-commit modified files)
-        id: changes_check
-        run: |
-          git diff --exit-code || echo "changes_detected=true" >> $GITHUB_ENV
-
-      - name: Commit changes if any (only commit if changes are detected)
-        if: env.changes_detected == 'true'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .
-          git commit -m "chore: apply pre-commit fixes" || echo "No changes to commit"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push changes back to the branch
-        if: env.changes_detected == 'true'
-        run: |
-          git push origin ${{ github.head_ref }}

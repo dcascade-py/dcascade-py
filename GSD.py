@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Dec 20 15:07:19 2019
 
@@ -8,11 +7,12 @@ Created on Fri Dec 20 15:07:19 2019
 import numpy as np
 from scipy.optimize import curve_fit
 
+
 def GSDcurvefit(D16, D50, D84, psi):
     """
     GSDcurvefit fits the Rosin curve to the D16, D50 and D84 values in ReachData
     to obtain the frequency of the sediment classes.
-    
+
     INPUT :
     D16      = 1xN vector defining the D16 of the N input reaches
     D50      = 1xN vector defining the D50 of the N input reaches
@@ -52,19 +52,19 @@ def GSDcurvefit(D16, D50, D84, psi):
     resnorm = np.zeros([sed_data.shape[1], 2])  # Squared norm of the residuals of the fitting
 
     # Curve fitting
-    # popt, pcov = curve_fit(fun_GSD, sed_data[:, 0], sed_perc, 
+    # popt, pcov = curve_fit(fun_GSD, sed_data[:, 0], sed_perc,
     #                        p0 = [sed_data[1,0], 1], bounds = [lb, ub])
 
     for i in range(0, np.size(sed_data, 1)):
         # if dmi.size <= 2:
         #     # DD: in this case, lb[0] and ub[0] are the same and  can not be used
         #     # as lower and upper bounds.
-        #     # The bounding does not change much the fiting results and could be 
+        #     # The bounding does not change much the fiting results and could be
         #     # removed in the future ?
-        par_opt[i, :], resnormtot = curve_fit(fun_GSD, sed_data[:, i], sed_perc, 
+        par_opt[i, :], resnormtot = curve_fit(fun_GSD, sed_data[:, i], sed_perc,
                                               p0=[sed_data[1, i], 1])
         # else:
-        #     par_opt[i,:], resnormtot = curve_fit(fun_GSD, sed_data[:,i], sed_perc, 
+        #     par_opt[i,:], resnormtot = curve_fit(fun_GSD, sed_data[:,i], sed_perc,
         #                                          p0 = [sed_data[1, i], 1], bounds = [lb, ub])
         resnorm[i, :] = [resnormtot[0, 0], resnormtot[1, 1]]
 

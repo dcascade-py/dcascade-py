@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jun 14 13:21:06 2024
 
@@ -8,13 +7,13 @@ Reducing the slope for the transport capacity calculations enables to account
 for form roughness and drag in alpine streams.
 
  The formula proposded by Rickenmann (2005) is based on the D90 and flow depth
-    Rickenmann, D. (2005): Geschiebetransport bei steilen Gefällen. 
+    Rickenmann, D. (2005): Geschiebetransport bei steilen Gefällen.
     In: Mitteilungen der Versuchs- anstalt für Wasserbau,
     Hydrologie und Glaziologie, ETH Zurich, Nr. 190, pp. 107–119.
 
 The formula by Chiari & Richenmann (2011) is based on the D90 and the discharge
-    Chiari, M. and Rickenmann, D. (2011), Back-calculation of bedload transport 
-    in steep channels with a numerical model. Earth Surf. Process. Landforms, 
+    Chiari, M. and Rickenmann, D. (2011), Back-calculation of bedload transport
+    in steep channels with a numerical model. Earth Surf. Process. Landforms,
     36: 805-815. https://doi.org/10.1002/esp.2108
 
 The formula by Nitsche et al. (2011) is based on the flow depth and the D84
@@ -28,35 +27,40 @@ The formula by Nitsche et al. (2011) is based on the flow depth and the D84
 - change D values from Reach Data to values that D-Cascade calculates for each timestep
 """
 
-from constants import GRAV
 import numpy as np
+
+from constants import GRAV
+
 exponent_a = 1.5  # exponent a between 1-2, typically 1.5
 
 
 def slopeRed_Rickenmann(slope, h, reach_data, t):
     if isinstance(reach_data.D90, np.ndarray):
-        slope[t] = slope[t] * (0.092 * slope[t]**(-0.35)
-                               * (h / reach_data.D84)**0.33)**exponent_a
+        slope[t] = slope[t] * (
+            0.092 * slope[t]**(-0.35) * (h / reach_data.D84)**0.33)**exponent_a
     else:
-        slope[t] = slope[t] * (0.092 * slope[t]**(-0.35)
-                               * (h / reach_data.D90)**0.33)**exponent_a
+        slope[t] = slope[t] * (
+            0.092 * slope[t]**(-0.35) * (h / reach_data.D90)**0.33)**exponent_a
     return slope
 
 
 def slopeRed_Chiari_Rickenmann(slope, Q, reach_data, t):
     if isinstance(reach_data.D90, np.ndarray):
-        slope[t] = slope[t] * ((0.133 * (Q.iloc[t, :]**0.19))
-                               / (GRAV**0.096 * reach_data.D84**0.47 * slope[t]**0.19))**exponent_a
+        slope[t] = slope[t] * ((
+            0.133 * (Q.iloc[t, :]**0.19)) / (
+                GRAV**0.096 * reach_data.D84**0.47 * slope[t]**0.19))**exponent_a
     else:
-        slope[t] = slope[t] * ((0.133 * (Q.iloc[t, :]**0.19))
-                               / (GRAV**0.096 * reach_data.D90**0.47 * slope[t]**0.19))**exponent_a
+        slope[t] = slope[t] * ((
+            0.133 * (Q.iloc[t, :]**0.19)) / (
+                GRAV**0.096 * reach_data.D90**0.47 * slope[t]**0.19))**exponent_a
 
     return slope
 
 
 def slopeRed_Nitsche(slope, h, reach_data, t):
-    slope[t] = slope[t] * ((2.5 * ((h / reach_data.D84)**(5 / 6)))
-                           / (6.5**2 + 2.5**2 * ((h / reach_data.D84)**(5 / 3))))**exponent_a
+    slope[t] = slope[t] * ((
+        2.5 * ((h / reach_data.D84)**(5 / 6))) / (
+            6.5**2 + 2.5**2 * ((h / reach_data.D84)**(5 / 3))))**exponent_a
 
     return slope
 

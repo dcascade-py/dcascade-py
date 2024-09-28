@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Tue Mar 10 17:26:23 2020
 
 @author: Marco Tangi and Elisa Bozzolan
 """
-import numpy as np
-import networkx as nx
 import os
+
+import networkx as nx
+import numpy as np
+
 
 def write_adj_matrix(FromN, ToN, Lngt):
     """
@@ -70,7 +71,7 @@ def graph_preprocessing(reach_data):
          - NH : position in the reach hierarchy of reach R. The
            higher the ranking, the higher the number of upstream node of a reach
          - upstream_node : ID of the fromN of the reaches direcly upstream each reach
-         - number_upstream_nodes : max number of nodes between a reach and a source 
+         - number_upstream_nodes : max number of nodes between a reach and a source
            node (used to extract the ranking)
          - outlet : IDs of the outlet reach
          - sources: IDs of the source nodes
@@ -115,7 +116,7 @@ def graph_preprocessing(reach_data):
             else:
                 for z in range(len(el) - 1):
                     # find relative distance
-                    idx = np.where((to_n == int(el[z])) & (from_n == int(el[z+1])))
+                    idx = np.where((to_n == int(el[z])) & (from_n == int(el[z + 1])))
                     # if found the combination of nodes - find the distance between them:
                     if len(idx[0]) != 0:
                         dist[int(collection[w])] = length[idx] + add
@@ -172,7 +173,7 @@ def graph_preprocessing(reach_data):
             else:
                 for z in range(len(el) - 1):
                     # find relative distance
-                    idx = np.where((from_n == el[z]) & (to_n == el[z+1]))
+                    idx = np.where((from_n == el[z]) & (to_n == el[z + 1]))
                     # if found the combination of nodes - find the distance between them:
                     if len(idx[0]) != 0:
                         dist[collection[w]] = length[idx] + add
