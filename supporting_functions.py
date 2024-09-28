@@ -245,7 +245,7 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         perc_dep = np.minimum((tr_cap_remaining 
                                - np.sum(np.where(mapp is False, 
                                                  V_dep2act_class, 0), axis=0)) 
-                               / V_dep2act_class[firstoverthresh, 
+                                                 / V_dep2act_class[firstoverthresh, 
                                                  np.arange(np.sum(class_sup_dep * 1))], 1)
 
         map_perc = mapfirst * perc_dep + ~mapp * 1  # EB check again  EB: is it adding 1 when true? 
@@ -281,20 +281,23 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
 
     perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[:, np.append(False, 
                                                                       ~class_sup_dep) is True], 
-    axis=0)
-    perc_inc[np.isnan(perc_inc)] = 0  # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
+                                                                      axis=0)
+    # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0):
+    perc_inc[np.isnan(perc_inc)] = 0
     class_perc_inc = np.zeros((class_sup_dep.shape))
     class_perc_inc[class_sup_dep is False] = perc_inc
 
-    V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act * (np.append(True, class_sup_dep)) + V_inc2act * np.append(False, class_perc_inc))))
+    V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act * (np.append(True, class_sup_dep)) 
+                                      + V_inc2act * np.append(False, class_perc_inc))))
     
     if ~np.isnan(roundpar):
         V_mob[:, 1:] = np.around(V_mob[:, 1:], decimals=roundpar)
 
-    class_residual = np.zeros((class_sup_dep.shape));
+    class_residual = np.zeros((class_sup_dep.shape))
     class_residual[class_sup_dep is False] = 1 - perc_inc
 
-    V_2dep = np.vstack((V_2dep, V_inc2act * np.hstack((1, class_residual))))  # EB check again EB: here the 1 instead of the 0 should be correct + 
+    # EB check again EB: here the 1 instead of the 0 should be correct +:
+    V_2dep = np.vstack((V_2dep, V_inc2act * np.hstack((1, class_residual)))) 
    
     if ~np.isnan(roundpar):
         V_2dep[:, 1:] = np.around(V_2dep[:, 1:], decimals=roundpar) 
@@ -399,8 +402,8 @@ def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
     # (that will be outside the network) 
     if (sed_pos[(find_point[:, -1] == 100000000000000000)]).size != 0: 
         sed_pos[(find_point[:, -1] == 100000000000000000)] = downdist_path[len(path2out) - 1] \
-        + Lngt[outlet] +  v_sed_path[(find_point[:, -1] == 100000000000000000), len(path2out)-1] \
-        * time_left[(find_point[:, -1] == 100000000000000000)]
+            + Lngt[outlet] + v_sed_path[(find_point[:, -1] == 100000000000000000), len(path2out)-1] \
+            * time_left[(find_point[:, -1] == 100000000000000000)]
     
     # outind tells for which sed. size the point fell outside the
     # network (1 - outside, 0 - inside) 
@@ -411,6 +414,7 @@ def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
     end_reach_ID = path2out[indx_pos]
     
     return sed_pos, end_reach_ID, outind
+
 
 def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
     """
@@ -433,7 +437,7 @@ def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
 
     if n == outlet:  
         reach_dest = np.repeat(n, np.shape(v_sed_day)[0])
-        p_dest = v_sed_day[:,n] + np.array(Lngt[n])
+        p_dest = v_sed_day[:, n] + np.array(Lngt[n])
     else:
         # to find p_end, i track the position of a sediment parcel starting
         # from the To_Node of the reach n (i.e. the From_node of the downstream reach).
@@ -454,14 +458,14 @@ def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
     # in each row, setplace is equal to 1 in the reach where the sed. volume
     # of each class is delivered 
     setplace = np.zeros((len(v_sed_day), len(downdist)))
-    setplace[np.arange(len(v_sed_day)), reach_dest]  = 1
+    setplace[np.arange(len(v_sed_day)), reach_dest] = 1
     
     setplace[setout == 1, :] = 0
 
     # place volume to destination reach 
     
     Qbi_tr_t = np.zeros((len(Lngt), len(Lngt), len(setplace)))
-    Q_out_t = np.zeros ((len(Lngt), len(setplace)))
+    Q_out_t = np.zeros((len(Lngt), len(setplace)))
     
     for c in range(len(setplace)): 
         Qbi_tr_t[[V_mob[:, 0].astype(int)], :, c] = V_mob[:, c+1][:, None] * setplace[c, :][None,
@@ -469,6 +473,7 @@ def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
         Q_out_t[[V_mob[:, 0].astype(int)], :] = V_mob[:, 1:] * setout
                
     return Qbi_tr_t, Q_out_t, setplace, setout
+
 
 def change_slope(Node_el_t, Lngt, Network, **kwargs):
     """"CHANGE_SLOPE modify the Slope vector according to the changing elevation of
@@ -516,7 +521,7 @@ def stop_or_not(t_new, Vm):
     Vm_stop = np.zeros_like(Vm)
     Vm_stop[:, cond_stop] = Vm[:, cond_stop]
     
-    cond_continue = np.insert([t_new<=1], 0, True)
+    cond_continue = np.insert([t_new <= 1], 0, True)
     Vm_continue = np.zeros_like(Vm)
     Vm_continue[:, cond_continue] = Vm[:, cond_continue]
     
@@ -554,7 +559,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     sorted_and_grouped_cascade_list = [list(group) 
                                        for _, group in groupby(sorted_cascade_list, 
                                                                key=lambda x: 
-                                           np.sum(x.elapsed_time))]
+                                                               np.sum(x.elapsed_time))]
     
     # Loop over the sorted and grouped cascades
     for cascades in sorted_and_grouped_cascade_list:        
