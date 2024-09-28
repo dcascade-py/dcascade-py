@@ -119,4 +119,4 @@ def read_user_input():
     drop.pack(pady=20)    
     root.mainloop()
     
-    return indx_tr_cap, indx_partition, flo_depth, slopeRed 
+    return indx_tr_cap, indx_partition, flo_depth, slopeRed

@@ -113,4 +113,3 @@ def plot_network_stat(ReachData,  plotvariable,  **kwargs):
     
     
 
-    

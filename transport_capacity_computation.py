@@ -606,4 +606,3 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi, indx_tr_
         v_sed = np.maximum( Qtr_cap/( wac_t * l_a*(1-phi) * pci ) , minvel)
         
     return v_sed
-    

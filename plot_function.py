@@ -126,4 +126,3 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     button2.on_clicked(forward)
     
     return slider, button1, button2
-    

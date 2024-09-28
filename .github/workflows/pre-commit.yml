@@ -3,11 +3,11 @@ name: Pre-Commit Checks
 on:
   push:
     branches:
-      - main
+      #- main
       - github_actions  # or whatever branch you're pushing to
   pull_request:
     branches:
-      - main  # trigger on PRs as well
+      #- main  # trigger on PRs as well
       - github_actions
 
 jobs:
