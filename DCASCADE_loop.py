@@ -429,7 +429,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                           
                 # Sediment classes with negative values in diff_with_capacity are deposited, 
                 # i.e. directly added to Qbi_dep
-                diff_neg=-np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
+                diff_neg = -np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
                 if np.any(diff_neg):  
                     Vm_removed, Qbi_pass[n], residual = \
                         deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n], roundpar)
@@ -586,14 +586,14 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     
     # EB : last time step would be equal to 0 - delete to avoid confusion:
     V_dep_sum = np.zeros((len(Qbi_dep)-1, n_reaches)) 
-    V_class_dep = [[np.expand_dims(np.zeros(n_classes+1), axis=0) 
-                    for _ in range(n_reaches)] for _ in range(len(Qbi_dep))]
+    V_class_dep = [[np.expand_dims(np.zeros(n_classes+1), 
+                                   axis=0) for _ in range(n_reaches)] for _ in range(len(Qbi_dep))]
    
     for t in (np.arange(len(Qbi_dep)-1)):
         for n in range(len(Qbi_dep[t])): 
             q_t = Qbi_dep[t][n]
             # total material in the deposit layer 
-            V_dep_sum[t, n] = np.sum(q_t[:,- 1:])
+            V_dep_sum[t, n] = np.sum(q_t[:, -1:])
             # total volume in the deposit layer for each timestep, divided by sed.class
             V_class_dep[t][n] = np.sum(q_t[:, 1:], axis=0) 
             
