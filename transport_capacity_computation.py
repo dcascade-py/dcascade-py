@@ -41,7 +41,7 @@ def Parker_Klingeman_formula(fi_r_reach, D50, slope, wac, h, psi, **kwargs):
     tau_r50 = (0.021 + 2.18 * slope) * (RHO_W * R_VAR * GRAV * D50)
     
     # reference shear stress for each sediment class [Kg m-1 s-1]
-    tau_ri = tau_r50 * (dmi/D50)** gamma
+    tau_ri = tau_r50 * (dmi / D50)**gamma
     phi_ri = tau / tau_ri
     
     # Dimensionless transport rate for each sediment class [-]
@@ -72,8 +72,8 @@ def Wilcock_Crowe_formula(fi_r_reach, D50, slope, wac, h, psi):
         # Fraction of sand in river bed (sand considered as sediment with phi > -1)
         Fr_s = np.sum((psi > - 1)[:, None] * 1 * fi_r_reach)
     else:
-        Fr_s = np.sum((psi > - 1)[:, None] * 1 * fi_r_reach, axis = 0)[None, :]
-    ## Transport capacity from Wilcock-Crowe equations
+        Fr_s = np.sum((psi > - 1)[:, None] * 1 * fi_r_reach, axis=0)[None, :]
+    # Transport capacity from Wilcock-Crowe equations
 
     tau = np.array(RHO_W * GRAV * h * slope)  # bed shear stress [Kg m-1 s-1]
     if tau.ndim != 0:
@@ -156,7 +156,7 @@ def Yang_formula(fi_r_reach, D50, slope, Q, v, h, psi):
     # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
     nu = 1.003*1E-6
     
-    GeoStd = GSD_std(fi_r_reach, dmi);
+    GeoStd = GSD_std(fi_r_reach, dmi)
     
     #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of 
     #     Sediment Particles. (1933)
@@ -300,9 +300,9 @@ def GSD_std(Fi_r, dmi):
         a = np.minimum(np.argwhere(Perc_finer > D_values[i])[-1][0], len(dmi) - 2) 
         D_changes[0, i] = (D_values[i] - Perc_finer[a + 1]) / (
             Perc_finer[a] - Perc_finer[a + 1]) * (dmi[a] - dmi[a + 1]) + dmi[a + 1]
-        D_changes[0, i] = D_changes[0, i] * (D_changes[0, i]>0) + dmi[-1] * (D_changes[0, i] < 0)
+        D_changes[0, i] = D_changes[0, i] * (D_changes[0, i] > 0) + dmi[-1] * (D_changes[0, i] < 0)
     
-    std = np.sqrt(D_changes[0,1]/D_changes[0,0])
+    std = np.sqrt(D_changes[0,1] / D_changes[0,0])
     
     return std
     
@@ -327,7 +327,7 @@ def Wong_Parker_formula(D50, slope, wac, h):
     # dimensionless shear stress
     tauWP = (slope * h) / (R_VAR * D50)
     # dimensionless transport capacity
-    qWP = alpha* (np.maximum(tauWP - tauC, 0))**beta
+    qWP = alpha * (np.maximum(tauWP - tauC, 0))**beta
     # dimensionful transport capacity [m3/(s*m)] 
     # [m3/(s*m)] (formula from the original cascade paper):
     qWP_dim = qWP * np.sqrt(R_VAR * GRAV * D50**3)  
@@ -395,7 +395,7 @@ def Molinas_rates(fi_r, h, v, slope, dmi_finer, D50_finer):
     Dn = (1 + (GSD_std(fi_r, dmi_finer) - 1)**1.5) * D50_finer  # scaling size of bed material
     
     tau = 1000 * GRAV * h * slope
-    vstar = np.sqrt(tau / 1000);
+    vstar = np.sqrt(tau / 1000)
     froude = v / np.sqrt(GRAV * h)     # Froude number
     
     # alpha, beta, and zeta parameter for each flow percentile (columns), and each 
@@ -403,8 +403,8 @@ def Molinas_rates(fi_r, h, v, slope, dmi_finer, D50_finer):
     # EQ 24, 25, 26, Molinas and Wu (2000)
     alpha = - 2.9 * np.exp(-1000 * (v / vstar)**2 * (h / D50_finer)**(-2))
     beta = 0.2 * GSD_std(fi_r, dmi_finer)
-    zeta = 2.8 * froude**(-1.2) *  GSD_std(fi_r, dmi_finer)**(-3) 
-    zeta[np.isinf(zeta)] == 0  # zeta gets inf when there is only a single grain size. 
+    zeta = 2.8 * froude**(-1.2) * GSD_std(fi_r, dmi_finer)**(-3) 
+    zeta[np.isinf(zeta)] = 0  # zeta gets inf when there is only a single grain size. 
     
     # alpha, beta, and zeta parameter for each flow percentile (columns), and each 
     # grain size (rows)
@@ -438,7 +438,7 @@ def choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap):
         [tr_cap, tau, taur50] = Parker_Klingeman_formula(Fi_r_reach, D50, slope, wac, h, psi)
     
     elif indx_tr_cap == 2:
-        [tr_cap, tau, taur50] =  Wilcock_Crowe_formula(Fi_r_reach, D50, slope, wac, h, psi)
+        [tr_cap, tau, taur50] = Wilcock_Crowe_formula(Fi_r_reach, D50, slope, wac, h, psi)
     
     elif indx_tr_cap == 3: 
         tr_cap = Engelund_Hansen_formula(D50, slope, wac, v, h)
@@ -478,11 +478,11 @@ def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx
     
     if indx_partition == 1:  # Direct computation by the size fraction approach  
         
-        Qtr_cap,Qc = choose_formula(Fi_r_reach, dmi, slope, Q, wac, v, h, psi, indx_tr_cap)
+        Qtr_cap, Qc = choose_formula(Fi_r_reach, dmi, slope, Q, wac, v, h, psi, indx_tr_cap)
         pci = Fi_r_reach
         
     elif indx_partition == 2:  # The BMF approach (Bed Material Fraction)
-        tr_cap, Qc =  choose_formula(Fi_r_reach, dmi, slope, Q, wac, v, h, psi, indx_tr_cap)
+        tr_cap, Qc = choose_formula(Fi_r_reach, dmi, slope, Q, wac, v, h, psi, indx_tr_cap)
         Qtr_cap = Fi_r_reach*tr_cap
         pci = Fi_r_reach 
     
@@ -541,6 +541,7 @@ def sed_velocity(hVel, wac, tr_cap_per_s, phi, indx_velocity, minvel):
         Si = Svel / len(tr_cap_per_s)             # same section for all sediments
         v_sed_n = np.maximum(tr_cap_per_s/Si, minvel)
     return v_sed_n
+
 
 def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi, 
                      indx_tr_cap, indx_partition, indx_velocity): 
@@ -604,12 +605,12 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
             tr_cap = np.zeros((len(dmi), len(slope_t)))
             # ... run the tr.cap function indipendently for each class, setting
             # the frequency of each class = 1
-            Fi_r = np.diag(np.full(len(dmi),1))
-            Fi_r = np.repeat(Fi_r[:,:,np.newaxis], len(slope_t), axis = 2)
+            Fi_r = np.diag(np.full(len(dmi), 1))
+            Fi_r = np.repeat(Fi_r[:, :, np.newaxis], len(slope_t), axis=2)
             for d in range(len(dmi)): 
-                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r[d,:,:], dmi[d], 
+                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r[d, :, :], dmi[d], 
                                                                     slope_t, wac_t, h, psi)
-                tr_cap[d,:] = tr_cap_class[d,:]
+                tr_cap[d, :] = tr_cap_class[d, :]
                 
             """Fi_r = np.ones((len(dmi), len(slope_t)))
             [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi, slope_t, wac_t, h, psi)
@@ -645,7 +646,7 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
     
     # sediment velocity found in this way is constant for all sed.classes
     if indx_velocity == 4:
-        [ Qtr_cap, pci ] = tr_cap_function(Fi_r, D50, slope_t, Q_t, wac_t, v, h, psi, 
+        [Qtr_cap, pci] = tr_cap_function(Fi_r, D50, slope_t, Q_t, wac_t, v, h, psi, 
                                            indx_tr_cap, indx_partition)
         v_sed = np.maximum(Qtr_cap/(wac_t * l_a * (1 - phi) * pci), minvel)
         

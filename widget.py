@@ -11,7 +11,6 @@ from tkinter import Label, Tk, StringVar, OptionMenu  # for widget
 
 def read_user_input(): 
     
-    
     def formula_selection(event): 
         global indx_tr_cap
         if clicked.get() == "Engelund and Hansen 1967": 
@@ -30,19 +29,22 @@ def read_user_input():
             indx_tr_cap = 7
         root.destroy()
     
-    root = Tk() # create the little window
-    myLabel = Label(root, text = 'Sediment transport formulas')  
+    root = Tk()  # create the little window
+    myLabel = Label(root, text='Sediment transport formulas')  
     myLabel.pack()
     root.geometry("300x300")
-    #indx_tr_cap = 2 # default value
-    options = ["Engelund and Hansen 1967", "Wilkock and Crowe 2003", "Parker and Klingeman 1982",
-               "Yang formula 1989", "Wong and Parker 2006", "Ackers and White formula 1973", "Rickenmann 2001"]
+    # indx_tr_cap = 2 # default value
+    options = ["Engelund and Hansen 1967", "Wilkock and Crowe 2003", 
+               "Parker and Klingeman 1982", "Yang formula 1989",
+               "Wong and Parker 2006", "Ackers and White formula 1973",
+               "Rickenmann 2001"]
     clicked = StringVar()
     clicked.set("Choose an option")
     
-    drop = OptionMenu(root, clicked, *options, command = formula_selection)
-    drop.pack(pady=20)    
+    drop = OptionMenu(root, clicked, *options, command=formula_selection)
+    drop.pack(pady=20)
     root.mainloop() 
+    
     
     # fractioning method selection 
     def partitioning_selection(event): 
@@ -57,21 +59,24 @@ def read_user_input():
             indx_partition = 4
         root.destroy()        
         
-        
     root = Tk()
-    myLabel = Label(root, text = "Partitioning methods")
+    myLabel = Label(root, text="Partitioning methods")
     myLabel.pack()
     root.geometry("300x300") 
-    if indx_tr_cap != 2 and indx_tr_cap != 1: # put here the formulas options that have forced choice in the partitioning 
-        options = ["Direct", "Bed material fraction (BMF)", "Transport capacity function (TCF)", "Shear stress correction approach"]
+    # put here the formulas options that have forced choice in the partitioning
+    if indx_tr_cap != 2 and indx_tr_cap != 1: 
+        options = ["Direct", "Bed material fraction (BMF)", 
+                   "Transport capacity function (TCF)", 
+                   "Shear stress correction approach"]
     else: 
         options = ["Shear stress correction approach"]
     clicked = StringVar()
     clicked.set("Choose an option")
     
-    drop = OptionMenu(root, clicked, *options, command = partitioning_selection)
+    drop = OptionMenu(root, clicked, *options, command=partitioning_selection)
     drop.pack(pady=20)
     root.mainloop()
+    
     
     def flow_depth_selection(event):
         global flo_depth
@@ -81,18 +86,19 @@ def read_user_input():
             flo_depth = 2
         root.destroy()
     
-    root = Tk() # create the little window
-    myLabel = Label(root, text = 'Flow depth calculation formulas')  
+    root = Tk()  # create the little window
+    myLabel = Label(root, text='Flow depth calculation formulas')  
     myLabel.pack()
     root.geometry("300x300")
-    #flo_depth = 2 # default value
+    # flo_depth = 2 # default value
     options = ["Manning", "Ferguson (2007)"]
     clicked = StringVar()
     clicked.set("Choose an option")
     
-    drop = OptionMenu(root, clicked, *options, command = flow_depth_selection)
+    drop = OptionMenu(root, clicked, *options, command=flow_depth_selection)
     drop.pack(pady=20)    
     root.mainloop() 
+
 
     def slope_reduction_selection(event):
         global slopeRed
@@ -106,16 +112,17 @@ def read_user_input():
             slopeRed = 4
         root.destroy()
         
-    root = Tk() # create the little window
-    myLabel = Label(root, text = 'Slope reduction formulas')  
+    root = Tk()  # create the little window
+    myLabel = Label(root, text='Slope reduction formulas')  
     myLabel.pack()
     root.geometry("300x300")
-    #slopeRed = 1 # default value
-    options = ["None", "Rickenmann (2005)", "Rickenmann & Chiari (2011)", "Nitsche et al. (2011)"]
+    # slopeRed = 1 # default value
+    options = ["None", "Rickenmann (2005)", "Rickenmann & Chiari (2011)", 
+               "Nitsche et al. (2011)"]
     clicked = StringVar()
     clicked.set("Choose an option")
     
-    drop = OptionMenu(root, clicked, *options, command = slope_reduction_selection)
+    drop = OptionMenu(root, clicked, *options, command=slope_reduction_selection)
     drop.pack(pady=20)    
     root.mainloop()
     
