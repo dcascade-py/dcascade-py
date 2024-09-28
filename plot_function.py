@@ -53,7 +53,7 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     # indx_tr_cap = 3  # default value
     options = ["D50 active layer [m]", "Daily trasport capacity [m^3/day]",
                "D50 deposited layer [m]", "D50 mobilised layer [m]", 
-                "Deposited volume[m^3]", "Mobilized volume [m^3]",  
+               "Deposited volume[m^3]", "Mobilized volume [m^3]",  
                "Channel Width [m]", "Reach Slope"]
     
     clicked = StringVar()
@@ -69,7 +69,7 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     # lengths_values = {key: len(value) for key, value in data_output.items() \ 
     #   if key != 'Transported + deposited sed in the reach [m^3/s]' }
     lengths_values = {key: len(value) for key, value in data_output.items()}
-    sim_length = min(lengths_values.values())
+    # sim_length = min(lengths_values.values())
     
     # --- define plot variables
     # define sediment classes
@@ -81,11 +81,11 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     #                                        ) for key, value in data_output.items() \
     #                      if key != 'Transported + deposited sed in the reach [m^3/s]'}
     cClass = {key: np.unique(np.percentile(value[np.nonzero(value)], 
-                                           np.arange(0,100,i_class))
-                                           ) for key, value in data_output.items()}
+                                           np.arange(0, 100, i_class))) \
+                                           for key, value in data_output.items()}
 
     # add tot_sed_class for the class defined in def_sed_class
-    def_sed_class = 0
+    # def_sed_class = 0
     # data_output['Transported + deposited sed in the reach [m^3/s]'] = \
     #     data_output['Transported + deposited sed in the reach [m^3/s]'][def_sed_class]     
     # cClass['Transported + deposited sed in the reach [m^3/s]'] = \
@@ -98,7 +98,7 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     plt.subplots_adjust(left=0.1, bottom=0.3, right=0.6)  # to make space for the sliding bar
     
     plotvariable = data_output[plot_class]
-    plot_network_stat(ReachData,plotvariable, CClass=cClass[plot_class])
+    plot_network_stat(ReachData, plotvariable, CClass=cClass[plot_class])
     
     # interactively change the time step
     # create a time slider 

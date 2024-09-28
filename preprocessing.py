@@ -10,35 +10,34 @@ import networkx as nx
 import os
 
 def write_adj_matrix(FromN, ToN , Lngt):
-    '''
-    write_adj_matrix function takes a two vectors of from-nodes and to-nodes transfers them into a
-     adjacency matrix . Each pair of from-nodes and to-nodes defines a river reach.
-     Vectors need to be of equal size.
+    """
+    Takes a two vectors of from-nodes and to-nodes transfers them into a
+    adjacency matrix. Each pair of from-nodes and to-nodes defines a river reach.
+    Vectors need to be of equal size.
 
-     The function works both 1) the downstream, and 2) the upstream
-     direction. In case to, the toN is the vector of from-nodes and fromN
-     must be the vector of to-nodes.
+    The function works both 1) the downstream, and 2) the upstream
+    direction. In case to, the toN is the vector of from-nodes and fromN
+    must be the vector of to-nodes.
 
-    %%% Input:
-    % FromN: Vector of from-nodes
-    % ToN: Vector of to-nodes
+    INPUTS:
+    FromN = Vector of from-nodes
+    ToN   = Vector of to-nodes
 
 
-    %%% Output
-    % D: Sparse adjacency matrix
-    '''
+    OUTPUTS:
+    D     = Sparse adjacency matrix
+    """
 
-    D = np.zeros([max(FromN),max(FromN)])
+    D = np.zeros([max(FromN), max(FromN)])
     outlet = FromN[np.argwhere(FromN==ToN)]
 
-    for pos_fromN in np.unique(np.argwhere(FromN>0)):
+    for pos_fromN in np.unique(np.argwhere(FromN > 0)):
         pos_toN = np.argwhere(FromN == ToN[pos_fromN])
-                # find the position of the to node of the current fromN.
-        D[pos_fromN , pos_toN] = Lngt[pos_fromN]
+        # find the position of the to node of the current fromN.
+        D[pos_fromN, pos_toN] = Lngt[pos_fromN]
 
     return D
 
-'''##########################################################################################'''
 
 def extract_graph(from_n, to_n):
     """
@@ -56,9 +55,6 @@ def extract_graph(from_n, to_n):
 
     return graph
 
-'''##########################################################################################'''
-
-
 
 def graph_preprocessing(reach_data):
     """
@@ -69,18 +65,14 @@ def graph_preprocessing(reach_data):
     reach_data = ReachData Class defining the features of the network reaches
 
     OUTPUT:
-
-     Network  = dict containing for each node info on upstream and downstream nodes
-
-         Attributes:
+    Network  = dict containing for each node info on upstream and downstream nodes
+        Attributes:
          - NH : position in the reach hierarchy of reach R. The
              higher the ranking, the higher the number of upstream node of a reach
          - upstream_node : ID of the fromN of the reaches direcly upstream each reach
          - number_upstream_nodes : max number of nodes between a reach and a source node (used to extract the ranking)
          - outlet : IDs of the outlet reach
          - sources: IDs of the source nodes
-
-
     """
     from_n = reach_data.from_n - 1
     to_n = reach_data.to_n - 1
@@ -130,21 +122,19 @@ def graph_preprocessing(reach_data):
         distance_upstream[i] = dist
         number_upstream_nodes[i] = length_dict
 
-    """
     # incoming node count
-    incoming_node_count ={}
-
-    for node, p in paths_up.items():
-        for target_node in p:
-            print(target_node)
-            #exclude the node itself
-            if target_node != node:
-
-                if target_node in incoming_node_count:
-                    incoming_node_count[target_node] +=1
-                else:
-                    incoming_node_count[target_node] +=1 """
-
+    # incoming_node_count ={}
+    #
+    # for node, p in paths_up.items():
+    #     for target_node in p:
+    #         print(target_node)
+    #         #exclude the node itself
+    #         if target_node != node:
+    #
+    #            if target_node in incoming_node_count:
+    #                incoming_node_count[target_node] +=1
+    #            else:
+    #                incoming_node_count[target_node] +=1
 
     # create upstream distance list
     upstream_distance_list = []
@@ -181,7 +171,7 @@ def graph_preprocessing(reach_data):
                 for z in range(len(el) - 1):
                     # find relative distance
                     idx = np.where((from_n == el[z]) & (to_n == el[z+1]))
-                    if len(idx[0]) != 0: # if found the combination of nodes - find the distance between them
+                    if len(idx[0]) != 0:  # if found the combination of nodes - find the distance between them
                         dist[collection[w]] = length [idx] + add
                         add += length[idx]
 
@@ -201,12 +191,12 @@ def graph_preprocessing(reach_data):
     print('downstream paths and nodes done..')
     # ID of directly upstream nodes
     upstream_node = [None] * np.size(number_upstream_nodes)
-    outlet = from_n[np.argwhere(from_n==to_n)]
+    outlet = from_n[np.argwhere(from_n == to_n)]
     sources = np.array(-1)
 
     for i in range(0, reach_data.n_reaches):
         node_id = from_n[i]
-        upstream_node[i] =  from_n[np.argwhere(to_n ==  from_n[i])]
+        upstream_node[i] = from_n[np.argwhere(to_n == from_n[i])]
         if node_id == outlet:
             upstream_node[i] = upstream_node[i][upstream_node[i] != node_id].reshape(-1,1)
 
@@ -227,9 +217,9 @@ def graph_preprocessing(reach_data):
             downstream_node[i] = np.empty([1,1])
 
     # node hierarchy for CASCADE loop (refers to the position in ReachData, not the reach ID)
-    n_hier = np.argsort(number_upstream_nodes.transpose(), kind = 'mergesort')[0]
+    n_hier = np.argsort(number_upstream_nodes.transpose(), kind='mergesort')[0]
 
-    #create network dict to collect all output data
+    # create network dict to collect all output data
     network = {'number_upstream_nodes': number_upstream_nodes,
                'upstream_node': upstream_node,
                'downstream_node': downstream_node,
