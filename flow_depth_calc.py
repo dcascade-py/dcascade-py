@@ -46,6 +46,11 @@ def h_manning(reach_data, slope, Q, t):
 
 def h_ferguson(reach_data, slope, Q, t):
     """
+    The Ferguson equation.
+    
+    Sources:
+            Ferguson, R. (2007), Flow resistance equations for gravel- and 
+        boulder-bed streams, Water Resour. Res., 43, W05427, doi:10.1029/2006WR005422.
     """
 
     # calculate water depth and velocity with the Ferguson formula (2007)
@@ -55,12 +60,15 @@ def h_ferguson(reach_data, slope, Q, t):
     p = np.where(q_star < 100, 0.24, 0.31)
 
     h = 0.015 * reach_data.D84 * (q_star**(2 * p)) / (p**2.5)
-    v = (np.sqrt(GRAV * h * slope[t])* 6.5 * 2.5 * (h / reach_data.D84)
+    v = (np.sqrt(GRAV * h * slope[t]) * 6.5 * 2.5 * (h / reach_data.D84)
          ) / np.sqrt((6.2 ** 2) * (2.5 ** 2) * ((h / reach_data.D84) ** (5/3)))
 
     return h, v
 
 def choose_flow_depth(reach_data, slope, Q, t, flow_depth):
+    """
+    Chooses between two different flow depth computations.
+    """
     if flow_depth == 1:
         [h, v] = h_manning(reach_data, slope, Q, t)
 
