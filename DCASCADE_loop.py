@@ -496,15 +496,15 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             Delta_V_all[t, n] = Delta_V 
             # And Delta_V per class
             Delta_V_class = np.sum(Qbi_dep_0[n][:, 1:], axis=0) - np.sum(Qbi_dep_old[n][:, 1:],
-                                   axis=0)
+                                                                         axis=0)
             Delta_V_class_all[t, n, :] = Delta_V_class            
             
             # Update slope if required.
             if update_slope is True:
-                node_el[t+1][n] = node_el[t, n] + Delta_V \
-                    / (np.sum(reach_data.Wac[np.append(n, network['upstream_node'][n])]
-                              * reach_data.length[np.append(n, network['Upstream_Node'][n])])
-                              * (1 - phi))
+                node_el[t+1][n] = node_el[t, n] + Delta_V / (
+                    np.sum(reach_data.Wac[np.append(n, network['upstream_node'][n])]
+                           * reach_data.length[np.append(n, network['Upstream_Node'][n])]
+                           ) * (1 - phi))
             
         """End of the reach loop"""
             

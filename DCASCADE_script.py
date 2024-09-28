@@ -114,7 +114,7 @@ if Q_check.iloc[0, :].size == 1:
 else:
     my_delimiter = ','
 Q_check2 = pd.read_csv(filename_q, header=None, sep=my_delimiter)  
-if Q_check2.iloc[0, 0]=='yyyy/mm/dd':
+if Q_check2.iloc[0, 0] == 'yyyy/mm/dd':
     Q = pd.read_csv(filename_q, header=0, sep=my_delimiter, index_col='yyyy/mm/dd')  
 else:
     Q = pd.read_csv(filename_q, header=None, sep=my_delimiter)
