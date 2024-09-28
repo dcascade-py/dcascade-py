@@ -45,7 +45,7 @@ def GSDcurvefit(D16, D50, D84, psi):
     # return 1 - np.exp ( - (sed_reach / par[0] ) ** par[1] )
 
     def fun_GSD(sed_reach, k, s):
-        return 1 - np.exp(- (sed_reach  / k)**s)
+        return 1 - np.exp(- (sed_reach / k)**s)
 
     # Initialization
     par_opt = np.zeros([sed_data.shape[1], 2])
