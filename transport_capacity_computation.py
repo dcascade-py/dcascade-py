@@ -17,7 +17,7 @@ from constants import (
     R_VAR,
 )
 
-def Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi, **kwargs):
+def Parker_Klingeman_formula(fi_r_reach, D50, slope, wac, h, psi, **kwargs):
     """
     Returns the value of the transport capacity [Kg/s] for each sediment class
     in the reach measured using the Parker and Klingeman equations.
@@ -35,25 +35,25 @@ def Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi, **kwargs):
     
     ## Transport capacity from Parker and Klingema equations
     
-    tau = RHO_W * GRAV * h * Slope # bed shear stress [Kg m-1 s-1]
+    tau = RHO_W * GRAV * h * slope # bed shear stress [Kg m-1 s-1]
     
     # tau_r50 formula from Mueller et al. (2005)
     # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
-    tau_r50 = (0.021 + 2.18 * Slope) * (RHO_W * R_VAR * GRAV * D50)
+    tau_r50 = (0.021 + 2.18 * slope) * (RHO_W * R_VAR * GRAV * D50)
     
     tau_ri = tau_r50 * (dmi/D50)** gamma # reference shear stress for each sediment class [Kg m-1 s-1]
     phi_ri = tau / tau_ri
     
     # Dimensionless transport rate for each sediment class [-]
-    W_i = 11.2 * (np.maximum(1 - 0.853/phi_ri, 0))**4.5
+    w_i = 11.2 * (np.maximum(1 - 0.853/phi_ri, 0))**4.5
     
     # Dimensionful transport rate for each sediment class [m3/s]
-    tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+    tr_cap = wac * w_i * fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
     tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
     
     return tr_cap, tau, tau_r50
     
-def Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi): 
+def Wilcock_Crowe_formula(fi_r_reach, D50, slope, wac, h, psi): 
     """
     Returns the value of the transport capacity [m3/s] for each sediment class
     in the reach measured using the Wilcock and Crowe equations.
@@ -65,15 +65,15 @@ def Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi):
 
     dmi = 2**(-psi) / 1000 # sediment classes diameter [m]
     
-    if Fi_r_reach.ndim == 1:
-        Fi_r_reach = Fi_r_reach[:,None]
+    if fi_r_reach.ndim == 1:
+        fi_r_reach = fi_r_reach[:,None]
         # Fraction of sand in river bed (sand considered as sediment with phi > -1)
-        Fr_s = np.sum((psi > - 1)[:,None] * 1 * Fi_r_reach)
+        Fr_s = np.sum((psi > - 1)[:,None] * 1 * fi_r_reach)
     else:
-        Fr_s = np.sum((psi > - 1)[:,None] * 1 * Fi_r_reach, axis = 0)[None,:]
+        Fr_s = np.sum((psi > - 1)[:,None] * 1 * fi_r_reach, axis = 0)[None,:]
     ## Transport capacity from Wilcock-Crowe equations
 
-    tau = np.array(RHO_W * GRAV * h * Slope) # bed shear stress [Kg m-1 s-1]
+    tau = np.array(RHO_W * GRAV * h * slope) # bed shear stress [Kg m-1 s-1]
     if tau.ndim != 0:
         tau = tau[None,:] # add a dimension for computation
     
@@ -92,19 +92,19 @@ def Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi):
     W_i = (phi_ri >= 1.35) * (14 * (np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0))**4.5) + (phi_ri < 1.35) * (0.002 * phi_ri**7.5)
     
     # Dimensionful transport rate for each sediment class [m3/s]
-    if Wac.ndim == 0:
-        tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+    if wac.ndim == 0:
+        tr_cap = wac * W_i * fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
         if tr_cap.ndim > 1:
            tr_cap = np.squeeze(tr_cap) # EB: a bit of a mess here with dimensions, corrected a posteriori. I want a 1-d vector as output 
     else:
-        Wac = np.array(Wac)[None, :]
-        tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+        wac = np.array(wac)[None, :]
+        tr_cap = wac * W_i * fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
     
     tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
 
     return tr_cap, tau, tau_r50
 
-def Engelund_Hansen_formula(D50, Slope, Wac, v, h):
+def Engelund_Hansen_formula(D50, slope, wac, v, h):
     """
     Returns the value of the transport capacity [m3/s] for each sediment class
     in the reach measured using the Engelund and Hansen equations.
@@ -116,21 +116,21 @@ def Engelund_Hansen_formula(D50, Slope, Wac, v, h):
     """
     
     # friction factor
-    C = (2 * GRAV * Slope * h) / v**2   
+    C = (2 * GRAV * slope * h) / v**2   
 
     # dimensionless shear stress
-    tauEH = (Slope * h) / (R_VAR * D50)
+    tau_eh = (slope * h) / (R_VAR * D50)
     # dimensionless transport capacity
-    qEH = 0.05 / C * tauEH**(5/2)
+    q_eh = 0.05 / C * tau_eh**(5/2)
     # dimensionful transport capacity per unit width  m3/(s*m )
-    qEH_dim = qEH * np.sqrt(R_VAR * GRAV * D50**3) # m3/s 
-    QS_EH = qEH_dim * Wac
+    q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * D50**3) # m3/s 
+    qs_eh = q_eh_dim * wac
     
-    tr_cap = QS_EH # m3/s
+    tr_cap = qs_eh # m3/s
     
     return tr_cap
 
-def Yang_formula(Fi_r_reach, D50, Slope, Q, v, h, psi): 
+def Yang_formula(fi_r_reach, D50, slope, Q, v, h, psi): 
     """
     Returns the value of the transport capacity [m3/s] for each sediment class
     in the reach measured using the Yang equations.
@@ -146,7 +146,7 @@ def Yang_formula(Fi_r_reach, D50, Slope, Q, v, h, psi):
     dmi = 2**(-psi) / 1000 # sediment classes diameter [m]
     nu = 1.003*1E-6        # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
     
-    GeoStd = GSD_std(Fi_r_reach, dmi);
+    GeoStd = GSD_std(fi_r_reach, dmi);
     
     #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of Sediment Particles. (1933)
     #         
@@ -162,19 +162,19 @@ def Yang_formula(Fi_r_reach, D50, Slope, Q, v, h, psi):
     w = F * (D50 * GRAV * R_VAR)**0.5 #settling velocity
     
     # use corrected sediment diameter
-    tau = 1000 * GRAV * h * Slope
+    tau = 1000 * GRAV * h * slope
     vstar = np.sqrt(tau / 1000)
     w50 = (16.17 * D50**2)/(1.8 * 10**(-5) + (12.1275 * D50**3)**0.5)
     
     De = (1.8 * D50) / (1 + 0.8 * (vstar / w50)**0.1 * (GeoStd - 1)**2.2)
     
-    U_star = np.sqrt(De * GRAV * Slope) # shear velocity 
+    U_star = np.sqrt(De * GRAV * slope) # shear velocity 
     
     # 1) Yang Sand Formula
-    log_C = 5.165 - 0.153 * np.log10(w * De / nu) - 0.297 * np.log10(U_star / w) + (1.78 - 0.36 * np.log10(w * De / nu) - 0.48 * np.log10(U_star / w)) * np.log10(v * Slope / w) 
+    log_C = 5.165 - 0.153 * np.log10(w * De / nu) - 0.297 * np.log10(U_star / w) + (1.78 - 0.36 * np.log10(w * De / nu) - 0.48 * np.log10(U_star / w)) * np.log10(v * slope / w) 
     
     # 2) Yang Gravel Formula
-    #log_C = 6.681 - 0.633*np.log10(w*D50/nu) - 4.816*np.log10(U_star/w) + (2.784-0.305*np.log10(w*D50/nu)-0.282*np.log10(U_star/w))*np.log10(v*Slope/w) 
+    #log_C = 6.681 - 0.633*np.log10(w*D50/nu) - 4.816*np.log10(U_star/w) + (2.784-0.305*np.log10(w*D50/nu)-0.282*np.log10(U_star/w))*np.log10(v*slope/w) 
    
     QS_ppm = 10**(log_C) # in ppm 
     
@@ -188,7 +188,7 @@ def Yang_formula(Fi_r_reach, D50, Slope, Q, v, h, psi):
     
     return tr_cap
 
-def Ackers_White_formula(D50, Slope, Q, v, h):
+def Ackers_White_formula(D50, slope, Q, v, h):
     """
     Returns the value of the transport capacity [m3/s] for each sediment class
     in the reach measured using the Ackers and White equations.
@@ -213,10 +213,10 @@ def Ackers_White_formula(D50, Slope, Q, v, h):
     
     ## transition exponent depending on sediment size [n]
     
-    D_gr = D_AW * (GRAV * R_VAR / nu**2 )**(1/3) #dimensionless grain size - EB change coding line if D_gr is different from a number 
+    D_gr = D_AW * (GRAV * R_VAR / nu**2)**(1/3) #dimensionless grain size - EB change coding line if D_gr is different from a number 
     
     #shear velocity
-    u_ast = np.sqrt(GRAV * h * Slope)
+    u_ast = np.sqrt(GRAV * h * slope)
     
     ## Transport capacity 
     
@@ -283,7 +283,7 @@ def GSD_std(Fi_r, dmi):
     
     return std
     
-def Wong_Parker_formula(D50, Slope, Wac, h):
+def Wong_Parker_formula(D50, slope, wac, h):
     """
     Returns the value of the transport capacity [m3/s] for each sediment class
     in the reach measured using the Wong-Parker equations. 
@@ -301,19 +301,19 @@ def Wong_Parker_formula(D50, Slope, Wac, h):
     tauC = 0.0495  # tauC = 0.0470
     
     # dimensionless shear stress
-    tauWP = (Slope * h) / (R_VAR * D50)
+    tauWP = (slope * h) / (R_VAR * D50)
     # dimensionless transport capacity
     qWP = alpha* (np.maximum(tauWP - tauC, 0))**beta
     # dimensionful transport capacity [m3/(s*m)] 
     qWP_dim = qWP * np.sqrt(R_VAR * GRAV * D50**3) # [m3/(s*m)] (formula from the original cascade paper)
     
-    QS_WP = qWP_dim * Wac # [m3/s]
+    QS_WP = qWP_dim * wac # [m3/s]
     
     tr_cap = QS_WP # [m3/s]
 
     return tr_cap
 
-def Rickenmann_formula(D50, Slope, Q, Wac):
+def Rickenmann_formula(D50, slope, Q, wac):
     """
     Rickenmann's formula for bedload transport capacity based on unit discharge
     for slopes of 0.04% - 20%.
@@ -330,11 +330,11 @@ def Rickenmann_formula(D50, Slope, Q, Wac):
     """
     
     # Q is on whole width, Qunit = Q/w
-    Qunit = Q / Wac
+    Qunit = Q / wac
     
     exponent_e = 1.5
     # critical unit discharge
-    Qc = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (D50 ** exponent_e) * (Slope ** (-1.12))
+    Qc = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (D50 ** exponent_e) * (slope ** (-1.12))
 
     #Check if Q is smaller than Qc
     Qarr = np.full_like(Qc, Qunit)
@@ -342,14 +342,14 @@ def Rickenmann_formula(D50, Slope, Q, Wac):
     Qb = np.zeros_like(Qc)
     
     condition = (Qarr - Qc) < 0
-    Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * (Slope ** 1.5))
+    Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * (slope ** 1.5))
 
-    Qb_Wac = Qb * Wac
+    Qb_Wac = Qb * wac
     tr_cap = Qb_Wac
 
     return tr_cap, Qc
 
-def Molinas_rates(Fi_r, h, v, Slope, dmi_finer, D50_finer):
+def Molinas_rates(fi_r, h, v, slope, dmi_finer, D50_finer):
     """
     Returns the Molinas coefficient of fractional transport rates pci, to be
     multiplied by the total sediment load to split it into different classes.
@@ -364,34 +364,34 @@ def Molinas_rates(Fi_r, h, v, Slope, dmi_finer, D50_finer):
     # Molinas requires D50 and dmi in mm
                   
     # Hydraulic parameters in each flow percentile for the current reach
-    Dn = (1 + (GSD_std(Fi_r, dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
+    Dn = (1 + (GSD_std(fi_r, dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
     
-    tau = 1000 * GRAV * h * Slope
+    tau = 1000 * GRAV * h * slope
     vstar = np.sqrt(tau / 1000);
-    FR = v / np.sqrt(GRAV * h)     # Froude number
+    froude = v / np.sqrt(GRAV * h)     # Froude number
     
-    # alpha, beta, and Zeta parameter for each flow percentile (columns), and each grain size (rows)
+    # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
     # EQ 24 , 25 , 26 , Molinas and Wu (2000)
     alpha = - 2.9 * np.exp(-1000 * (v / vstar)**2 * (h / D50_finer)**(-2))
-    beta = 0.2 * GSD_std(Fi_r,dmi_finer)
-    Zeta = 2.8 * FR**(-1.2) *  GSD_std(Fi_r, dmi_finer)**(-3) 
-    Zeta[np.isinf(Zeta)] == 0 #Zeta gets inf when there is only a single grain size. 
+    beta = 0.2 * GSD_std(fi_r, dmi_finer)
+    zeta = 2.8 * froude**(-1.2) *  GSD_std(fi_r, dmi_finer)**(-3) 
+    zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size. 
     
-    # alpha, beta, and Zeta parameter for each flow percentile (columns), and each grain size (rows)
+    # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
     # EQ 17 , 18 , 19 , Molinas and Wu (2003)  
     # alpha = - 2.85* exp(-1000*(v/vstar)^2*(h/D50)^(-2));
-    # beta = 0.2* GSD_std(Fi_r,dmi);
-    # Zeta = 2.16*FR^(-1);
-    # Zeta(isinf(Zeta)) = 0; 
+    # beta = 0.2* GSD_std(fi_r,dmi);
+    # zeta = 2.16*froude^(-1);
+    # zeta(isinf(zeta)) = 0; 
     
     # fractioning factor for each flow percentile (columns), and each grain size (rows) 
-    frac1 = Fi_r * ((dmi_finer / Dn)**alpha + Zeta * (dmi_finer / Dn)**beta) # Nominator in EQ 23, Molinas and Wu (2000) 
+    frac1 = fi_r * ((dmi_finer / Dn)**alpha + zeta * (dmi_finer / Dn)**beta) # Nominator in EQ 23, Molinas and Wu (2000) 
     pci = frac1 / np.sum(frac1)
         
     return pci  
 
 
-def choose_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap): 
+def choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap): 
     """
     Chooses the transport capacity function based on the given index (indx_tr_cap).
     """
@@ -404,29 +404,29 @@ def choose_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap):
  
     #choose transport capacity formula
     if indx_tr_cap == 1:
-        [tr_cap, tau, taur50] = Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi)
+        [tr_cap, tau, taur50] = Parker_Klingeman_formula(Fi_r_reach, D50, slope, wac, h, psi)
     
     elif indx_tr_cap == 2:
-        [tr_cap, tau, taur50] =  Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi)
+        [tr_cap, tau, taur50] =  Wilcock_Crowe_formula(Fi_r_reach, D50, slope, wac, h, psi)
     
     elif indx_tr_cap == 3: 
-        tr_cap = Engelund_Hansen_formula(D50, Slope, Wac, v, h)
+        tr_cap = Engelund_Hansen_formula(D50, slope, wac, v, h)
     
     elif indx_tr_cap == 4: 
-        tr_cap = Yang_formula(Fi_r_reach, D50, Slope, Q, v, h, psi) 
+        tr_cap = Yang_formula(Fi_r_reach, D50, slope, Q, v, h, psi) 
     
     elif indx_tr_cap == 5: 
-        tr_cap = Wong_Parker_formula(D50, Slope, Wac, h)
+        tr_cap = Wong_Parker_formula(D50, slope, wac, h)
     
     elif indx_tr_cap == 6: 
-        tr_cap = Ackers_White_formula(D50, Slope, Q, v, h)        
+        tr_cap = Ackers_White_formula(D50, slope, Q, v, h)        
     
     elif indx_tr_cap == 7:
-        tr_cap, Qc = Rickenmann_formula(D50, Slope, Q, Wac)
+        tr_cap, Qc = Rickenmann_formula(D50, slope, Q, wac)
     
     return tr_cap, Qc
 
-def tr_cap_function(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap, indx_partition):
+def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx_partition):
     """
     Refers to the transport capacity equation and partitioning 
     formula chosen by the  user and return the value of the transport capacity 
@@ -444,27 +444,27 @@ def tr_cap_function(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap, indx
     
     if indx_partition == 1: # Direct computation by the size fraction approach  
         
-        Qtr_cap,Qc = choose_formula(Fi_r_reach, dmi, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        Qtr_cap,Qc = choose_formula(Fi_r_reach, dmi, slope, Q, wac, v, h, psi, indx_tr_cap)
         pci = Fi_r_reach
         
     elif indx_partition == 2: # The BMF approach (Bed Material Fraction)
-        tr_cap, Qc =  choose_formula(Fi_r_reach, dmi, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        tr_cap, Qc =  choose_formula(Fi_r_reach, dmi, slope, Q, wac, v, h, psi, indx_tr_cap)
         Qtr_cap = Fi_r_reach*tr_cap
         pci = Fi_r_reach 
         
     elif indx_partition == 3: # The TCF approach (Transport Capacity Fraction) with the Molinas formula (Molinas and Wu, 2000)
-        pci = Molinas_rates(Fi_r_reach, h, v, Slope, dmi*1000, D50*1000)
-        tr_cap, Qc = choose_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        pci = Molinas_rates(Fi_r_reach, h, v, slope, dmi*1000, D50*1000)
+        tr_cap, Qc = choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap)
         Qtr_cap = pci * tr_cap
     
     elif indx_partition == 4: #Shear stress correction approach (for fractional transport formulas)
-        tr_cap, Qc = choose_formula(Fi_r_reach, D50, Slope, Q, Wac, v, h, psi, indx_tr_cap)
+        tr_cap, Qc = choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap)
         Qtr_cap = tr_cap #these formulas returns already partitioned results;
         pci = Qtr_cap / np.sum(Qtr_cap)
       
     return Qtr_cap, Qc
 
-def sed_velocity(hVel, Wac, tr_cap_per_s, phi, indx_velocity, minvel):
+def sed_velocity(hVel, wac, tr_cap_per_s, phi, indx_velocity, minvel):
     """
     This function compute the sediment velocity (in m/s), for each sediment 
     classes of a given reach n. This calculation is directly done from the 
@@ -473,7 +473,7 @@ def sed_velocity(hVel, Wac, tr_cap_per_s, phi, indx_velocity, minvel):
     
     INPUTS:
     hVel:           height of the total section that we choose for infering velocity from a flux.(reaches x classes) 
-    Wac:            Active width of the reach
+    wac:            Active width of the reach
     tr_cap_per_s:   transport capacity of each sediment class in the reach (m3/s)
     phi:            sediment porosity
     indx_velocity:  index for choosing the method.
@@ -493,7 +493,7 @@ def sed_velocity(hVel, Wac, tr_cap_per_s, phi, indx_velocity, minvel):
     RETURN:
     v_sed_n:        velocities per class of a given reach.
     """
-    Svel = hVel * Wac * (1 - phi)  # the global section where all sediments pass through
+    Svel = hVel * wac * (1 - phi)  # the global section where all sediments pass through
     if indx_velocity == 1:                     
         v_sed_n = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
         v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
@@ -503,7 +503,7 @@ def sed_velocity(hVel, Wac, tr_cap_per_s, phi, indx_velocity, minvel):
         v_sed_n = np.maximum(tr_cap_per_s/Si , minvel)
     return v_sed_n
 
-def sed_velocity_OLD(Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel, phi, indx_tr_cap, indx_partition, indx_velocity): 
+def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi, indx_tr_cap, indx_partition, indx_velocity): 
     """
     Function for calculating velocities.
     OLD method that recalculate the transport capacity in each reach, 
@@ -513,9 +513,9 @@ def sed_velocity_OLD(Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel, phi, indx_tr_
     
     INPUTS:
     Fi_r: sediment fractions per class in each reach
-    Slope_t: All reaches slopes at time step t
+    slope_t: All reaches slopes at time step t
     Q_t: All reaches' discharge at time step t
-    Wac_t: All reaches' discharge at time step t
+    wac_t: All reaches' discharge at time step t
     v: All reaches' water velocities
     h: All reaches' water heights 
     minvel: minimum velocity threshold
@@ -526,10 +526,10 @@ def sed_velocity_OLD(Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel, phi, indx_tr_
     
     #active layer definition 
     #active layer as 10% of the water column depth  
-    L_a = 0.1*h #characteristic vertical length scale for transport.
+    l_a = 0.1 * h #characteristic vertical length scale for transport.
     
     #alternative: active layer as 2*D90 (Parker, 2008)
-    #L_a = 2*D_finder_3(Fi_r_reach, 90 )
+    #l_a = 2*D_finder_3(Fi_r_reach, 90 )
     
     #D50 definition
     dmi = 2**(-psi)/1000  #grain size classes[m]
@@ -548,66 +548,62 @@ def sed_velocity_OLD(Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel, phi, indx_tr_
         if indx_tr_cap == 1:
 
             # run tr_cap function independently for each class 
-            tr_cap = np.zeros((len(dmi), len(Slope_t)))
+            tr_cap = np.zeros((len(dmi), len(slope_t)))
             # ... run the tr.cap function indipendently for each class, setting
             # the frequency of each class = 1
             for d in range(len(dmi)): 
                 Fi_r = np.zeros((len(dmi),1))
                 Fi_r[d] = 1
-                Fi_r = np.matlib.repmat(Fi_r,1,len(Slope_t))
-                tr_cap_class = Parker_Klingeman_formula(Fi_r,dmi[d], Slope_t, Wac_t , h)
+                Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
+                tr_cap_class = Parker_Klingeman_formula(Fi_r,dmi[d], slope_t, wac_t , h)
                 tr_cap[d,:] = tr_cap_class[d,:]
-            
-            
+        
         elif indx_tr_cap == 2: 
             # run tr_cap function independently for each class 
-            tr_cap = np.zeros((len(dmi), len(Slope_t)))
+            tr_cap = np.zeros((len(dmi), len(slope_t)))
             # ... run the tr.cap function indipendently for each class, setting
             # the frequency of each class = 1
             Fi_r = np.diag(np.full(len(dmi),1))
-            Fi_r = np.repeat(Fi_r[:,:,np.newaxis], len(Slope_t), axis = 2)
+            Fi_r = np.repeat(Fi_r[:,:,np.newaxis], len(slope_t), axis = 2)
             for d in range(len(dmi)): 
-                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r[d,:,:], dmi[d], Slope_t, Wac_t , h, psi)
+                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r[d,:,:], dmi[d], slope_t, wac_t , h, psi)
                 tr_cap[d,:] = tr_cap_class[d,:]
                 
-            """Fi_r = np.ones((len(dmi), len(Slope_t)))
-            [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi, Slope_t, Wac_t , h, psi)
+            """Fi_r = np.ones((len(dmi), len(slope_t)))
+            [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi, slope_t, wac_t , h, psi)
             tr_cap[d,:] = tr_cap_class[d,:]"""
-            
             
             """for d in range(len(dmi)): 
                 Fi_r = np.zeros((len(dmi),1))
                 Fi_r[d] = 1
-                Fi_r = np.matlib.repmat(Fi_r,1,len(Slope_t))
-                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi[d], Slope_t, Wac_t , h, psi) 
+                Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
+                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi[d], slope_t, wac_t , h, psi) 
                 tr_cap[d,:] = tr_cap_class[d,:]"""
             
         elif indx_tr_cap == 3: 
-            Slope_t_v, dmi_v = np.meshgrid(Slope_t, dmi, indexing='xy')
+            slope_t_v, dmi_v = np.meshgrid(slope_t, dmi, indexing='xy')
             h_v, dmi_v = np.meshgrid(h, dmi, indexing='xy')
             v_v, dmi_v = np.meshgrid(v, dmi, indexing='xy')
-            Wac_t_v, dmi_v = np.meshgrid(Wac_t, dmi, indexing='xy')
-            tr_cap = Engelund_Hansen_formula( dmi_v, Slope_t_v , Wac_t_v, v_v , h_v )
+            wac_t_v, dmi_v = np.meshgrid(wac_t, dmi, indexing='xy')
+            tr_cap = Engelund_Hansen_formula(dmi_v, slope_t_v, wac_t_v, v_v, h_v)
             
         elif indx_tr_cap == 4: 
-            tr_cap = Yang_formula( Fi_r, dmi , Slope_t , Q_t, v, h, psi ) 
+            tr_cap = Yang_formula(Fi_r, dmi, slope_t, Q_t, v, h, psi)
             
         elif indx_tr_cap == 5: 
-            tr_cap = Wong_Parker_formula( dmi ,Slope_t, Wac_t ,h ) 
+            tr_cap = Wong_Parker_formula(dmi, slope_t, wac_t, h)
     
-        
         #calculate velocity
-        multiply = (Wac_t * L_a * (1-phi)).to_numpy()
+        multiply = (wac_t * l_a * (1-phi)).to_numpy()
         v_sed = np.maximum( tr_cap/( multiply[None,:] ) , minvel)
-        v_sed[:,L_a==0] = minvel
+        v_sed[:, l_a==0] = minvel
         
-    
     ## sediment velocity with total transport capacity
     
     # sediment velocity found in this way is constant for all sed.classes
     if indx_velocity == 4:
-        [ Qtr_cap, pci ] = tr_cap_function( Fi_r , D50 ,  Slope_t, Q_t, Wac_t, v , h, psi, indx_tr_cap , indx_partition)
-        v_sed = np.maximum( Qtr_cap/( Wac_t * L_a*(1-phi) * pci ) , minvel)
+        [ Qtr_cap, pci ] = tr_cap_function( Fi_r , D50 ,  slope_t, Q_t, wac_t, v , h, psi, indx_tr_cap , indx_partition)
+        v_sed = np.maximum( Qtr_cap/( wac_t * l_a*(1-phi) * pci ) , minvel)
         
     return v_sed
     
