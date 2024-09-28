@@ -101,7 +101,7 @@ def Wilcock_Crowe_formula(fi_r_reach, D50, slope, wac, h, psi):
         if tr_cap.ndim > 1:
             # EB: a bit of a mess here with dimensions, corrected a posteriori.
             # I want a 1-d vector as output
-           tr_cap = np.squeeze(tr_cap) 
+            tr_cap = np.squeeze(tr_cap) 
     else:
         wac = np.array(wac)[None, :]
         tr_cap = wac * W_i * fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
@@ -302,7 +302,7 @@ def GSD_std(Fi_r, dmi):
             Perc_finer[a] - Perc_finer[a + 1]) * (dmi[a] - dmi[a + 1]) + dmi[a + 1]
         D_changes[0, i] = D_changes[0, i] * (D_changes[0, i] > 0) + dmi[-1] * (D_changes[0, i] < 0)
     
-    std = np.sqrt(D_changes[0,1] / D_changes[0,0])
+    std = np.sqrt(D_changes[0, 1] / D_changes[0, 0])
     
     return std
     
@@ -501,6 +501,7 @@ def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx
       
     return Qtr_cap, Qc
 
+
 def sed_velocity(hVel, wac, tr_cap_per_s, phi, indx_velocity, minvel):
     """
     This function compute the sediment velocity (in m/s), for each sediment 
@@ -598,7 +599,7 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
                 Fi_r[d] = 1
                 Fi_r = np.matlib.repmat(Fi_r, 1, len(slope_t))
                 tr_cap_class = Parker_Klingeman_formula(Fi_r, dmi[d], slope_t, wac_t, h)
-                tr_cap[d,:] = tr_cap_class[d,:]
+                tr_cap[d, :] = tr_cap_class[d, :]
         
         elif indx_tr_cap == 2: 
             # run tr_cap function independently for each class 
@@ -647,7 +648,7 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
     # sediment velocity found in this way is constant for all sed.classes
     if indx_velocity == 4:
         [Qtr_cap, pci] = tr_cap_function(Fi_r, D50, slope_t, Q_t, wac_t, v, h, psi, 
-                                           indx_tr_cap, indx_partition)
+                                         indx_tr_cap, indx_partition)
         v_sed = np.maximum(Qtr_cap/(wac_t * l_a * (1 - phi) * pci), minvel)
         
     return v_sed

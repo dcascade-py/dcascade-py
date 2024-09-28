@@ -45,9 +45,10 @@ def read_user_input():
     drop.pack(pady=20)
     root.mainloop() 
     
-    
-    # fractioning method selection 
     def partitioning_selection(event): 
+        """
+        Fractioning method selection
+        """
         global indx_partition
         if clicked.get() == "Direct": 
             indx_partition = 1
@@ -77,7 +78,6 @@ def read_user_input():
     drop.pack(pady=20)
     root.mainloop()
     
-    
     def flow_depth_selection(event):
         global flo_depth
         if clicked.get() == "Manning":
@@ -98,7 +98,6 @@ def read_user_input():
     drop = OptionMenu(root, clicked, *options, command=flow_depth_selection)
     drop.pack(pady=20)    
     root.mainloop() 
-
 
     def slope_reduction_selection(event):
         global slopeRed
