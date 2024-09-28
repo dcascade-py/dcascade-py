@@ -68,7 +68,7 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     
     # lengths_values = {key: len(value) for key, value in data_output.items() \ 
     #   if key != 'Transported + deposited sed in the reach [m^3/s]' }
-    lengths_values = {key: len(value) for key, value in data_output.items()}
+    # lengths_values = {key: len(value) for key, value in data_output.items()}
     # sim_length = min(lengths_values.values())
     
     # --- define plot variables
@@ -81,7 +81,7 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     #                                        ) for key, value in data_output.items() \
     #                      if key != 'Transported + deposited sed in the reach [m^3/s]'}
     cClass = {key: np.unique(np.percentile(value[np.nonzero(value)], 
-                                           np.arange(0, 100, i_class))) \
+                                           np.arange(0, 100, i_class)))
                                            for key, value in data_output.items()}
 
     # add tot_sed_class for the class defined in def_sed_class
