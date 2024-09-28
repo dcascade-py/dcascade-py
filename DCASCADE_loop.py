@@ -1,10 +1,23 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 10 18:00:36 2022
+
+This script contains the time-space loop which assess the sediment routing
+through the network.
+
+This script was adapted from the Matlab version by Marco Tangi.
+
+@author: Elisa Bozzolan
+"""
+
+# import libraries 
 import numpy as np
 import numpy.matlib
 import pandas as pd
 from tqdm import tqdm 
 import copy
 
+# import ad hoc functions
 from supporting_functions import D_finder
 from supporting_functions import sortdistance
 from supporting_functions import layer_search
@@ -20,16 +33,6 @@ from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 import itertools
 
-"""
-Created on Mon Oct 10 18:00:36 2022
-
-This script contains the time-space loop which assess the sediment routing
-through the network.
-
-This script was adapted from the Matlab version by Marco Tangi.
-
-@author: Elisa Bozzolan
-"""
 
 np.seterr(divide='ignore', invalid='ignore')
              
@@ -493,7 +496,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             Delta_V_all[t, n] = Delta_V 
             # And Delta_V per class
             Delta_V_class = np.sum(Qbi_dep_0[n][:, 1:], axis=0) - np.sum(Qbi_dep_old[n][:, 1:],
-                                                                         axis=0)
+                                   axis=0)
             Delta_V_class_all[t, n, :] = Delta_V_class            
             
             # Update slope if required.

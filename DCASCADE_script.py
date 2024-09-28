@@ -32,6 +32,7 @@ This script was adapted from the Matlab version by Marco Tangi
 import numpy as np
 import geopandas as gpd
 import pandas as pd
+import pickle 
 from plot_function import dynamic_plot
 import copy
 
@@ -52,7 +53,9 @@ filename_river_network = path_river_network / name_river_network
 
 # --------Discharge files
 path_q = Path('Input/input_trial/')
-# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+# csv file that specifies the water flows in m3/s as a (nxm) matrix,
+# where n = number of time steps; m = number of reaches (equal to
+# the one specified in the river network)
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q
 
@@ -72,8 +75,8 @@ sed_range = [-8, 5]
 n_classes = 6        # number of classes
 
 # ---Timescale 
-timescale = 10 # days 
-ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
+timescale = 10  # days 
+ts_length = 60 * 60 * 24  # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 # ---Change slope or not
 # if False: slope is constant, if True, slope changes according to sediment deposit
@@ -94,10 +97,10 @@ save_dep_layer = 'always'
 # so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 roundpar = 0 
 
-################ MAIN ###############
+# -------------- MAIN ---------------
 
 # Read the network 
-network = gpd.GeoDataFrame.from_file(filename_river_network) #read shapefine from shp format
+network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
 reach_data = ReachData(network)
 
 # Define the initial deposit layer per each reach in [m3/m]
@@ -105,16 +108,16 @@ reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
 
 # Read/define the water discharge 
 # but first, we check automatically the delimiter (; or ,) and if Q file has headers or not:
-Q_check = pd.read_csv(filename_q, header = None) # read from external csv file
+Q_check = pd.read_csv(filename_q, header=None)  # read from external csv file
 if Q_check.iloc[0, :].size == 1: 
     my_delimiter = ';'
 else:
     my_delimiter = ','
 Q_check2 = pd.read_csv(filename_q, header=None, sep=my_delimiter)  
-if Q_check2.iloc[0,0]=='yyyy/mm/dd':
-    Q = pd.read_csv(filename_q, header = 0, sep=my_delimiter, index_col = 'yyyy/mm/dd')  
+if Q_check2.iloc[0, 0]=='yyyy/mm/dd':
+    Q = pd.read_csv(filename_q, header=0, sep=my_delimiter, index_col='yyyy/mm/dd')  
 else:
-    Q = pd.read_csv(filename_q, header = None, sep=my_delimiter)
+    Q = pd.read_csv(filename_q, header=None, sep=my_delimiter)
 
 # Sort reach_data according to the from_n, and organise the Q file accordingly
 sorted_indices = reach_data.sort_values_by(reach_data.from_n)
@@ -166,7 +169,7 @@ else:
     indx_velocity = 1    # same velocity for all classes
     
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth,
+data_output, extended_output = DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth,
                                              indx_slope_red, indx_velocity, reach_data,
                                              Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                              roundpar, update_slope, eros_max, save_dep_layer,
@@ -178,9 +181,7 @@ variable_names = [data for data in data_output_t.keys() if data.endswith('per cl
 for item in variable_names: 
     del data_output_t[item]
     
-# Save results as pickled files     
-import pickle 
-
+# Save results as pickled files
 if not os.path.exists(path_results):   # Does the output folder exist ?   
     os.makedirs(path_results)          # If not, create it.
 
@@ -189,5 +190,7 @@ pickle.dump(data_output, open(name_file, "wb"))  # save it into a file named sav
 # name_file_ext = path_results + 'save_all_ext.p'
 # pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
-# ## Plot results 
-# keep_slider = dynamic_plot(data_output_t, reach_data, psi)
+# ## Plot results
+plot = False
+if plot:
+    keep_slider = dynamic_plot(data_output_t, reach_data, psi)
