@@ -1,23 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 10 18:00:36 2022
-
-This script contains the time-space loop which assess the sediment routing
-through the network.
-
-This script was adapted from the Matlab version by Marco Tangi.
-
-@author: Elisa Bozzolan
-"""
-
-""" Libraries to import """
 import numpy as np
 import numpy.matlib
 import pandas as pd
 from tqdm import tqdm 
 import copy
-import sys
-import os
 
 from supporting_functions import D_finder
 from supporting_functions import sortdistance
@@ -30,10 +16,20 @@ from supporting_functions import stop_or_not
 from supporting_functions import deposit_from_passing_sediments
 from transport_capacity_computation import tr_cap_function
 from transport_capacity_computation import sed_velocity
-from transport_capacity_computation import sed_velocity_OLD
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 import itertools
+
+"""
+Created on Mon Oct 10 18:00:36 2022
+
+This script contains the time-space loop which assess the sediment routing
+through the network.
+
+This script was adapted from the Matlab version by Marco Tangi.
+
+@author: Elisa Bozzolan
+"""
 
 np.seterr(divide='ignore', invalid='ignore')
              
@@ -233,7 +229,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     Delta_V_class_all = np.zeros((timescale, n_reaches, n_classes))
     
     # In case of constant slope
-    if update_slope == False:
+    if update_slope is False:
         slope[:, :] = slope[0, :]
         node_el[:, :] = node_el[0, :]
     
@@ -306,9 +302,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 vect = np.c_[np.repeat(n, Qbi_input[t, n, :].shape[0]), Qbi_input[t, n, :]]
             
             # The material present at that time step + potential external mat:
-            Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n, :]]), vect]
+            Qbi_incoming = np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n, :]]), vect]
             # Sum all classes and delete the zeros  (rows represents provenance):
-            Qbi_incoming  = np.delete(Qbi_incoming, \
+            Qbi_incoming = np.delete(Qbi_incoming, \
                                       np.sum(Qbi_incoming[:, 1:], axis = 1)==0, axis = 0)
             
             if Qbi_incoming.size == 0:
@@ -403,13 +399,13 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     Qbi_tr[t+1][[Vm_stop[:, 0].astype(int)], n, :] += Vm_stop[:, 1:]                  
                 if Vm_continue is not None:
                     Qbi_pass[n].append(Cascade(cascade.provenance, t_new, Vm_continue))
-                    if consider_overtaking_sed_in_outputs == True:
+                    if consider_overtaking_sed_in_outputs is True:
                         Qbi_tr[t][[Vm_continue[:, 0].astype(int)], n, :] += Vm_continue[:, 1:]
                 # DD: think about this strange fact, that we put the transported
                 # volumes either at t or t+1 depending if they finish the day there or not
             
             # Compare sum of Qbi_pass[n] to tr_cap volume (for each sediment class)
-            if compare_with_tr_cap == True:           
+            if compare_with_tr_cap is True:           
                 if Qbi_pass[n] == []:
                     sum_pass = np.zeros(len(tr_cap))
                 else:
@@ -420,7 +416,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 
                 # In addition, consider a time lag during which we mobilise sediments 
                 # in the reach n, while the first cascade travels to the ToN of reach n
-                if time_lag_for_Vmob == True:
+                if time_lag_for_Vmob is True:
                     # Note: time lag is in time step units (not in seconds)
                     if Qbi_pass[n] == []:
                         time_lag = 1 # the complete time step is considered 
@@ -451,7 +447,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)
                 # We also add the volume mobilised during the time lag, 
                 # because it is also mobilised from the reach n
-                if time_lag_for_Vmob == True:
+                if time_lag_for_Vmob is True:
                     diff_pos += volume_time_lag        
                 if np.any(diff_pos):                               
                     [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)
@@ -470,11 +466,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 provenance = n
                 Qbi_pass[n].append(Cascade(provenance, elapsed_time, V_mob))
                 # We only consider Vmob of the reach if this option is False.
-                if consider_overtaking_sed_in_outputs == False:
+                if consider_overtaking_sed_in_outputs is False:
                     Qbi_mob[t][V_mob[:, 0].astype(int), n, :] += np.float32(V_mob[:, 1:])
                       
             # Store all the Qbi_pass[n] cascades in Qbi_mob of reach n
-            if consider_overtaking_sed_in_outputs == True:
+            if consider_overtaking_sed_in_outputs is True:
                 for cascade in Qbi_pass[n]:
                     Vm = cascade.volume
                     Qbi_mob[t][Vm[:, 0].astype(int), n, :] += np.float32(Vm[:, 1:])
@@ -504,7 +500,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             Delta_V_class_all[t, n, :] = Delta_V_class            
             
             # Update slope if required.
-            if update_slope == True:
+            if update_slope is True:
                 node_el[t+1][n] = node_el[t, n] + Delta_V/( np.sum(reach_data.Wac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['Upstream_Node'][n])]) * (1-phi) )
             
         """End of the reach loop"""
@@ -552,7 +548,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         #     # Sum the volumes transported from reach n with all the other 
         #     # volumes mobilized by all the other reaches at time
         #     Qbi_tr[t+1] = Qbi_tr[t+1] + np.float32(Qbi_tr_t)
-        #     Q_out[t] =  Q_out[t] + Q_out_t
+        #     Q_out[t] = Q_out[t] + Q_out_t
             
         # store vsed per class and per reach, of this day, in m/day
         V_sed[t] = v_sed * ts_length
@@ -561,7 +557,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
 
         #in case of changing slope..
-        if update_slope == True:
+        if update_slope is True:
             #..change the slope accordingly to the bed elevation
             slope[t+1, :], node_el[t+1, :] = change_slope(node_el[t+1, :], reach_data.length, 
                                                           network, s = min_slope)
@@ -653,7 +649,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             
             
     #--Total material in a reach in each timestep, divided by class (transported + dep)
-    tot_sed_class =  [np.empty((len(Qbi_dep), n_reaches)) for _ in range(n_classes)]
+    tot_sed_class = [np.empty((len(Qbi_dep), n_reaches)) for _ in range(n_classes)]
     q_d = np.zeros((1, n_reaches))
     
     for c in range(n_classes): 
@@ -665,7 +661,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             tot_sed_class[c][t, :] = q_d + np.sum(q_tt, axis = 0)
             
     #--Deposited per class         
-    deposited_class =  [np.empty((len(Qbi_dep), n_reaches)) for _ in range(n_classes)]
+    deposited_class = [np.empty((len(Qbi_dep), n_reaches)) for _ in range(n_classes)]
 
     for c in range(n_classes): 
         for t in range(len(Qbi_dep)): 
@@ -674,7 +670,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
    
     
     #--Mobilised per class
-    mobilised_class =  [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
+    mobilised_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
     
     for c in range(n_classes): 
         for t in range(timescale-1): 
@@ -682,7 +678,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             mobilised_class[c][t, :] = np.sum(q_m, axis = 0)
 
     #--Transported per class        
-    transported_class =  [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
+    transported_class = [np.empty((timescale-1, n_reaches)) for _ in range(n_classes)]
     
     for c in range(n_classes): 
         for t in range(timescale-1): 
