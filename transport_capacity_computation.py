@@ -13,8 +13,8 @@ from supporting_functions import D_finder
 from constants import (
     RHO_S,
     RHO_W,
-    G,
-    R,
+    GRAV,
+    R_VAR,
 )
 
 def Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi, **kwargs):
@@ -35,11 +35,11 @@ def Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi, **kwargs):
     
     ## Transport capacity from Parker and Klingema equations
     
-    tau = RHO_W * G * h * Slope # bed shear stress [Kg m-1 s-1]
+    tau = RHO_W * GRAV * h * Slope # bed shear stress [Kg m-1 s-1]
     
     # tau_r50 formula from Mueller et al. (2005)
     # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
-    tau_r50 = (0.021 + 2.18 * Slope) * (RHO_W * R * G * D50)
+    tau_r50 = (0.021 + 2.18 * Slope) * (RHO_W * R_VAR * GRAV * D50)
     
     tau_ri = tau_r50 * (dmi/D50)** gamma # reference shear stress for each sediment class [Kg m-1 s-1]
     phi_ri = tau / tau_ri
@@ -48,7 +48,7 @@ def Parker_Klingeman_formula(Fi_r_reach, D50, Slope, Wac, h, psi, **kwargs):
     W_i = 11.2 * (np.maximum(1 - 0.853/phi_ri, 0))**4.5
     
     # Dimensionful transport rate for each sediment class [m3/s]
-    tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R * G)
+    tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
     tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
     
     return tr_cap, tau, tau_r50
@@ -73,12 +73,12 @@ def Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi):
         Fr_s = np.sum((psi > - 1)[:,None] * 1 * Fi_r_reach, axis = 0)[None,:]
     ## Transport capacity from Wilcock-Crowe equations
 
-    tau = np.array(RHO_W * G * h * Slope) # bed shear stress [Kg m-1 s-1]
+    tau = np.array(RHO_W * GRAV * h * Slope) # bed shear stress [Kg m-1 s-1]
     if tau.ndim != 0:
         tau = tau[None,:] # add a dimension for computation
     
     # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
-    tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R * G * D50)
+    tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * D50)
     
     b = 0.67 / (1 + np.exp(1.5 - dmi / D50)) # hiding factor
     
@@ -93,12 +93,12 @@ def Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi):
     
     # Dimensionful transport rate for each sediment class [m3/s]
     if Wac.ndim == 0:
-        tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R * G)
+        tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
         if tr_cap.ndim > 1:
            tr_cap = np.squeeze(tr_cap) # EB: a bit of a mess here with dimensions, corrected a posteriori. I want a 1-d vector as output 
     else:
         Wac = np.array(Wac)[None, :]
-        tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R * G)
+        tr_cap = Wac * W_i * Fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
     
     tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
 
@@ -116,14 +116,14 @@ def Engelund_Hansen_formula(D50, Slope, Wac, v, h):
     """
     
     # friction factor
-    C = (2 * G * Slope * h) / v**2   
+    C = (2 * GRAV * Slope * h) / v**2   
 
     # dimensionless shear stress
-    tauEH = (Slope * h) / (R * D50)
+    tauEH = (Slope * h) / (R_VAR * D50)
     # dimensionless transport capacity
     qEH = 0.05 / C * tauEH**(5/2)
     # dimensionful transport capacity per unit width  m3/(s*m )
-    qEH_dim = qEH * np.sqrt(R * G * D50**3) # m3/s 
+    qEH_dim = qEH * np.sqrt(R_VAR * GRAV * D50**3) # m3/s 
     QS_EH = qEH_dim * Wac
     
     tr_cap = QS_EH # m3/s
@@ -150,25 +150,25 @@ def Yang_formula(Fi_r_reach, D50, Slope, Q, v, h, psi):
     
     #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of Sediment Particles. (1933)
     #         
-    #  Dgr = D50*(G*R/nu**2)**(1/3);
+    #  Dgr = D50*(GRAV*R_VAR/nu**2)**(1/3);
     #     
     #  if Dgr<=10:  
-    #      w = 0.51*nu/D50*(D50**3*G*R/nu**2)**0.963 # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf
+    #      w = 0.51*nu/D50*(D50**3*GRAV*R_VAR/nu**2)**0.963 # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf
     #  else:
-    #      w = 0.51*nu/D50*(D50**3*G*R/nu**2)**0.553 # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf 
+    #      w = 0.51*nu/D50*(D50**3*GRAV*R_VAR/nu**2)**0.553 # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf 
     
     #2)  settling velocity for grains - Rubey (1933)
-    F = (2 / 3 + 36 * nu**2 / (G * D50**3 * R))**0.5 - (36 * nu**2/(G * D50**3 * R))**0.5
-    w = F * (D50 * G * R)**0.5 #settling velocity
+    F = (2 / 3 + 36 * nu**2 / (GRAV * D50**3 * R_VAR))**0.5 - (36 * nu**2/(GRAV * D50**3 * R_VAR))**0.5
+    w = F * (D50 * GRAV * R_VAR)**0.5 #settling velocity
     
     # use corrected sediment diameter
-    tau = 1000 * G * h * Slope
+    tau = 1000 * GRAV * h * Slope
     vstar = np.sqrt(tau / 1000)
     w50 = (16.17 * D50**2)/(1.8 * 10**(-5) + (12.1275 * D50**3)**0.5)
     
     De = (1.8 * D50) / (1 + 0.8 * (vstar / w50)**0.1 * (GeoStd - 1)**2.2)
     
-    U_star = np.sqrt(De * G * Slope) # shear velocity 
+    U_star = np.sqrt(De * GRAV * Slope) # shear velocity 
     
     # 1) Yang Sand Formula
     log_C = 5.165 - 0.153 * np.log10(w * De / nu) - 0.297 * np.log10(U_star / w) + (1.78 - 0.36 * np.log10(w * De / nu) - 0.48 * np.log10(U_star / w)) * np.log10(v * Slope / w) 
@@ -213,10 +213,10 @@ def Ackers_White_formula(D50, Slope, Q, v, h):
     
     ## transition exponent depending on sediment size [n]
     
-    D_gr = D_AW * (G * R / nu**2 )**(1/3) #dimensionless grain size - EB change coding line if D_gr is different from a number 
+    D_gr = D_AW * (GRAV * R_VAR / nu**2 )**(1/3) #dimensionless grain size - EB change coding line if D_gr is different from a number 
     
     #shear velocity
-    u_ast = np.sqrt(G * h * Slope)
+    u_ast = np.sqrt(GRAV * h * Slope)
     
     ## Transport capacity 
     
@@ -238,13 +238,13 @@ def Ackers_White_formula(D50, Slope, Q, v, h):
         n[D_gr < 60] = 1 - 0.56 * np.log10(D_gr[D_gr < 60])
     
     ## mobility factor
-    F_gr = u_ast**n / np.sqrt(G * D_AW * R) * (v / (np.sqrt(32) * np.log10(alpha * h / D_AW)))**(1 - n)
+    F_gr = u_ast**n / np.sqrt(GRAV * D_AW * R_VAR) * (v / (np.sqrt(32) * np.log10(alpha * h / D_AW)))**(1 - n)
      
     # dimensionless transport
     G_gr = C * (np.maximum(F_gr / A - 1, 0) )**m
     
     # weight concentration of bed material (Kg_sed / Kg_water)
-    QS_ppm = G_gr * (R + 1) * D_AW * (v / u_ast)**n / h
+    QS_ppm = G_gr * (R_VAR + 1) * D_AW * (v / u_ast)**n / h
     
     # transport capacity (Kg_sed / s)
     QS_kg = RHO_W * Q * QS_ppm
@@ -301,11 +301,11 @@ def Wong_Parker_formula(D50, Slope, Wac, h):
     tauC = 0.0495  # tauC = 0.0470
     
     # dimensionless shear stress
-    tauWP = (Slope * h) / (R * D50)
+    tauWP = (Slope * h) / (R_VAR * D50)
     # dimensionless transport capacity
     qWP = alpha* (np.maximum(tauWP - tauC, 0))**beta
     # dimensionful transport capacity [m3/(s*m)] 
-    qWP_dim = qWP * np.sqrt(R * G * D50**3) # [m3/(s*m)] (formula from the original cascade paper)
+    qWP_dim = qWP * np.sqrt(R_VAR * GRAV * D50**3) # [m3/(s*m)] (formula from the original cascade paper)
     
     QS_WP = qWP_dim * Wac # [m3/s]
     
@@ -334,7 +334,7 @@ def Rickenmann_formula(D50, Slope, Q, Wac):
     
     exponent_e = 1.5
     # critical unit discharge
-    Qc = 0.065 * (R ** 1.67) * (G ** 0.5) * (D50 ** exponent_e) * (Slope ** (-1.12))
+    Qc = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (D50 ** exponent_e) * (Slope ** (-1.12))
 
     #Check if Q is smaller than Qc
     Qarr = np.full_like(Qc, Qunit)
@@ -366,9 +366,9 @@ def Molinas_rates(Fi_r, h, v, Slope, dmi_finer, D50_finer):
     # Hydraulic parameters in each flow percentile for the current reach
     Dn = (1 + (GSD_std(Fi_r, dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
     
-    tau = 1000 * G * h * Slope
+    tau = 1000 * GRAV * h * Slope
     vstar = np.sqrt(tau / 1000);
-    FR = v / np.sqrt(G * h)     # Froude number
+    FR = v / np.sqrt(GRAV * h)     # Froude number
     
     # alpha, beta, and Zeta parameter for each flow percentile (columns), and each grain size (rows)
     # EQ 24 , 25 , 26 , Molinas and Wu (2000)
