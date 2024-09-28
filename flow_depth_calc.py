@@ -29,9 +29,10 @@ For estimating the flow depth in the reaches two options are given:
 
 """
 
+from constants import GRAV
 import numpy as np
 import numpy.matlib
-from supporting_functions import D_finder    
+from supporting_functions import D_finder
 
 def h_manning(reach_data, slope, Q, t):
     """
@@ -47,13 +48,13 @@ def h_ferguson(reach_data, slope, Q, t):
     """
     
     #calculate water depth and velocity with the Ferguson formula (2007)
-    q_star = Q.iloc[t,:] / (reach_data.wac * np.sqrt(9.81 * slope[t] * reach_data.D84**3))
+    q_star = Q.iloc[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
     
     #𝑝…𝑖𝑓 𝑞∗<100 → 𝑝=0.24, 𝑖𝑓 𝑞^∗>100 → 𝑝=0.31
     p = np.where(q_star < 100, 0.24, 0.31)
     
     h = 0.015 * reach_data.D84 * (q_star**(2*p)) / (p**2.5)    
-    v = (np.sqrt(9.81 * h * slope[t])* 6.5 * 2.5 * (h / reach_data.D84)) / np.sqrt((6.2 ** 2) * (2.5 ** 2) * ((h / reach_data.D84) ** (5/3)))
+    v = (np.sqrt(GRAV * h * slope[t])* 6.5 * 2.5 * (h / reach_data.D84)) / np.sqrt((6.2 ** 2) * (2.5 ** 2) * ((h / reach_data.D84) ** (5/3)))
    
     return h, v
 
