@@ -2,7 +2,8 @@
 """
 Created on Fri Feb  3 12:03:00 2023
 
-Different formula for the calculation of the tranport capacity and for the assignment of the velocity
+Different formula for the calculation of the tranport capacity and for the
+assignment of the velocity.
 
 @author: Elisa Bozzolan 
 """
@@ -39,7 +40,8 @@ def Parker_Klingeman_formula(fi_r_reach, D50, slope, wac, h, psi, **kwargs):
     # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
     tau_r50 = (0.021 + 2.18 * slope) * (RHO_W * R_VAR * GRAV * D50)
     
-    tau_ri = tau_r50 * (dmi/D50)** gamma  # reference shear stress for each sediment class [Kg m-1 s-1]
+    # reference shear stress for each sediment class [Kg m-1 s-1]
+    tau_ri = tau_r50 * (dmi/D50)** gamma
     phi_ri = tau / tau_ri
     
     # Dimensionless transport rate for each sediment class [-]
@@ -59,7 +61,8 @@ def Wilcock_Crowe_formula(fi_r_reach, D50, slope, wac, h, psi):
     This function is for use in the D-CASCADE toolbox.
     
     References:
-    Wilcock, Crowe(2003). Surface-based transport model for mixed-size sediment. Journal of Hydraulic Engineering.
+    Wilcock, Crowe(2003). Surface-based transport model for mixed-size sediment. 
+    Journal of Hydraulic Engineering.
     """
 
     dmi = 2**(-psi) / 1000  # sediment classes diameter [m]
@@ -82,19 +85,23 @@ def Wilcock_Crowe_formula(fi_r_reach, D50, slope, wac, h, psi):
     b = 0.67 / (1 + np.exp(1.5 - dmi / D50))  # hiding factor
     
     fact = (dmi / D50)**b
-    tau_ri = tau_r50 * fact[:, None]  # reference shear stress for each sediment class [Kg m-1 s-1]
+    # reference shear stress for each sediment class [Kg m-1 s-1]
+    tau_ri = tau_r50 * fact[:, None]
     
     phi_ri = tau / tau_ri
     # Dimensionless transport rate for each sediment class [-]
     # The formula changes for each class according to the phi_ri of the class
     # is higher or lower then 1.35.
-    W_i = (phi_ri >= 1.35) * (14 * (np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0))**4.5) + (phi_ri < 1.35) * (0.002 * phi_ri**7.5)
+    W_i = (phi_ri >= 1.35) * (14 * (np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0))**4.5
+                              ) + (phi_ri < 1.35) * (0.002 * phi_ri**7.5)
     
     # Dimensionful transport rate for each sediment class [m3/s]
     if wac.ndim == 0:
         tr_cap = wac * W_i * fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
         if tr_cap.ndim > 1:
-           tr_cap = np.squeeze(tr_cap)  # EB: a bit of a mess here with dimensions, corrected a posteriori. I want a 1-d vector as output 
+            # EB: a bit of a mess here with dimensions, corrected a posteriori.
+            # I want a 1-d vector as output
+           tr_cap = np.squeeze(tr_cap) 
     else:
         wac = np.array(wac)[None, :]
         tr_cap = wac * W_i * fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
@@ -138,28 +145,34 @@ def Yang_formula(fi_r_reach, D50, slope, Q, v, h, psi):
     This function is for use in the D-CASCADE toolbox.
     
     References: 
-    Stevens Jr., H. H. & Yang, C. T. Summary and use of selected fluvial sediment-discharge formulas. (1989).
+    Stevens Jr., H. H. & Yang, C. T. Summary and use of selected fluvial sediment-discharge
+    formulas. (1989).
     see also: Modern Water Resources Engineering: https://books.google.com/books?id=9rW9BAAAQBAJ&pg
     =PA347&dq=yang+sediment+transport+1973&hl=de&sa=X&ved=0ahUKEwiYtKr72_bXAhVH2mMKHZwsCdQQ6AEILTAB
     #v=onepage&q=yang%20sediment%20transport%201973&f=false
     """
 
     dmi = 2**(-psi) / 1000  # sediment classes diameter [m]
-    nu = 1.003*1E-6         # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
+    # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
+    nu = 1.003*1E-6
     
     GeoStd = GSD_std(fi_r_reach, dmi);
     
-    #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of Sediment Particles. (1933)
+    #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of 
+    #     Sediment Particles. (1933)
     #         
     #  Dgr = D50*(GRAV*R_VAR/nu**2)**(1/3);
     #     
-    #  if Dgr<=10:  
-    #      w = 0.51*nu/D50*(D50**3*GRAV*R_VAR/nu**2)**0.963 # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf
+    #  if Dgr<=10:
+    #      # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf
+    #      w = 0.51*nu/D50*(D50**3*GRAV*R_VAR/nu**2)**0.963 
     #  else:
-    #      w = 0.51*nu/D50*(D50**3*GRAV*R_VAR/nu**2)**0.553 # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf 
+    #      # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf
+    #      w = 0.51*nu/D50*(D50**3*GRAV*R_VAR/nu**2)**0.553 
     
     # 2)  settling velocity for grains - Rubey (1933)
-    F = (2 / 3 + 36 * nu**2 / (GRAV * D50**3 * R_VAR))**0.5 - (36 * nu**2/(GRAV * D50**3 * R_VAR))**0.5
+    F = (2 / 3 + 36 * nu**2 / (GRAV * D50**3 * R_VAR)
+         )**0.5 - (36 * nu**2/(GRAV * D50**3 * R_VAR))**0.5
     w = F * (D50 * GRAV * R_VAR)**0.5  # settling velocity
     
     # use corrected sediment diameter
@@ -172,10 +185,13 @@ def Yang_formula(fi_r_reach, D50, slope, Q, v, h, psi):
     U_star = np.sqrt(De * GRAV * slope)  # shear velocity 
     
     # 1) Yang Sand Formula
-    log_C = 5.165 - 0.153 * np.log10(w * De / nu) - 0.297 * np.log10(U_star / w) + (1.78 - 0.36 * np.log10(w * De / nu) - 0.48 * np.log10(U_star / w)) * np.log10(v * slope / w) 
+    log_C = 5.165 - 0.153 * np.log10(w * De / nu) - 0.297 * np.log10(U_star / w) \
+        + (1.78 - 0.36 * np.log10(w * De / nu) - 0.48 * np.log10(U_star / w)
+           ) * np.log10(v * slope / w) 
     
     # 2) Yang Gravel Formula
-    # log_C = 6.681 - 0.633*np.log10(w*D50/nu) - 4.816*np.log10(U_star/w) + (2.784-0.305*np.log10(w*D50/nu)-0.282*np.log10(U_star/w))*np.log10(v*slope/w) 
+    # log_C = 6.681 - 0.633*np.log10(w*D50/nu) - 4.816*np.log10(U_star/w) 
+    # + (2.784-0.305*np.log10(w*D50/nu)-0.282*np.log10(U_star/w))*np.log10(v*slope/w) 
    
     QS_ppm = 10**(log_C)  # in ppm 
     
@@ -197,7 +213,8 @@ def Ackers_White_formula(D50, slope, Q, v, h):
     This function is for use in the D-CASCADE toolbox.
     
     References:
-    Stevens Jr., H. H. & Yang, C.T. Summary and use of selected fluvial sediment-discharge formulas. (1989).
+    Stevens Jr., H. H. & Yang, C.T. Summary and use of selected fluvial sediment-discharge
+    formulas. (1989).
     Ackers P., White W.R. Sediment transport: New approach and analysis (1973)
     """
     
@@ -205,8 +222,8 @@ def Ackers_White_formula(D50, slope, Q, v, h):
     
     # Ackers - White suggest to use the D35 instead of the D50
     D_AW = D50
-    
-    nu = 1.003*1E-6  # kinematic viscosity @ 20�C: http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
+    # kinematic viscosity @ 20�C: http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
+    nu = 1.003*1E-6  
     # nu = 0.000011337  # kinematic viscosity (ft2/s)
     
     alpha = 10  # coefficient in the rough turbulent equation with a value of 10;
@@ -234,13 +251,15 @@ def Ackers_White_formula(D50, slope, Q, v, h):
     n = np.matlib.repmat(n, 1, 1)  # np.matlib.repmat(m, D_gr.shape[0],D_gr.shape[1])
     
     if np.less(D_gr, 60).any(): 
-        C[D_gr < 60] = 10 ** (2.79 * np.log10(D_gr[D_gr < 60]) - 0.98 * np.log10(D_gr[D_gr < 60])**2 - 3.46)
+        C[D_gr < 60] = 10 ** (2.79 * np.log10(D_gr[D_gr < 60]) 
+                              - 0.98 * np.log10(D_gr[D_gr < 60])**2 - 3.46)
         m[D_gr < 60] = 6.83 / D_gr[D_gr < 60] + 1.67     # m = 9.66 / D_gr(D_gr < 60) + 1.34;
         A[D_gr < 60] = 0.23 / np.sqrt(D_gr[D_gr < 60]) + 0.14
         n[D_gr < 60] = 1 - 0.56 * np.log10(D_gr[D_gr < 60])
     
     # mobility factor
-    F_gr = u_ast**n / np.sqrt(GRAV * D_AW * R_VAR) * (v / (np.sqrt(32) * np.log10(alpha * h / D_AW)))**(1 - n)
+    F_gr = u_ast**n / np.sqrt(GRAV * D_AW * R_VAR) * (
+        v / (np.sqrt(32) * np.log10(alpha * h / D_AW)))**(1 - n)
      
     # dimensionless transport
     G_gr = C * (np.maximum(F_gr / A - 1, 0))**m
@@ -271,16 +290,17 @@ def GSD_std(Fi_r, dmi):
     # calculates GSD_std
     D_values = [16, 84]
     D_changes = np.zeros((1, len(D_values)))
-    Perc_finer = np.zeros((len(dmi),1))
-    Perc_finer[0,:] = 100
+    Perc_finer = np.zeros((len(dmi), 1))
+    Perc_finer[0, :] = 100
     
     for i in range(1, len(Perc_finer)): 
-        Perc_finer[i,0] = Perc_finer[i-1,0]-(Fi_r[i-1]*100)
+        Perc_finer[i, 0] = Perc_finer[i - 1, 0] - (Fi_r[i - 1] * 100)
 
     for i in range(len(D_values)):
-        a = np.minimum(np.argwhere(Perc_finer >  D_values[i])[-1][0],len(dmi)-2) 
-        D_changes[0,i] = (D_values[i] - Perc_finer[a+1])/(Perc_finer[a] - Perc_finer[a+1])*(dmi[a]-dmi[a+1])+dmi[a+1]
-        D_changes[0,i] = D_changes[0,i]*(D_changes[0, i]>0) + dmi[-1]*(D_changes[0,i]<0)
+        a = np.minimum(np.argwhere(Perc_finer > D_values[i])[-1][0], len(dmi) - 2) 
+        D_changes[0, i] = (D_values[i] - Perc_finer[a + 1]) / (
+            Perc_finer[a] - Perc_finer[a + 1]) * (dmi[a] - dmi[a + 1]) + dmi[a + 1]
+        D_changes[0, i] = D_changes[0, i] * (D_changes[0, i]>0) + dmi[-1] * (D_changes[0, i] < 0)
     
     std = np.sqrt(D_changes[0,1]/D_changes[0,0])
     
@@ -309,7 +329,8 @@ def Wong_Parker_formula(D50, slope, wac, h):
     # dimensionless transport capacity
     qWP = alpha* (np.maximum(tauWP - tauC, 0))**beta
     # dimensionful transport capacity [m3/(s*m)] 
-    qWP_dim = qWP * np.sqrt(R_VAR * GRAV * D50**3)  # [m3/(s*m)] (formula from the original cascade paper)
+    # [m3/(s*m)] (formula from the original cascade paper):
+    qWP_dim = qWP * np.sqrt(R_VAR * GRAV * D50**3)  
     
     QS_WP = qWP_dim * wac  # [m3/s]
     
@@ -326,12 +347,13 @@ def Rickenmann_formula(D50, slope, Q, wac):
     and later refined by Rickenmann (1991).
     
     References: 
-    Rickenmann (2001). Comparison of bed load transport in torrents and gravel bed streams. 
+    Rickenmann (2001). Comparison of bed load transport in torrents and gravel bed streams.
     Water Resources Research 37(12): 3295–3305.DOI: 10.1029/2001WR000319.
     Barthust et al. (1987). Bed load discharge equations for steep mountain rivers. 
     In Sediment Transport in Gravel-Bed Rivers, Wiley: New York; 453–477
     Rickenmann (1991). Hyperconcentrated flow and sediment transport at steep flow. 
-    Journal ofHydraulic Engineering 117(11): 1419–1439. DOI: 10.1061/(ASCE)0733-9429(1991)117:11(1419)
+    Journal ofHydraulic Engineering 117(11): 1419–1439. 
+    DOI: 10.1061/(ASCE)0733-9429(1991)117:11(1419)
     """
     
     # Q is on whole width, Qunit = Q/w
@@ -376,22 +398,25 @@ def Molinas_rates(fi_r, h, v, slope, dmi_finer, D50_finer):
     vstar = np.sqrt(tau / 1000);
     froude = v / np.sqrt(GRAV * h)     # Froude number
     
-    # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
+    # alpha, beta, and zeta parameter for each flow percentile (columns), and each 
+    # grain size (rows)
     # EQ 24, 25, 26, Molinas and Wu (2000)
     alpha = - 2.9 * np.exp(-1000 * (v / vstar)**2 * (h / D50_finer)**(-2))
     beta = 0.2 * GSD_std(fi_r, dmi_finer)
     zeta = 2.8 * froude**(-1.2) *  GSD_std(fi_r, dmi_finer)**(-3) 
     zeta[np.isinf(zeta)] == 0  # zeta gets inf when there is only a single grain size. 
     
-    # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
+    # alpha, beta, and zeta parameter for each flow percentile (columns), and each 
+    # grain size (rows)
     # EQ 17, 18, 19, Molinas and Wu (2003)  
     # alpha = - 2.85* exp(-1000*(v/vstar)^2*(h/D50)^(-2));
     # beta = 0.2* GSD_std(fi_r,dmi);
     # zeta = 2.16*froude^(-1);
     # zeta(isinf(zeta)) = 0; 
     
-    # fractioning factor for each flow percentile (columns), and each grain size (rows) 
-    frac1 = fi_r * ((dmi_finer / Dn)**alpha + zeta * (dmi_finer / Dn)**beta)  # Nominator in EQ 23, Molinas and Wu (2000) 
+    # fractioning factor for each flow percentile (columns), and each grain size (rows)
+    # Nominator in EQ 23, Molinas and Wu (2000) 
+    frac1 = fi_r * ((dmi_finer / Dn)**alpha + zeta * (dmi_finer / Dn)**beta) 
     pci = frac1 / np.sum(frac1)
         
     return pci  
@@ -401,8 +426,8 @@ def choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap):
     """
     Chooses the transport capacity function based on the given index (indx_tr_cap).
     """
-    # EB D50 entries change according to formula index - it would be good to create a class 
-    # to call with the string name of the formula 
+    # EB D50 entries change according to formula index - it would be good to create 
+    # a class to call with the string name of the formula 
 
     tau = np.nan
     taur50 = np.nan
@@ -441,11 +466,13 @@ def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx
     """  
     dmi = 2**(-psi) / 1000  # sediment classes diameter (m)
         
-    # choose partitioning formula for computation of sediment transport rates for individual size fractions
+    # choose partitioning formula for computation of sediment transport rates for 
+    # individual size fractions
     
     # formulas from: 
-    # Molinas, A., & Wu, B. (2000): Comparison of fractional bed material load computation methods in sand?bed channels. 
-    # Earth Surface Processes and Landforms: The Journal of the British Geomorphological Research Group
+    # Molinas, A., & Wu, B. (2000): Comparison of fractional bed material load
+    # computation methods in sand?bed channels. Earth Surface Processes and Landforms:
+    # The Journal of the British Geomorphological Research Group
 
     Qtr_cap = np.zeros(len(psi))[None]
     
@@ -566,10 +593,10 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
             # ... run the tr.cap function indipendently for each class, setting
             # the frequency of each class = 1
             for d in range(len(dmi)): 
-                Fi_r = np.zeros((len(dmi),1))
+                Fi_r = np.zeros((len(dmi), 1))
                 Fi_r[d] = 1
-                Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
-                tr_cap_class = Parker_Klingeman_formula(Fi_r,dmi[d], slope_t, wac_t, h)
+                Fi_r = np.matlib.repmat(Fi_r, 1, len(slope_t))
+                tr_cap_class = Parker_Klingeman_formula(Fi_r, dmi[d], slope_t, wac_t, h)
                 tr_cap[d,:] = tr_cap_class[d,:]
         
         elif indx_tr_cap == 2: 
@@ -592,7 +619,8 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
                 Fi_r = np.zeros((len(dmi),1))
                 Fi_r[d] = 1
                 Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
-                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi[d], slope_t, wac_t, h, psi) 
+                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi[d], slope_t, 
+                                                                    wac_t, h, psi) 
                 tr_cap[d,:] = tr_cap_class[d,:]"""
             
         elif indx_tr_cap == 3: 
@@ -609,9 +637,9 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
             tr_cap = Wong_Parker_formula(dmi, slope_t, wac_t, h)
     
         # calculate velocity
-        multiply = (wac_t * l_a * (1-phi)).to_numpy()
-        v_sed = np.maximum(tr_cap/(multiply[None, :]), minvel)
-        v_sed[:, l_a==0] = minvel
+        multiply = (wac_t * l_a * (1 - phi)).to_numpy()
+        v_sed = np.maximum(tr_cap / (multiply[None, :]), minvel)
+        v_sed[:, l_a == 0] = minvel
         
     # sediment velocity with total transport capacity
     
@@ -619,6 +647,6 @@ def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi,
     if indx_velocity == 4:
         [ Qtr_cap, pci ] = tr_cap_function(Fi_r, D50, slope_t, Q_t, wac_t, v, h, psi, 
                                            indx_tr_cap, indx_partition)
-        v_sed = np.maximum(Qtr_cap/(wac_t * l_a*(1-phi) * pci), minvel)
+        v_sed = np.maximum(Qtr_cap/(wac_t * l_a * (1 - phi) * pci), minvel)
         
     return v_sed
