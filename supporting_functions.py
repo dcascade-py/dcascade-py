@@ -2,25 +2,7 @@
 """
 Created on Fri Oct 14 16:56:59 2022
 
-This file contains the functions:
-    
-    - D_finder: finds the value of granulometry for the specified D_values for the sediment distribution Fi_r
-    input: fi_r - grain size distribution of the active layer for a specific reach. In each column there is the % of the sediment class represented by that column (see psi)
-           D_value = the quantile (eg. 50 for D50)
-
-    - sortdistance: sorts the rows of Qbi_incoming matrix by increasing distance from the reach
-    
-    - layer_search: puts part of the incoming and deposited sediment volumes into the
-      active layer according to the active layer volume and the incoming and deposited volumes
-      
-    - matrix_compact: takes a stratigraphy matrix V_layer and compact it by summing all the layers with the same source reach id
-      
-    - tr_cap_deposit: deposits part of the incoming and deposited sediment volumes
-      according to the transport capacity calculated  
-    
-
-           
-This script was adapted from the Matlab version by Marco Tangi            
+This script was adapted from the Matlab version by Marco Tangi.
 @author: Elisa Bozzolan 
 """
 import numpy as np
@@ -31,38 +13,53 @@ from itertools import groupby
 np.seterr(divide='ignore', invalid='ignore')
 
 
-def D_finder(fi_r, D_values, psi): 
+def D_finder(fi_r, D_values, psi):
+    """
+    Finds the value of granulometry for the specified D_values for the sediment
+    distribution Fi_r.
+    
+    INPUT:
+    fi_r = grain size distribution of the active layer for a specific reach. 
+           In each column there is the % of the sediment class represented
+           by that column (see psi).
+    D_value = the quantile (eg. 50 for D50)
+    """
 
-    dmi = np.power(2, -psi)/1000
+    dmi = np.power(2, -psi) / 1000
     if dmi.size == 1:
         return dmi[0]
     
     else:
         if fi_r.ndim == 1:
-            fi_r = fi_r[:, None] # EB: needs to be a column vector
+            fi_r = fi_r[:, None]  # EB: needs to be a column vector
             
         D_changes = np.zeros((1, np.shape(fi_r)[1]))
-        Perc_finer = np.empty((len(dmi),np.shape(fi_r)[1]))
+        Perc_finer = np.empty((len(dmi), np.shape(fi_r)[1]))
         Perc_finer[:] = np.nan
         Perc_finer[0] = 100
     
         for i in range(1, len(Perc_finer)):
-            Perc_finer[i,:] = Perc_finer[i-1,:] - fi_r[i-1,:]*100
+            Perc_finer[i, :] = Perc_finer[i-1, :] - fi_r[i-1, :] * 100
         
         for k in range(np.shape(Perc_finer)[1]):
-            a = np.minimum(np.where(Perc_finer[:,k] > D_values)[0].max(), len(psi)-2)
-            D_changes[0,k] = (D_values - Perc_finer[a+1,k])/(Perc_finer[a,k] -Perc_finer[a+1,k])*(-psi[a]+psi[a+1])-psi[a+1]
-            D_changes[0,k] = np.power(2, D_changes[0,k])/1000
-            D_changes[0,k] = D_changes[0,k]*(D_changes[0,k]>0) + dmi[-1]*(D_changes[0,k]<0)
+            a = np.minimum(np.where(Perc_finer[:, k] > D_values)[0].max(), len(psi) - 2)
+            D_changes[0, k] = (D_values - Perc_finer[a+1, k]) / (
+                Perc_finer[a, k] - Perc_finer[a+1, k]) * (-psi[a] + psi[a + 1]) - psi[a + 1]
+            D_changes[0, k] = np.power(2, D_changes[0, k]) / 1000
+            D_changes[0, k] = D_changes[0, k] * (D_changes[0, k] > 0) \
+                + dmi[-1] * (D_changes[0, k] < 0)
         return D_changes
 
 
 def sortdistance(Qbi, distancelist):
+    """
+    Sorts the rows of Qbi_incoming matrix by increasing distance from the reach.
+    """
 
-    idx = np.argwhere(Qbi[:, 0][:,None] == distancelist[~(np.isnan(distancelist))])[:,1]
+    idx = np.argwhere(Qbi[:, 0][:, None] == distancelist[~(np.isnan(distancelist))])[:, 1]
 
     if idx.size != 0 and len(idx) != 1:  # if there is a match #EB check
-        Qbi_sort = np.array(Qbi[(idx-1).argsort(), :])           
+        Qbi_sort = np.array(Qbi[(idx - 1).argsort(), :])           
     else:
         Qbi_sort = Qbi
 
@@ -70,9 +67,11 @@ def sortdistance(Qbi, distancelist):
 
 
 def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
-    """
+    """      
     This function searches layers that are to be put in the maximum mobilisable  
     layer of a time step. (i.e. the maximum depth to be mobilised). 
+    Puts part of the incoming and deposited sediment volumes into the active layer
+    according to the active layer volume and the incoming and deposited volumes.
 
     INPUTS:
     Qbi_incomimg :      is the cascade stopping there from the previous time step
@@ -92,7 +91,7 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
         # ... I put sediment from the deposit layer into the active layer
         # remaining active layer volume after considering incoming sediment cascades
         V_lim_dep = V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])
-        csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis = 0)) # EB check again 
+        csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis= 0))  # EB check again 
 
         V_inc2act = Qbi_incoming  # all the incoming volume will end up in the active layer
 
@@ -105,26 +104,26 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
             print(' reach the bottom ....')
 
             V_dep2act = V_dep_old  # I put all the deposit into the active layer
-            V_dep = np.c_[V_dep_old[0,0], np.zeros((1,Qbi_incoming.shape[1]-1))]
-
+            V_dep = np.c_[V_dep_old[0, 0], np.zeros((1, Qbi_incoming.shape[1]-1))]
 
         else:
-            
             index = np.max(np.argwhere(csum >= V_lim_dep))
 
-
-            # if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
-            # The layer on the threshold (defined by position index) gets divided according to perc_layer
-            perc_layer = (V_lim_dep - np.sum(V_dep_old[csum < V_lim_dep, 1:]))/sum(V_dep_old[index, 1:])  # EB check again  # percentage to be lifted from the layer on the threshold 
+            # if i have multiple deposit layers, put the upper layers into the 
+            # active layer until i reach the threshold.
+            # The layer on the threshold (defined by position index) gets 
+            # divided according to perc_layer
+            # EB check again  # percentage to be lifted from the layer on the threshold:
+            perc_layer = (V_lim_dep - np.sum(V_dep_old[csum < V_lim_dep, 1:])) / sum(V_dep_old[index, 1:]) 
 
             # remove small negative values that can arise from the difference being very close to 0
             perc_layer = np.maximum(0, perc_layer)
 
             if ~np.isnan(roundpar):
-                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer, decimals=roundpar))).reshape(1, -1), V_dep_old[csum<V_lim_dep,:]))
-                V_dep = np.vstack((V_dep_old[0:index,:], np.hstack((V_dep_old[index,0], np.around(V_dep_old[index,1:]* (1-perc_layer), decimals=roundpar)))))
+                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer, decimals=roundpar))).reshape(1, -1), V_dep_old[csum<V_lim_dep, :]))
+                V_dep = np.vstack((V_dep_old[0:index, :], np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]* (1-perc_layer), decimals=roundpar)))))
             else: 
-                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around( V_dep_old[index, 1:]*perc_layer))).reshape(1, -1), V_dep_old[csum < V_lim_dep, :]))
+                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer))).reshape(1, -1), V_dep_old[csum < V_lim_dep, :]))
                 V_dep = np.vstack((V_dep_old[0:index, :], np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:] * (1-perc_layer))))))
     
 
@@ -143,21 +142,21 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
             # this contains the fraction of the incoming volume to be deposited
             Qbi_incoming_dep = Qbi_incoming[:, 1:]*(1-perc_dep)
 
-        V_inc2act = np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming[:, 1:] - Qbi_incoming_dep))
+        V_inc2act = np.hstack((Qbi_incoming[:, 0][:, None], Qbi_incoming[:, 1:] - Qbi_incoming_dep))
         V_dep2act = np.append(V_dep_old[0, 0], np.zeros((1, Qbi_incoming.shape[1]-1)))
         
         if V_dep2act.ndim == 1: 
             V_dep2act = V_dep2act[None, :]
 
         # if, given the round, the deposited volume of the incoming cascades is not 0...
-        if any(np.sum(Qbi_incoming[:, 1:]*(1-perc_dep), axis = 0)):
-            V_dep = np.vstack((V_dep_old, np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming_dep))))
+        if any(np.sum(Qbi_incoming[:, 1:]*(1-perc_dep), axis=0)):
+            V_dep = np.vstack((V_dep_old, np.hstack((Qbi_incoming[:, 0][:, None], Qbi_incoming_dep))))
         else:
             V_dep = V_dep_old  # ... i leave the deposit as it was.
 
     # remove empty rows (if the matrix is not already empty)
-    if (np.sum(V_dep2act[:, 1:], axis = 1)!=0).any():       
-        V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis = 1) != 0, :]
+    if (np.sum(V_dep2act[:, 1:], axis=1)!=0).any():       
+        V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis=1) != 0, :]
 
     # find active layer GSD
 
@@ -170,25 +169,33 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
     return V_inc2act, V_dep2act, V_dep, Fi_r_reach
 
 def matrix_compact(V_layer):
+    """
+    Takes a stratigraphy matrix V_layer and compact it by summing all the layers
+    with the same source reach id.
+    """
     
-    ID = np.unique(V_layer[:,0]) #, return_inverse=True
+    ID = np.unique(V_layer[:, 0]) #, return_inverse=True
     V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
     # sum elements with same ID 
     for ind, i in enumerate(ID): 
-        vect = V_layer[V_layer[:,0] == i,:]
-        V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
+        vect = V_layer[V_layer[:, 0] == i, :]
+        V_layer_cmpct[ind, :] = np.append(ID[ind], np.sum(vect[:, 1:], axis=0))
     
     if V_layer_cmpct.shape[0]>1: 
-        V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
+        V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:, 1:], axis=1)!=0]
 
 
     if V_layer_cmpct.size == 0: 
-        V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
+        V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:, 1:].shape[1]))))).reshape(1, -1)
     
     return V_layer_cmpct
 
 
 def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
+    """
+    Deposits part of the incoming and deposited sediment volumes according to
+    the transport capacity calculated.
+    """
     # V_dep and V_act identification
     # classes for which the tr_cap is more than the incoming volumes in the active layer
     class_sup_dep = tr_cap > np.sum(V_inc2act[:, 1:], axis=0)
@@ -204,12 +211,12 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         # take only the columns with the cascades of the classes class_sup_dep
         V_dep2act_class = V_dep2act[:, np.append(False, class_sup_dep)]
 
-        csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis = 0)) 
+        csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis=0)) 
 
         # find the indexes of the first cascade above the tr_cap threshold, for each class
         mapp =csum > tr_cap_remaining  
 
-        mapp[0, np.any(~mapp,axis = 0)] = True   # EB: force the first deposit layer to be true 
+        mapp[0, np.any(~mapp, axis=0)] = True   # EB: force the first deposit layer to be true 
 
         # find position of the layer to be splitted between deposit and erosion
         firstoverthresh = (mapp*1).argmin(axis=0)
@@ -225,20 +232,20 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
 
         # the matrix V_dep2act_new contains the mobilized cascades from the deposit layer, now corrected according to the tr_cap
         V_dep2act_new = np.zeros((V_dep2act.shape))
-        V_dep2act_new[: , 0] = V_dep2act[: ,0]
-        V_dep2act_new[:,np.append(False, class_sup_dep)== True] = map_perc* V_dep2act_class
+        V_dep2act_new[:, 0] = V_dep2act[:, 0]
+        V_dep2act_new[:, np.append(False, class_sup_dep) == True] = map_perc* V_dep2act_class
 
         if ~np.isnan(roundpar): 
-            V_dep2act_new[: , 1:]  = np.around(V_dep2act_new[: , 1:] , decimals = roundpar )
+            V_dep2act_new[:, 1:]  = np.around(V_dep2act_new[:, 1:], decimals = roundpar)
 
         # the matrix V_2dep contains the cascades that will be deposited into the deposit layer.
         # (the new volumes for the classes in class_sup_dep and all the volumes in the remaining classes)
         V_2dep = np.zeros((V_dep2act.shape))
-        V_2dep[: , np.append(True, ~class_sup_dep) == True] = V_dep2act[: , np.append(True, ~class_sup_dep) == True]
-        V_2dep[: , np.append(False, class_sup_dep) == True] = (1 - map_perc)* V_dep2act_class
+        V_2dep[:, np.append(True, ~class_sup_dep) == True] = V_dep2act[:, np.append(True, ~class_sup_dep) == True]
+        V_2dep[:, np.append(False, class_sup_dep) == True] = (1 - map_perc)* V_dep2act_class
 
         if ~np.isnan(roundpar): 
-            V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
+            V_2dep[:, 1: ]  = np.around(V_2dep[:, 1:], decimals = roundpar)
 
     else:
         V_dep2act_new = np.zeros((V_dep2act.shape))
@@ -249,43 +256,43 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
     # for the classes where V_inc2act is enough, I deposit the cascades
     # proportionally
 
-    perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[: , np.append(False, ~class_sup_dep) == True], axis = 0)
+    perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[:, np.append(False, ~class_sup_dep) == True], axis=0)
     perc_inc[np.isnan(perc_inc)] = 0 #change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
     class_perc_inc = np.zeros((class_sup_dep.shape))
     class_perc_inc[class_sup_dep == False] = perc_inc
 
-    V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act*(np.append(True,class_sup_dep)) + V_inc2act*np.append(False, class_perc_inc))))
+    V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act*(np.append(True, class_sup_dep)) + V_inc2act*np.append(False, class_perc_inc))))
     
-    if ~np.isnan( roundpar ):
-        V_mob[:,1:] = np.around( V_mob[:,1:] , decimals =roundpar )
+    if ~np.isnan(roundpar):
+        V_mob[:, 1:] = np.around(V_mob[:, 1:], decimals = roundpar)
 
     class_residual = np.zeros((class_sup_dep.shape));
-    class_residual[class_sup_dep==False] = 1 - perc_inc
+    class_residual[class_sup_dep == False] = 1 - perc_inc
 
-    V_2dep = np.vstack((V_2dep, V_inc2act*np.hstack((1, class_residual)))) ## EB check again EB: here the 1 instead of the 0 should be correct + 
+    V_2dep = np.vstack((V_2dep, V_inc2act * np.hstack((1, class_residual)))) ## EB check again EB: here the 1 instead of the 0 should be correct + 
    
-    if ~np.isnan( roundpar ):
-        V_2dep[:,1:]  = np.around( V_2dep[:,1:] , decimals = roundpar) 
+    if ~np.isnan(roundpar):
+        V_2dep[:, 1:]  = np.around(V_2dep[:, 1:], decimals = roundpar) 
 
     # Put the volume exceeding the transport capacity back in the deposit
 
     #If the upper layer in the deposit and the lower layer in the volume to be
     #deposited are from the same reach, i sum them
-    if (V_dep[-1,0] == V_2dep[0,0]):
-        V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:] 
-        V_dep = np.vstack((V_dep, V_2dep[1:,:]))
+    if (V_dep[-1, 0] == V_2dep[0, 0]):
+        V_dep[-1, 1:] = V_dep[-1, 1:] + V_2dep[0, 1:] 
+        V_dep = np.vstack((V_dep, V_2dep[1:, :]))
     else:
         V_dep = np.vstack((V_dep, V_2dep))
 
     
     #remove empty rows
-    if not np.sum(V_dep2act[:,1:])==0:
-        V_dep = V_dep[np.sum(V_dep[:,1:],axis = 1)!=0]  
+    if not np.sum(V_dep2act[:, 1:]) == 0:
+        V_dep = V_dep[np.sum(V_dep[:, 1:], axis=1) != 0]  
     
     return V_mob, V_dep
 
-def track_sed_position( n , v_sed_day , Lngt , psi, Network ,  **kwargs):
-    
+def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
+  
     """TRACK_SED_POSITION_TRCAP finds the position of a sediment parcel starting
     from reach n after the timestep has passed, defined as the reach ID and
     the position from the From_node of the starting reach.
@@ -299,7 +306,7 @@ def track_sed_position( n , v_sed_day , Lngt , psi, Network ,  **kwargs):
     #if start_pos = 0, the parcel starts form the From_Node
     #if start_pos = 1, the parcel starts form the To_Node
 
-    if len(kwargs) ==0:
+    if len(kwargs) == 0:
         start_pos = 0
         
     ## find path downstream
@@ -327,33 +334,33 @@ def track_sed_position( n , v_sed_day , Lngt , psi, Network ,  **kwargs):
     v_sed_path = v_sed_day[:,path2out]
     
     if v_sed_path.ndim == 1:
-        v_sed_path = v_sed_path[:,None]
+        v_sed_path = v_sed_path[:, None]
     
     #change the length of the starting reach according to the starting
     #position, different for each tr.cap
-    Lngt_pathout = np.repeat(np.array(Lngt[path2out]).reshape(1,-1),len(psi), axis=0)
-    Lngt_pathout[:,0]  = Lngt_pathout[:,0] * (1 - start_pos) 
+    Lngt_pathout = np.repeat(np.array(Lngt[path2out]).reshape(1, -1), len(psi), axis=0)
+    Lngt_pathout[:, 0]  = Lngt_pathout[:, 0] * (1 - start_pos) 
     
     #calculate the time (in days) it takes to completely cross a reach 
     transit_time = Lngt_pathout/v_sed_path
     
     # the cumulate of transit_time defines how long it takes to reach each
     # downstream To_Node comnsidering the whole path to the reach
-    cum_tr_time = np.cumsum(transit_time,axis=1)  
+    cum_tr_time = np.cumsum(transit_time, axis=1)  
     
     # given cum_tr_time, i can find the reach where the parcel is after the timestep  
     find_point = cum_tr_time - timestep 
-    find_point[find_point<0] = 100000000000000000 # EB: maybe find a more elegant solution 
+    find_point[find_point < 0] = 100000000000000000 # EB: maybe find a more elegant solution 
     indx_pos = np.argmin(find_point, axis=1) # (note, this is not the reach ID, it is the position of the reach in the downstream path) 
-    indx_pos[find_point[:,-1] == 100000000000000000] = len(path2out)-1 # EB check if len + 1 #if the whole row in find_point is nan, it means that the parcel left the network 
+    indx_pos[find_point[:, -1] == 100000000000000000] = len(path2out) - 1 # EB check if len + 1 #if the whole row in find_point is nan, it means that the parcel left the network 
 
     # I can find the time remaining for the parcel after if enters reach
     # indx_pos, needed to find the position of the parcel 
     find_time = timestep - cum_tr_time
-    find_time[find_time<0] = 100000000000000000
-    indx_t = np.argmin(find_time,axis =1) #indx_t is the reach before indx_pos 
+    find_time[find_time < 0] = 100000000000000000
+    indx_t = np.argmin(find_time, axis=1) #indx_t is the reach before indx_pos 
        
-    time_left = find_time[np.arange(len(find_time)),indx_t] # EB: check whether find_time has two dims also with one column
+    time_left = find_time[np.arange(len(find_time)), indx_t] # EB: check whether find_time has two dims also with one column
     time_left[time_left == 100000000000000000] = timestep #if time_left is nan, it means that the parcel remained in the starting reach m
 
 
@@ -361,17 +368,17 @@ def track_sed_position( n , v_sed_day , Lngt , psi, Network ,  **kwargs):
     #If the whole row in find_point is nan (the parcel left the network), 
     #use the velocity of the outlet to determine the final position
     # (that will be outside the network) 
-    if (sed_pos[(find_point[:,-1] == 100000000000000000)]).size != 0: 
-            sed_pos[(find_point[:,-1]== 100000000000000000)] = downdist_path[len(path2out)-1] + Lngt[outlet] +  v_sed_path[(find_point[:,-1]== 100000000000000000), len(path2out)-1] * time_left[(find_point[:,-1]== 100000000000000000)]
+    if (sed_pos[(find_point[:, -1] == 100000000000000000)]).size != 0: 
+            sed_pos[(find_point[:, -1] == 100000000000000000)] = downdist_path[len(path2out) - 1] + Lngt[outlet] +  v_sed_path[(find_point[:, -1] == 100000000000000000), len(path2out)-1] * time_left[(find_point[:, -1] == 100000000000000000)]
     
     #outind tells for which sed. size the point fell outside the
     # network (1 - outside, 0 - inside) 
-    outind = (find_point[:,-1] == 100000000000000000)
+    outind = (find_point[:, -1] == 100000000000000000)
     
     #sed_pos = sed_pos + Lngt(n) * (1 - start_pos); 
     end_reach_ID = path2out[indx_pos] # i find the ID of the destination reach from indx_pos, given the order defined by path2out 
     
-    return sed_pos , end_reach_ID, outind
+    return sed_pos, end_reach_ID, outind
 
 def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
     """SED_TRANSFER_SIMPLE takes the matrix of the mobilized layers(V_mob) and the vector of
@@ -390,7 +397,7 @@ def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
     #p_dest is the position from the from_node of the id reach where the sed. volume stops after the timestep 
 
     if n == outlet:  
-        reach_dest = np.repeat(n , np.shape(v_sed_day)[0])
+        reach_dest = np.repeat(n, np.shape(v_sed_day)[0])
         p_dest = v_sed_day[:,n] + np.array(Lngt[n])
     else:
         #to find p_end, i track the position of a sediment parcel starting
@@ -415,20 +422,20 @@ def sed_transfer_simple(V_mob, n, v_sed_day, Lngt, Network, psi):
     
     
     
-    setplace[setout==1,:] = 0
+    setplace[setout == 1, :] = 0
 
     ## place volume to destination reach 
     
-    Qbi_tr_t = np.zeros((len(Lngt), len(Lngt) , len(setplace)))
+    Qbi_tr_t = np.zeros((len(Lngt), len(Lngt), len(setplace)))
     Q_out_t = np.zeros ((len(Lngt), len(setplace)))
     
     for c in range(len(setplace)): 
-        Qbi_tr_t[[V_mob[:,0].astype(int)],:,c] = V_mob[:,c+1][:,None] * setplace[c,:][None,:]
-        Q_out_t[[V_mob[:,0].astype(int)],:] = V_mob[:,1:] * setout
+        Qbi_tr_t[[V_mob[:, 0].astype(int)], :, c] = V_mob[:, c+1][:, None] * setplace[c, :][None, :]
+        Q_out_t[[V_mob[:, 0].astype(int)], :] = V_mob[:, 1:] * setout
                
-    return Qbi_tr_t, Q_out_t , setplace, setout
+    return Qbi_tr_t, Q_out_t, setplace, setout
 
-def change_slope(Node_el_t, Lngt, Network , **kwargs):
+def change_slope(Node_el_t, Lngt, Network, **kwargs):
     """"CHANGE_SLOPE modify the Slope vector according to the changing elevation of
     the nodes: It also guarantees that the slope is not negative or lower then
     the min_slope value by changing the node elevation bofore findin the SLlpe""" 
@@ -455,7 +462,7 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
         min_node_el = min_slope * Lngt[n] + Node_el_t[down_node[n]]
 
         #change the noide elevation if lower to min_node_el
-        Node_el_t[n] = np.maximum(min_node_el, Node_el_t[n] ) 
+        Node_el_t[n] = np.maximum(min_node_el, Node_el_t[n]) 
         
         #find the new slope
         Slope_t[n] = (Node_el_t[n] - Node_el_t[down_node[n]]) / Lngt[n]
@@ -482,16 +489,17 @@ def stop_or_not(t_new, Vm):
     Vm_continue = np.zeros_like(Vm)
     Vm_continue[:, cond_continue] = Vm[:, cond_continue]
     
-    if np.all(Vm_stop[:,1:] == 0) == True:
+    if np.all(Vm_stop[:, 1:] == 0) == True:
         Vm_stop = None
-    if np.all(Vm_continue[:,1:] == 0) == True: 
+    if np.all(Vm_continue[:, 1:] == 0) == True: 
         Vm_continue = None
         
     return Vm_stop, Vm_continue
 
 
 def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
-    ''' This function remove the quantity V_remove from the list of cascades. 
+    """
+    This function remove the quantity V_remove from the list of cascades. 
     The order in which we take the cascade is from largest times (arriving later) 
     to shortest times (arriving first). Cascade arriving first are passing in priority,
     in turn, cascades arriving later are deposited in priority.
@@ -506,7 +514,7 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     r_Vmob : removed volume from cascade list
     cascade_list : the new cascade list, after removing the volumes
     V_remove : residual volume to remove 
-    '''
+    """
     removed_Vm_all = []    
     
     # Order cascades according to the inverse of their elapsed time 
@@ -517,13 +525,13 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     # Loop over the sorted and grouped cascades
     for cascades in sorted_and_grouped_cascade_list:        
         Vm_same_time = np.concatenate([casc.volume for casc in cascades], axis=0)
-        if np.any(Vm_same_time[:,1:]) == False: #In case Vm_same_time is full of 0
+        if np.any(Vm_same_time[:, 1:]) == False: #In case Vm_same_time is full of 0
             del cascades
             continue 
         # Storing matrix for removed volumes
         removed_Vm = np.zeros_like(Vm_same_time)
-        removed_Vm[:,0] = Vm_same_time[:,0] # same first col with initial provenance
-        for col_idx in range(Vm_same_time[:,1:].shape[1]):  # Loop over sediment classes
+        removed_Vm[:, 0] = Vm_same_time[:, 0] # same first col with initial provenance
+        for col_idx in range(Vm_same_time[:, 1:].shape[1]):  # Loop over sediment classes
             if V_remove[col_idx] > 0:
                 col_sum = np.sum(Vm_same_time[:, col_idx+1])        
                 if col_sum > 0:
