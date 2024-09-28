@@ -242,11 +242,11 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         mapfirst[firstoverthresh, np.arange(np.sum(class_sup_dep*1))] = 1 
 
         # percentage to be lifted from the layer "on the threshold"
-        perc_dep = np.minimum((tr_cap_remaining 
-                               - np.sum(np.where(mapp is False, 
-                                                 V_dep2act_class, 0), axis=0)) 
-                                                 / V_dep2act_class[firstoverthresh, 
-                                                 np.arange(np.sum(class_sup_dep * 1))], 1)
+        perc_dep = np.minimum(
+            (tr_cap_remaining
+             - np.sum(np.where(
+                 mapp is False, V_dep2act_class, 0), axis=0
+             )) / V_dep2act_class[firstoverthresh, np.arange(np.sum(class_sup_dep * 1))], 1)
 
         map_perc = mapfirst * perc_dep + ~mapp * 1  # EB check again  EB: is it adding 1 when true? 
 
@@ -279,9 +279,8 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
     # for the classes where V_inc2act is enough, I deposit the cascades
     # proportionally
 
-    perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[:, np.append(False, 
-                                                                      ~class_sup_dep) is True], 
-                                                                      axis=0)
+    perc_inc = tr_cap[~class_sup_dep] / np.sum(
+        V_inc2act[:, np.append(False, ~class_sup_dep) is True], axis=0)
     # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0):
     perc_inc[np.isnan(perc_inc)] = 0
     class_perc_inc = np.zeros((class_sup_dep.shape))
@@ -402,7 +401,8 @@ def track_sed_position(n, v_sed_day, Lngt, psi, Network, **kwargs):
     # (that will be outside the network) 
     if (sed_pos[(find_point[:, -1] == 100000000000000000)]).size != 0: 
         sed_pos[(find_point[:, -1] == 100000000000000000)] = downdist_path[len(path2out) - 1] \
-            + Lngt[outlet] + v_sed_path[(find_point[:, -1] == 100000000000000000), len(path2out)-1] \
+            + Lngt[outlet] + v_sed_path[(find_point[:, -1] == 100000000000000000), 
+                                        len(path2out)-1] \
             * time_left[(find_point[:, -1] == 100000000000000000)]
     
     # outind tells for which sed. size the point fell outside the

@@ -7,15 +7,13 @@ PLOT_NETWORK_DYN plots the river network and visualises continuos data.
 This script was adapted from the Matlab version by Marco Tangi 
 @author: Elisa Bozzolan
 """
+
 import numpy as np 
-import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-from matplotlib.widgets import Slider
-#from IPython import get_ipython
+from IPython import get_ipython
 from matplotlib import cm
-#get_ipython().run_line_magic('matplotlib', 'qt')
+get_ipython().run_line_magic('matplotlib', 'qt')
 
 
 def plot_network_dyn(ReachData, plotvariable, time, CClass, ax, fig):
@@ -36,16 +34,16 @@ def plot_network_dyn(ReachData, plotvariable, time, CClass, ax, fig):
         if c == 0:
             cClassMem = np.where(plotvariable[time, :] <= CClass[c])[0]
         elif 0 < c <= len(CClass):
-            cClassMem = np.where(np.logical_and(plotvariable[time,:] > CClass[c - 1],
+            cClassMem = np.where(np.logical_and(plotvariable[time, :] > CClass[c - 1],
                                                 plotvariable[time, :] <= CClass[c]))[0]
         else:
             cClassMem = np.where(plotvariable[time, :] > CClass[c - 1])[0]
         
         for ll in np.asarray(cClassMem):            
-            if ax == None: 
+            if ax is None: 
                 ax = plt.gca()
 
-            ax.plot(*ReachData['geometry'][ll].xy, color=colormap.colors[c,:],
+            ax.plot(*ReachData['geometry'][ll].xy, color=colormap.colors[c, :],
                     linewidth=def_linewidth)
     # drawing updated values
     fig.canvas.draw()
@@ -55,7 +53,7 @@ def plot_network_stat(ReachData, plotvariable, **kwargs):
     
     time = 0
     def_linewidth = 4 
-    cClass =  kwargs['CClass']
+    cClass = kwargs['CClass']
     
     # customise the legend 
     def_cMap = 'turbo'
@@ -73,12 +71,12 @@ def plot_network_stat(ReachData, plotvariable, **kwargs):
             cClassMem = np.where(plotvariable[time, :] <= cClass[c])[0]
         elif 0 < c <= len(cClass):
             cClassMem = np.where(np.logical_and(plotvariable[time, :] > cClass[c - 1],
-                                                plotvariable[time,:] <= cClass[c]))[0]
+                                                plotvariable[time, :] <= cClass[c]))[0]
         else:
             cClassMem = np.where(plotvariable[time, :] > cClass[c - 1])[0]
             
         for ll in np.asarray(cClassMem): 
-            plt.plot(*ReachData['geometry'][ll].xy, color=colormap.colors[c,:], 
+            plt.plot(*ReachData['geometry'][ll].xy, color=colormap.colors[c, :], 
                      linewidth=def_linewidth)
 
     # plt.axis('off') 
@@ -86,7 +84,7 @@ def plot_network_stat(ReachData, plotvariable, **kwargs):
                     labelbottom=False, bottom=False)
     
     for i in range(cMapLength):
-        custom_lines.append(Line2D([0], [0], color=colormap.colors[i,:], lw=4))
+        custom_lines.append(Line2D([0], [0], color=colormap.colors[i, :], lw=4))
         if max(cClass) > 10**4:
             custom_names.append(f'{cClass[i]:.2e}')
         else:
