@@ -166,7 +166,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     consider_passing_sed_in_tr_cap = True
     
     ################### Fixed parameters
-    phi = 0.4 # sediment porosity in the maximum active layer
+    phi = 0.4  # sediment porosity in the maximum active layer
     minvel = 0.0000001
     outlet = network['n_hier'][-1]  # outlet reach ID identification
     n_reaches = reach_data.n_reaches
@@ -339,9 +339,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 # This way we compute the transport capacity based on all the sediments 
                 # present in the reach during that time step.
                 if len(reach_upstream) != 0:
-                    Qbi_pass_t = np.concatenate([cascade.volume for cascade in Qbi_pass_from_n_up], axis=0)             
+                    Qbi_pass_t = np.concatenate([cascade.volume for cascade in Qbi_pass_from_n_up], 
+                                                axis=0)             
                     Qbi_incoming = np.concatenate([Qbi_pass_t, Qbi_incoming], axis=0)
-                    Qbi_incoming = matrix_compact(Qbi_incoming)         # group layers by initial provenance            
+                    Qbi_incoming = matrix_compact(Qbi_incoming)  # group layers by initial provenance            
 
             # ---Finds cascades of the incoming load in [m3/s],
             # and of the deposit layer, to be included into the active layer,
