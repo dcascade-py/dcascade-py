@@ -153,10 +153,13 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     # defined here as 2.D90 [Parker 2008]
     AL_vol_all=np.zeros((timescale, n_reaches)) #store the volumes
     AL_depth_all=np.zeros((timescale, n_reaches)) #store also the depths 
+    # We take the input D90, or if not provided, the D84:
+    if 'D90' in ReachData:
+        reference_D = 'D90'
+    elif 'D84' in ReachData:
+        reference_D = 'D84'
     for n in Network['NH']:
-        Fi_r = Fi_r_act[0,:,n]
-        D90 = D_finder(Fi_r, 90, psi)[0,0]
-        AL_depth = 2 * D90
+        AL_depth = 2*ReachData[reference_D].values[n]
         AL_vol = AL_depth * ReachData['Wac'].values[n] * ReachData['Length'].values[n]
         AL_vol_all[:,n] = np.repeat(AL_vol, timescale, axis=0)
         AL_depth_all[:,n] = np.repeat(AL_depth, timescale, axis=0)
