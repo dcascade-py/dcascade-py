@@ -150,7 +150,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     time_lag_for_Vmob = True
     
     #Option 4: If True, we consider passing sediments in the transport capacity calculation
-    consider_passing_sed_in_tr_cap = False
+    consider_passing_sed_in_tr_cap = True
     
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
@@ -307,7 +307,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 # This way we compute the transport capacity based on all the sediments 
                 # present in the reach during that time step.
                 if len(reach_upstream) != 0:
-                    Qbi_pass_t = np.concatenate([cascade[2] for cascade in Qbi_pass_from_n_up], axis=0)             
+                    Qbi_pass_t = np.concatenate([cascade.volume for cascade in Qbi_pass_from_n_up], axis=0)             
                     Qbi_incoming = np.concatenate([Qbi_pass_t, Qbi_incoming], axis=0)
                     Qbi_incoming = matrix_compact(Qbi_incoming)         # group layers by initial provenance            
 
