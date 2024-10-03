@@ -50,35 +50,35 @@ class ReachData:
         self.n_reaches = len(geodataframe)
         
         # Mandatory attributes
-        self.reach_id = geodataframe['reach_id'].values
-        self.from_n = geodataframe['FromN'].values
-        self.to_n = geodataframe['ToN'].values
-        self.slope = geodataframe['Slope'].values
-        self.wac = geodataframe['Wac'].values
-        self.q = geodataframe['Q'].values
-        self.n = geodataframe['n'].values
-        self.D16 = geodataframe['D16'].values
-        self.D50 = geodataframe['D50'].values
-        self.D84 = geodataframe['D84'].values
-        self.tr_limit = geodataframe['tr_limit'].values
-        self.length = geodataframe['Length'].values
-        self.x_fn = geodataframe['x_FN'].values
-        self.y_fn = geodataframe['y_FN'].values
-        self.x_tn = geodataframe['x_TN'].values
-        self.y_tn = geodataframe['y_TN'].values
-        self.el_fn = geodataframe['el_FN'].values
-        self.el_tn = geodataframe['el_TN'].values
-        self.ad = geodataframe['Ad'].values
-        self.direct_ad = geodataframe['directAd'].values
-        self.strO = geodataframe['StrO'].values
-        self.deposit = geodataframe['deposit'].values
-        self.geometry = geodataframe['geometry'].values
-        
+        self.from_n = geodataframe['FromN'].astype(int).values
+        self.to_n = geodataframe['ToN'].astype(int).values
+        self.slope = geodataframe['Slope'].astype(float).values
+        self.wac = geodataframe['Wac'].astype(float).values
+        self.n = geodataframe['n'].astype(float).values
+        self.D16 = geodataframe['D16'].astype(float).values
+        self.D50 = geodataframe['D50'].astype(float).values
+        self.D84 = geodataframe['D84'].astype(float).values
+        self.length = geodataframe['Length'].astype(float).values
+        self.el_fn = geodataframe['el_FN'].astype(float).values
+        self.el_tn = geodataframe['el_TN'].astype(float).values
+
         # Optional attributes
+        self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else np.nan
         self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else np.nan
+        self.q = geodataframe['Q'].values if 'Q' in geodataframe.columns else np.nan
         self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else np.nan
         self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else np.nan
         self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else np.nan
+        self.tr_limit = geodataframe['tr_limit'].values if 'tr_limit' in geodataframe.columns else np.nan
+        self.x_fn = geodataframe['x_FN'].values if 'x_FN' in geodataframe.columns else np.nan
+        self.y_fn = geodataframe['y_FN'].values if 'y_FN' in geodataframe.columns else np.nan
+        self.x_tn = geodataframe['x_TN'].values if 'x_TN' in geodataframe.columns else np.nan
+        self.y_tn = geodataframe['y_TN'].values if 'y_TN' in geodataframe.columns else np.nan
+        self.ad = geodataframe['Ad'].values if 'Ad' in geodataframe.columns else np.nan
+        self.direct_ad = geodataframe['directAd'].values if 'directAd' in geodataframe.columns else np.nan
+        self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else np.nan
+        self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else np.nan
+        self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else np.nan
         
     def sort_values_by(self, sorting_array):
         """
@@ -150,7 +150,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     time_lag_for_Vmob = True
     
     #Option 4: If True, we consider passing sediments in the transport capacity calculation
-    consider_passing_sed_in_tr_cap = True
+    consider_passing_sed_in_tr_cap = False
     
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
@@ -241,7 +241,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
 
     # start waiting bar    
     for t in tqdm(range(timescale-1)):
-        print(t)
         
         #FP: define flow depth and flow velocity from flow_depth_calc
         h, v = choose_flow_depth(reach_data, slope, Q, t, indx_flo_depth)
@@ -262,8 +261,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         
         # loop for all reaches:
         for n in network['n_hier']:
-            if n==1:
-                print('ok')
             #---Extracts the deposit layer left in previous time step          
             V_dep_old = Qbi_dep_old[n] # extract the deposit layer of the reach 
             
