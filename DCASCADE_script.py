@@ -36,7 +36,8 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
-from DCASCADE_loop import DCASCADE_main, ReachData
+from DCASCADE_loop import DCASCADE_main
+from supporting_classes import ReachData
 from GSD import GSDcurvefit
 from plot_function import dynamic_plot
 from preprocessing import graph_preprocessing
