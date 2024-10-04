@@ -103,7 +103,9 @@ class ReachData:
 
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
-                  update_slope, eros_max, save_dep_layer, ts_length):
+                  update_slope, eros_max, save_dep_layer, ts_length,
+                  consider_overtaking_sed_in_outputs, compare_with_tr_cap,
+                  time_lag_for_Vmob, consider_passing_sed_in_tr_cap):
     """
     Main function of the D-CASCADE software.
     
@@ -132,25 +134,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     extended_output  = struct collecting the raw D-CASCADE output datasets
     """
     
-    # Options for the cascade algorithm:        
-    # If all these option are False, we are normally reproducing the results
-    # of the old version. These option appear in order of complexity. 
-    
-    # Option 1: If True, we add the overpassing volumes in the outputs, at the 
-    # time step t, so in Qbi_tr[t] and in Qbi_mob[t]
-    consider_overtaking_sed_in_outputs = True
-    
-    # Option 2: If True, we add a comparison to tr_cap to test if overpassing
-    # volumes must be partly deposited or if completed by the reach
-    compare_with_tr_cap = True
-    
-    # Option 3: If True, we consider a time lag between the beginning of the time step,
-    # and the arrival of the first cascade to the ToN of the reach, 
-    # during which we are able to mobilise from the reach itself
-    time_lag_for_Vmob = True
-    
-    #Option 4: If True, we consider passing sediments in the transport capacity calculation
-    consider_passing_sed_in_tr_cap = False
     
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
