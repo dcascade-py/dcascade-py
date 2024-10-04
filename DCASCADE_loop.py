@@ -224,8 +224,8 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
-            tr_cap=tr_cap_per_s * ts_length
-            
+            # tr_cap=tr_cap_per_s * ts_length
+            tr_cap = np.round(tr_cap_per_s * ts_length, decimals=roundpar)
             tr_cap_all[t,n,:] = tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
             
