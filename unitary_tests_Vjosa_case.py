@@ -103,17 +103,20 @@ def test_Vjosa_Wilcock_all_new_options_false():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array()   
+    expected_result = np.array([2142226.,  497225.,  270363.,   66883.,  770804.,  113205.,
+            175653.])   
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array()                      
+    expected_result = np.array([      0.,       0., 3264800.,  305921.,       0.,       0.,
+                  0.])                      
     np.testing.assert_array_equal(test_result, expected_result)
     
     #----Test D50 active layer
     test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    expected_result = np.array()
+    expected_result = np.array([0.00235723, 0.00235714, 0.00228797, 0.00228532, 0.002357  ,
+           0.00235716, 0.00235696])
     
     # the relative tolerance is fixed to 1e-05, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
@@ -277,6 +280,6 @@ def test_Vjosa_Engelund_all_new_options_true():
 
 if __name__ == "__main__":
     test_Vjosa_Wilcock_all_new_options_false()
-    test_Vjosa_Engelund_all_new_options_false()
-    test_Vjosa_Wilcock_all_new_options_true()
-    test_Vjosa_Engelund_all_new_options_true()
+    # test_Vjosa_Engelund_all_new_options_false()
+    # test_Vjosa_Wilcock_all_new_options_true()
+    # test_Vjosa_Engelund_all_new_options_true()
