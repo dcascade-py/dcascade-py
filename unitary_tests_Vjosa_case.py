@@ -153,19 +153,22 @@ def test_Vjosa_Engelund_all_new_options_false():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array()    
+    expected_result = np.array([207752.,  66715.,  44448.,  17479.,  42703.,   
+                                3750.,   6338.])    
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array()          
+    expected_result = np.array([0., 242900.,  67104.,  35315.,      
+                                0.,      0.,      0.])          
     # the absolute tolerance is fixed to 1e6, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
     
     #----Test D50 active layer
     test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    expected_result = np.array()
+    expected_result = np.array([0.00235723, 0.00115333, 0.00110481, 
+                                0.00050879, 0.002357, 0.00235716, 0.00235696])
            
     # the relative tolerance is fixed to 1e-05, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
@@ -203,20 +206,21 @@ def test_Vjosa_Wilcock_all_new_options_true():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array([2142228.,  501987.,  272118.,   68220.,  770761.,  
-                                113206., 175654.])   
+    expected_result = np.array([2142226.,  502375.,  272229.,   67364.,  
+                                770804.,  113205,  175653.])  
+ 
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array([0., 2802304.,  592712.,  431377.,       
+    expected_result = np.array([0., 2913030.,  592813.,  431522.,       
                                 0., 0., 0.])                      
     np.testing.assert_array_equal(test_result, expected_result)
     
     #----Test D50 active layer
     test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    expected_result = np.array([0.00235726, 0.00228118, 0.00224194, 0.00217318, 0.00235725,
-                                0.00235714, 0.00235705])
+    expected_result = np.array([0.00235723, 0.00228442, 0.0022429 , 0.00223255, 
+                                0.002357, 0.00235716, 0.00235696])
     
     # the relative tolerance is fixed to 1e-05, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
@@ -253,13 +257,13 @@ def test_Vjosa_Engelund_all_new_options_true():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array([207672.,  64710.,  40064.,  21460.,  42366.,   
-                                3755.,   6376.])    
+    expected_result = np.array([207752.,  66715.,  44448.,  24117.,  42703.,   
+                                3750.,   6338.])    
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array([0., 242459.,  65642.,  43989.,      
+    expected_result = np.array([0., 242900.,  67104.,  47649.,      
                                 0.,      0.,      0.])          
     # the absolute tolerance is fixed to 1e6, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
@@ -267,8 +271,8 @@ def test_Vjosa_Engelund_all_new_options_true():
     
     #----Test D50 active layer
     test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    expected_result = np.array([0.00235726, 0.0011472, 0.00144733, 0.00046104, 
-                                0.00235725, 0.00235714, 0.00235705])
+    expected_result = np.array([0.00235723, 0.00115333, 0.00110481, 0.00037359, 
+                                0.002357, 0.00235716, 0.00235696])
            
     # the relative tolerance is fixed to 1e-05, because the expected results 
     # were displayed by spyder, and have 6 significative numbers

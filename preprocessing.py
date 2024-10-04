@@ -29,10 +29,10 @@ def extract_Q(filename_q):
     if Q_check2.iloc[0,0]=='yyyy/mm/dd':
         Q_matrix = pd.read_csv(filename_q, header = 0, sep=my_delimiter, index_col = 'yyyy/mm/dd')  
     else:
-        print("""Warning: you did not provide headers which reach names 
-              in the Q files. We will proceed as if the Q file columns 
-              corresponds to the order of the reach as they are in the 
-              input network""")
+        print('Warning: you did not provide headers with reach names \
+              in the Q file. We will proceed as if the Q file column order \
+              corresponds to the order of the reach as they are in the \
+              input network shape file. \n')
         Q_matrix = pd.read_csv(filename_q, header = None, sep=my_delimiter)
         
     return Q_matrix
