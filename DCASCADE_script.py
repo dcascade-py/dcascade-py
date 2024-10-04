@@ -38,7 +38,7 @@ from numpy import random
 
 # import ad hoc functions
 from GSD import GSDcurvefit
-from preprocessing import graph_preprocessing
+from preprocessing import graph_preprocessing, extract_Q
 from DCASCADE_loop import DCASCADE_main, ReachData
 from widget import read_user_input
 import profile
@@ -101,22 +101,8 @@ reach_data = ReachData(network)
 # Define the initial deposit layer per each reach in [m3/m]
 reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
 
-
-
-# Read/define the water discharge 
-# but first, we check automatically the delimiter (; or ,) and if Q file has headers or not:
-Q_check = pd.read_csv(filename_q, header = None) # read from external csv file
-if Q_check.iloc[0,:].size == 1: 
-    my_delimiter = ';'
-else:
-    my_delimiter = ','
-Q_check2 = pd.read_csv(filename_q, header=None, sep=my_delimiter)  
-if Q_check2.iloc[0,0]=='yyyy/mm/dd':
-    Q = pd.read_csv(filename_q, header = 0, sep=my_delimiter, index_col = 'yyyy/mm/dd')  
-else:
-    Q = pd.read_csv(filename_q, header = None, sep=my_delimiter)
-
-
+# Read/define the water discharge  
+Q = extract_Q(filename_q)
 
 # Sort reach_data according to the from_n, and organise the Q file accordingly
 sorted_indices = reach_data.sort_values_by(reach_data.from_n)

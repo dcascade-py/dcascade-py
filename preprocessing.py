@@ -5,9 +5,39 @@ Created on Tue Mar 10 17:26:23 2020
 
 @author: Marco Tangi and Elisa Bozzolan
 """
+
 import numpy as np
 import networkx as nx
 import os
+import pandas as pd
+
+
+def extract_Q(filename_q):
+    ''' This function aims at checking automatically the delimiter used in
+    the csv indicated by filename_q (; or ,) 
+    and if it has headers or not. 
+    It returns the Q matrix used later in the code
+    '''
+    # First check, on the delimiter
+    Q_check = pd.read_csv(filename_q, header = None, sep = ',') 
+    if Q_check.iloc[0,:].size == 1: 
+        my_delimiter = ';'
+    else:
+        my_delimiter = ','
+    # Second check, if headers are provided or not
+    Q_check2 = pd.read_csv(filename_q, header=None, sep=my_delimiter)  
+    if Q_check2.iloc[0,0]=='yyyy/mm/dd':
+        Q_matrix = pd.read_csv(filename_q, header = 0, sep=my_delimiter, index_col = 'yyyy/mm/dd')  
+    else:
+        print("""Warning: you did not provide headers which reach names 
+              in the Q files. We will proceed as if the Q file columns 
+              corresponds to the order of the reach as they are in the 
+              input network""")
+        Q_matrix = pd.read_csv(filename_q, header = None, sep=my_delimiter)
+        
+    return Q_matrix
+
+
 
 def write_adj_matrix(FromN, ToN , Lngt):
     ''' 
