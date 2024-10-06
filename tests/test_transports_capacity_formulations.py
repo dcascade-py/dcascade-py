@@ -7,6 +7,9 @@ Created on Thu Sep  5 13:50:28 2024
 
 import numpy as np
 import numpy.matlib
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from transport_capacity_computation import Wilcock_Crowe_formula
 
 

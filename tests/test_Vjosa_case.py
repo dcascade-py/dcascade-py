@@ -6,6 +6,9 @@ Created on Thu Sep  5 13:50:28 2024
 """
 
 import numpy as np
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from DCASCADE_loop import DCASCADE_main, ReachData
 from preprocessing import graph_preprocessing, extract_Q
 from pathlib import Path
