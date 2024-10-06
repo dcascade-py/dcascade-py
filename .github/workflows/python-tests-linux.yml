@@ -1,0 +1,37 @@
+name: Python Tests Linux
+
+on: [push]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system libraries
+      run: sudo apt-get install tree
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install requirements
+      run: |
+        pip install -r requirements.txt
+
+    - name: Install the package
+      run: pip install .
+
+    - name: Test
+      run: pytest ./tests
+
