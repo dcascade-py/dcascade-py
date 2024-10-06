@@ -1,4 +1,3 @@
-itertools
 numpy
 pandas
 tqdm
