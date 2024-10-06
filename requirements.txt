@@ -1,1 +1,4 @@
+itertools
 numpy
+pandas
+tqdm
