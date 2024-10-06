@@ -2,4 +2,5 @@ geopandas
 networkx
 numpy
 pandas
+scipy
 tqdm
