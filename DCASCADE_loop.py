@@ -248,9 +248,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         # loop for all reaches:
         for n in network['n_hier']:
             
-            if n==0 and t==303:
-                print('stop')
-            
             
             #---Extracts the deposit layer left in previous time step          
             V_dep_old = Qbi_dep_old[n] # extract the deposit layer of the reach 
@@ -316,7 +313,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
             tr_cap = tr_cap_per_s * ts_length
-            # tr_cap = np.round(tr_cap_per_s * ts_length, decimals=roundpar)
             # Store tr_cap
             tr_cap_all[t,n,:] = tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
