@@ -207,7 +207,7 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis = 0)) 
 
         # find the indexes of the first cascade above the tr_cap threshold, for each class
-        mapp =csum > tr_cap_remaining
+        mapp =csum >= tr_cap_remaining
 
         mapp[0, np.any(~mapp,axis = 0)] = True   # EB: force the first deposit layer to be true 
 

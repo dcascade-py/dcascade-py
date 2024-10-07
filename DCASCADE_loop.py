@@ -308,8 +308,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                Fi_r_act[t,n,:] = Fi_r_act[t-1,n,:] 
                       
             # Calculate transport capacity in m3/s
-            # tr_cap_per_s, Qc = tr_cap_function(np.array([0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]), D50_AL[t,n], slope[t,n] , Q.iloc[t,n], reach_data.Wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
-
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
             tr_cap = tr_cap_per_s * ts_length
