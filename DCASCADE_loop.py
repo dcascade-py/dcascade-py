@@ -248,7 +248,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         # loop for all reaches:
         for n in network['n_hier']:
             
-            if n==41 and t==302:
+            if n==0 and t==303:
                 print('stop')
             
             
