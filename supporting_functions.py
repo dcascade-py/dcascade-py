@@ -69,7 +69,7 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
-def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
+def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar, n, t, temp_idx):
     """
     This function searches layers that are to be put in the maximum mobilisable  
     layer of a time step. (i.e. the maximum depth to be mobilised). 
