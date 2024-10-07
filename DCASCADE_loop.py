@@ -220,7 +220,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
     else:
         reference_d = reach_data.D84
     for n in network['n_hier']:
-        al_depth = 2*reference_d[n]
+        al_depth = np.maximum(2*reference_d[n], 0.01)
         al_vol = al_depth * reach_data.wac[n] * reach_data.length[n]
         al_vol_all[:,n] = np.repeat(al_vol, timescale, axis=0)
         al_depth_all[:,n] = np.repeat(al_depth, timescale, axis=0)
@@ -315,7 +315,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
 
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             # Total volume possibly mobilised in the time step
-            tr_cap = np.round(tr_cap_per_s * ts_length, decimals=roundpar)
+            tr_cap = tr_cap_per_s * ts_length
+            # tr_cap = np.round(tr_cap_per_s * ts_length, decimals=roundpar)
             # Store tr_cap
             tr_cap_all[t,n,:] = tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
