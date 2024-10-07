@@ -102,7 +102,7 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
             # if the cascades in the deposit have combined
             # volume that is less then the active layer volume (i've reached the bottom)
             
-            print(' reach the bottom ....')
+            print(' reach the bottom ....'+str(n)+','+str(t)+'...'+str(temp_idx))
 
             V_dep2act = V_dep_old  # I put all the deposit into the active layer
             V_dep = np.c_[V_dep_old[0,0], np.zeros((1,Qbi_incoming.shape[1]-1))]
@@ -207,7 +207,7 @@ def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis = 0)) 
 
         # find the indexes of the first cascade above the tr_cap threshold, for each class
-        mapp =csum > tr_cap_remaining  
+        mapp =csum > tr_cap_remaining
 
         mapp[0, np.any(~mapp,axis = 0)] = True   # EB: force the first deposit layer to be true 
 

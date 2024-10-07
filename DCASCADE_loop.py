@@ -302,7 +302,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             Qbi_incoming_per_s = copy.deepcopy(Qbi_incoming)
             Qbi_incoming_per_s[:,1:] = Qbi_incoming_per_s[:,1:] / ts_length                                            
             # Fraction of sediments in the active layer Fi_r_act. 
-            _,_,_, Fi_r_act[t,n,:] = layer_search(Qbi_incoming_per_s, V_dep_old, al_vol_all[0,n], roundpar)            
+            _,_,_, Fi_r_act[t,n,:] = layer_search(Qbi_incoming_per_s, V_dep_old, al_vol_all[0,n], roundpar, n,t, temp_idx='per_sec')            
             # Calculate the D50 of the AL
             D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)
             
@@ -334,7 +334,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 
             #---Finds cascades from the total incoming load of that day [m3/d] 
             # and of the deposit layer to be included in the maximum erodible layer
-            V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
+            V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar, n, t, temp_idx='daily')
             #--> DD: verify that this step does not modify Qbi_incoming and V_dep_old 
                 
             # Update the time in each cascade, by adding the time to pass 
