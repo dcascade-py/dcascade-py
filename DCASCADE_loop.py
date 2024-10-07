@@ -159,7 +159,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     elif 'D84' in ReachData:
         reference_D = 'D84'
     for n in Network['NH']:
-        AL_depth = 2*ReachData[reference_D].values[n]
+        AL_depth = np.maximum(2*ReachData[reference_D].values[n], 0.01)
         AL_vol = AL_depth * ReachData['Wac'].values[n] * ReachData['Length'].values[n]
         AL_vol_all[:,n] = np.repeat(AL_vol, timescale, axis=0)
         AL_depth_all[:,n] = np.repeat(AL_depth, timescale, axis=0)
@@ -167,7 +167,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
 
     # start waiting bar    
     for t in tqdm(range(timescale-1)):
-        
+                
         #FP: define flow depth and flow velocity from flow_depth_calc
         h, v = choose_flow_depth(ReachData, Slope, Q, t, indx_flo_depth)
         flow_depth[t] = h
@@ -183,6 +183,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         
         # loop for all reaches:
         for n in Network['NH']:
+            
             #---1) Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
             V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
 
@@ -225,7 +226,6 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             tr_cap=tr_cap_per_s * ts_length
-            
             tr_cap_all[t,n,:] = tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
             
