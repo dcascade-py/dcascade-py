@@ -247,6 +247,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         
         # loop for all reaches:
         for n in network['n_hier']:
+            
+            if n==41 and t==302:
+                print('stop')
+            
+            
             #---Extracts the deposit layer left in previous time step          
             V_dep_old = Qbi_dep_old[n] # extract the deposit layer of the reach 
             
@@ -269,10 +274,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             Qbi_incoming = sortdistance(Qbi_incoming, network['upstream_distance_list'][n])
             
 
-            #---Finds cascades from the total incoming load of that day [m3/d] 
-            # and of the deposit layer to be included in the maximum erodible layer
-            V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
-            #--> DD: verify that this step does not modify Qbi_incoming and V_dep_old 
+
                        
             # Get the cascades entering the reach n, at this time step (Qbi_pass_from_n_up) [m3/d],
             # concatenate the Qbi_pass if we have many reaches upstream.
@@ -328,7 +330,13 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 hVel = al_depth_all[t,n]                # the section height is the same as the active layer
                 v_sed_n = sed_velocity(hVel, reach_data.wac[n], tr_cap_per_s, phi, indx_velocity, minvel)
                 v_sed[n,:] = v_sed_n
-                    
+                
+                
+            #---Finds cascades from the total incoming load of that day [m3/d] 
+            # and of the deposit layer to be included in the maximum erodible layer
+            V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Qbi_incoming, V_dep_old, eros_max_vol[0,n], roundpar)
+            #--> DD: verify that this step does not modify Qbi_incoming and V_dep_old 
+                
             # Update the time in each cascade, by adding the time to pass 
             # trought the current reach.
             # Stop if the new time is larger than the time step, 
@@ -402,6 +410,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 # Case where we don't compare to tr_cap 
                 [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, tr_cap, roundpar)                       
                 to_be_deposited = None
+                
+                # def a_des_doublons(vecteur):
+                #     return len(vecteur) != len(set(vecteur))
+                # if a_des_doublons(V_mob[:,0]):
+                #     print("The vecteur has several time the same provenance.")
                 
             # Add the possible V_mob cascade coming from reach n to Qbi_pass[n]
             if V_mob is not None:
