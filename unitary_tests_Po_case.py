@@ -13,7 +13,20 @@ import geopandas as gpd
 from GSD import GSDcurvefit
 
 
+
+
 # Temporary test for us. The input files are not versionned, but must be asked to Diane D.. 
+
+''' List of tests performed here:
+    
+        test_Po_Engelund_all_new_options_false
+        test_Po_Wilcock_all_new_options_false
+        (the expected results are the same as the version 1 of dcascade)
+        
+        test_Po_Engelund_all_new_options_true
+        test_Po_Wilcock_all_new_options_true
+        
+'''
 
 #Pathes
 path_river_network = Path('../Po_case_16y/Inputs/06-shp_with_tributaries_updated/')
@@ -25,8 +38,104 @@ name_q = 'Po_Qdaily_3y.csv'
 filename_q = path_q / name_q
 
 
+    
+    
+def test_Po_Engelund_all_new_options_false():
+    '''150 days are simulated. 
+    We use Engelund. With the "Bed Material Fraction" partitioning. 
+    '''
+    
+    # User defined parameters:
+    deposit_layer = 100000
+    eros_max = 1
+    update_slope = False
+    timescale = 150 
+    ts_length = 60 * 60 * 24
+    sed_range = [-8, 3]  
+    n_classes = 6  
+    save_dep_layer = 'never'  
+    roundpar = 0    
+    
+    # indexes
+    indx_tr_cap = 3      # Engelund and Hansen
+    indx_partition = 2   # BMF
+    indx_flo_depth = 1   # Manning
+    indx_slope_red = 1   # None
+    indx_velocity = 1    # same velocity for all classes
+    
+    # reach data
+    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    reach_data = ReachData(network)
+    reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
+    sorted_indices = reach_data.sort_values_by(reach_data.from_n)
+    Network = graph_preprocessing(reach_data)
+    
+    # Q file
+    Q = extract_Q(filename_q)
+    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    for i, idx in enumerate(sorted_indices): 
+        Q_new[:,i] = Q.iloc[:,idx]
+    Q = Q_new
+    
+    # Sediment classes 
+    psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
+    dmi = 2**(-psi).reshape(-1,1)
+    print(min(reach_data.D16) * 1000, ' must be greater than ', np.percentile(dmi, 10, method='midpoint'))
+    print(max(reach_data.D84) * 1000, ' must be lower than ',  np.percentile(dmi, 90, method='midpoint'))
+    Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
+    
+     # External sediment
+    Qbi_input = np.zeros((timescale, reach_data.n_reaches, n_classes))
 
-def test_dcascade_Po_Wilcock():
+    # Input sediment load in deposit layer
+    deposit = reach_data.deposit * reach_data.length
+    Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
+    for n in range(reach_data.n_reaches):
+        Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
+        
+    consider_overtaking_sed_in_outputs = False
+    compare_with_tr_cap = False
+    time_lag_for_Vmob = False
+    consider_passing_sed_in_tr_cap = False
+      
+    # run definition
+    data_output, _ = DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth,
+                                                 indx_slope_red, indx_velocity, reach_data,
+                                                 Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                 roundpar, update_slope, eros_max, save_dep_layer,
+                                                 ts_length, 
+                                                 consider_overtaking_sed_in_outputs, compare_with_tr_cap,
+                                                 time_lag_for_Vmob, consider_passing_sed_in_tr_cap)
+        
+    # Test the total mobilised volume per reach
+    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    expected_result = np.array([
+    ])
+    
+    np.testing.assert_array_equal(test_result, expected_result)
+   
+    # Test the total transported volume per reach
+    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    expected_result = np.array([
+    ])  
+    
+    # the absolute tolerance is fixed to 1e6, because the expected results 
+    # were displayed by spyder, and have 6 significative numbers
+    np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
+    
+    # D50 active layer
+    test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
+    expected_result = np.array([
+    ])     
+    
+    # the relative tolerance is fixed to 1e-05, because the expected results 
+    # were displayed by spyder, and have 6 significative numbers
+    np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
+    
+    print('Tuto bene with Po case test using Engelund formula, all new options false \n')
+
+
+def test_Po_Wilcock_all_new_options_false():
     '''150 days are simulated. 
     We use Wilcock and Crowes. 
     '''
@@ -79,9 +188,9 @@ def test_dcascade_Po_Wilcock():
     for n in range(reach_data.n_reaches):
         Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
         
-    consider_overtaking_sed_in_outputs = True
-    compare_with_tr_cap = True
-    time_lag_for_Vmob = True
+    consider_overtaking_sed_in_outputs = False
+    compare_with_tr_cap = False
+    time_lag_for_Vmob = False
     consider_passing_sed_in_tr_cap = False
       
     # run definition
@@ -96,12 +205,6 @@ def test_dcascade_Po_Wilcock():
     # Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
     expected_result = np.array([
-    237, 1724, 3530, 125, 57, 2297, 7029, 70276, 2229, 32924, 8653, 910, 1199, 
-    1629, 101972, 1026, 7645, 22168, 453871, 428312, 394589, 346667, 400069, 
-    338623, 129929, 166783, 195508, 85651, 229037, 286311, 261528, 417549, 
-    468240, 460154, 438501, 487340, 431126, 80437, 397295, 426999, 502431, 
-    413632, 269141, 108127, 0, 27, 9, 182, 12, 17, 819785, 235950, 51, 0, 
-    217288, 17379, 73732, 33657, 116156, 116680, 286823, 42284, 263772, 91398
     ])
     
     np.testing.assert_array_equal(test_result, expected_result)
@@ -109,12 +212,6 @@ def test_dcascade_Po_Wilcock():
     # Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
     expected_result = np.array([
-    0, 234, 1527, 3210, 98, 77, 2082, 6519, 67177, 1658, 31263, 7783, 997, 
-    1137, 1553, 98136, 747, 7168, 833781, 443983, 428312, 386692, 570296, 
-    391139, 542105, 127528, 180121, 191465, 154628, 225541, 314609, 261528, 
-    530512, 582412, 453770, 713823, 480184, 466561, 344209, 391889, 420822, 
-    593829, 407131, 264979, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0
     ])  
     
     np.testing.assert_array_equal(test_result, expected_result)
@@ -122,27 +219,17 @@ def test_dcascade_Po_Wilcock():
     # D50 active layer
     test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
     expected_result = np.array([
-    0.0247771, 0.0151654, 0.0151651, 0.0211763, 0.0211762, 0.0178638, 0.0165646, 
-    0.00860023, 0.0260577, 0.0102222, 0.027685, 0.0183552, 0.0161581, 0.0184497, 
-    0.00458518, 0.0185011, 0.010417, 0.00217651, 0.000165847, 0.000149322, 
-    0.000127542, 0.000215278, 0.000171118, 0.000136044, 0.000103275, 0.000994783, 
-    0.00129788, 0.00209076, 0.000616477, 0.000603861, 0.000514625, 0.000355313, 
-    0.000316236, 0.000308643, 0.000307156, 0.000190073, 0.000182749, 0, 
-    0.000321646, 0.000311395, 0.000306277, 0.00028365, 0.000273104, 0.0002603, 
-    0.0319107, 0.025124, 0.0420758, 0.0180466, 0.0202931, 0.0192818, 6.48827e-05, 
-    2.94781e-05, 0.0255411, 0.0250317, 0.000164438, 0.00600405, 0.000621912, 
-    0.000169004, 0.000155712, 0.000350787, 2.85048e-05, 0.000309135, 0.000309159, 
-    0.000265391
     ])  
     
     # the relative tolerance is fixed to 1e-05, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
     
-    print('Tuto bene with Po case test using Wilcock formula \n')
+    print('Tuto bene with Po case test using Wilcock formula, all new options false \n')
+
+
     
-    
-def test_dcascade_Po_Engelund():
+def test_Po_Engelund_all_new_options_true():
     '''150 days are simulated. 
     We use Engelund. With the "Bed Material Fraction" partitioning. 
     '''
@@ -257,10 +344,129 @@ def test_dcascade_Po_Engelund():
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
     
-    print('Tuto bene with Po case test using Engelund formula \n')
+    print('Tuto bene with Po case test using Engelund formula, all new options true \n')
 
+
+
+def test_Po_Wilcock_all_new_options_true():
+    '''150 days are simulated. 
+    We use Wilcock and Crowes. 
+    '''
+    
+    # User defined parameters:
+    deposit_layer = 100000
+    eros_max = 1
+    update_slope = False
+    timescale = 150 
+    ts_length = 60 * 60 * 24
+    sed_range = [-8, 3]  
+    n_classes = 6  
+    save_dep_layer = 'never'  
+    roundpar = 0    
+    
+    # indexes
+    indx_tr_cap = 2      # Wilkock and Crowe 2003
+    indx_partition = 4   # Shear stress correction
+    indx_flo_depth = 1   # Manning
+    indx_slope_red = 1   # None
+    indx_velocity = 1    # same velocity for all classes
+    
+    # reach data
+    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    reach_data = ReachData(network)
+    reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
+    sorted_indices = reach_data.sort_values_by(reach_data.from_n)
+    Network = graph_preprocessing(reach_data)
+    
+    # Q file
+    Q = extract_Q(filename_q)
+    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    for i, idx in enumerate(sorted_indices): 
+        Q_new[:,i] = Q.iloc[:,idx]
+    Q = Q_new
+    
+    # Sediment classes 
+    psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
+    dmi = 2**(-psi).reshape(-1,1)
+    print(min(reach_data.D16) * 1000, ' must be greater than ', np.percentile(dmi, 10, method='midpoint'))
+    print(max(reach_data.D84) * 1000, ' must be lower than ',  np.percentile(dmi, 90, method='midpoint'))
+    Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
+    
+     # External sediment
+    Qbi_input = np.zeros((timescale, reach_data.n_reaches, n_classes))
+
+    # Input sediment load in deposit layer
+    deposit = reach_data.deposit * reach_data.length
+    Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
+    for n in range(reach_data.n_reaches):
+        Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
+        
+    consider_overtaking_sed_in_outputs = True
+    compare_with_tr_cap = True
+    time_lag_for_Vmob = True
+    consider_passing_sed_in_tr_cap = False
+      
+    # run definition
+    data_output, _ = DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth,
+                                                 indx_slope_red, indx_velocity, reach_data,
+                                                 Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                 roundpar, update_slope, eros_max, save_dep_layer,
+                                                 ts_length, 
+                                                 consider_overtaking_sed_in_outputs, compare_with_tr_cap,
+                                                 time_lag_for_Vmob, consider_passing_sed_in_tr_cap)
+        
+    # Test the total mobilised volume per reach
+    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    expected_result = np.array([
+    237, 1724, 3530, 125, 57, 2297, 7029, 70276, 2229, 32924, 8653, 910, 1199, 
+    1629, 101972, 1026, 7645, 22168, 453871, 428312, 394589, 346667, 400069, 
+    338623, 129929, 166783, 195508, 85651, 229037, 286311, 261528, 417549, 
+    468240, 460154, 438501, 487340, 431126, 80437, 397295, 426999, 502431, 
+    413632, 269141, 108127, 0, 27, 9, 182, 12, 17, 819785, 235950, 51, 0, 
+    217288, 17379, 73732, 33657, 116156, 116680, 286823, 42284, 263772, 91398
+    ])
+    
+    np.testing.assert_array_equal(test_result, expected_result)
+   
+    # Test the total transported volume per reach
+    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    expected_result = np.array([
+    0, 234, 1527, 3210, 98, 77, 2082, 6519, 67177, 1658, 31263, 7783, 997, 
+    1137, 1553, 98136, 747, 7168, 833781, 443983, 428312, 386692, 570296, 
+    391139, 542105, 127528, 180121, 191465, 154628, 225541, 314609, 261528, 
+    530512, 582412, 453770, 713823, 480184, 466561, 344209, 391889, 420822, 
+    593829, 407131, 264979, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0
+    ])  
+    
+    np.testing.assert_array_equal(test_result, expected_result)
+    
+    # D50 active layer
+    test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
+    expected_result = np.array([
+    0.0247771, 0.0151654, 0.0151651, 0.0211763, 0.0211762, 0.0178638, 0.0165646, 
+    0.00860023, 0.0260577, 0.0102222, 0.027685, 0.0183552, 0.0161581, 0.0184497, 
+    0.00458518, 0.0185011, 0.010417, 0.00217651, 0.000165847, 0.000149322, 
+    0.000127542, 0.000215278, 0.000171118, 0.000136044, 0.000103275, 0.000994783, 
+    0.00129788, 0.00209076, 0.000616477, 0.000603861, 0.000514625, 0.000355313, 
+    0.000316236, 0.000308643, 0.000307156, 0.000190073, 0.000182749, 0, 
+    0.000321646, 0.000311395, 0.000306277, 0.00028365, 0.000273104, 0.0002603, 
+    0.0319107, 0.025124, 0.0420758, 0.0180466, 0.0202931, 0.0192818, 6.48827e-05, 
+    2.94781e-05, 0.0255411, 0.0250317, 0.000164438, 0.00600405, 0.000621912, 
+    0.000169004, 0.000155712, 0.000350787, 2.85048e-05, 0.000309135, 0.000309159, 
+    0.000265391
+    ])  
+    
+    # the relative tolerance is fixed to 1e-05, because the expected results 
+    # were displayed by spyder, and have 6 significative numbers
+    np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
+    
+    print('Tuto bene with Po case test using Wilcock formula, all new options true\n')
+    
 
 
 if __name__ == "__main__":
-    test_dcascade_Po_Wilcock()
-    test_dcascade_Po_Engelund()
+    test_Po_Engelund_all_new_options_false()
+    test_Po_Wilcock_all_new_options_false()   
+    test_Po_Engelund_all_new_options_true()
+    test_Po_Wilcock_all_new_options_true()
