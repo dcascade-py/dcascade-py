@@ -270,8 +270,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first (DD: relative to original provenance ?)
             Qbi_incoming = sortdistance(Qbi_incoming, network['upstream_distance_list'][n])
             
-
-
                        
             # Get the cascades entering the reach n, at this time step (Qbi_pass_from_n_up) [m3/d],
             # concatenate the Qbi_pass if we have many reaches upstream.
@@ -288,7 +286,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 # in order to compute the transport capacity.
                 # This way we compute the transport capacity based on all the sediments 
                 # present in the reach during that time step.
-                if len(reach_upstream) != 0:
+                if len(Qbi_pass_from_n_up) != 0:
                     Qbi_pass_t = np.concatenate([cascade.volume for cascade in Qbi_pass_from_n_up], axis=0)             
                     Qbi_incoming = np.concatenate([Qbi_pass_t, Qbi_incoming], axis=0)
                     Qbi_incoming = matrix_compact(Qbi_incoming)         # group layers by initial provenance            
