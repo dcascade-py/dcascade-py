@@ -370,7 +370,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                         time_lag = np.min(time_arrays, axis=0)
                           
                     # Quantities to mobilise during the time lag
-                    volume_time_lag = np.round(tr_cap * time_lag , decimals=roundpar)
+                    # volume_time_lag = np.round(tr_cap * time_lag , decimals=roundpar)
+                    volume_time_lag = tr_cap * time_lag
                     # The volume mobilised during the time lag is considered in the budget
                     diff_with_capacity -= volume_time_lag
                           
