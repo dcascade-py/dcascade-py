@@ -307,9 +307,9 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             # formula on the mobilised volume Vmob, and in each reach. 
             if indx_velocity == 3 or indx_velocity == 4:
                 # GSD of mobilized volume
-                Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
+                Fi_mob = (np.sum(V_mob[:,1:], axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
                 if np.isnan(Fi_mob).any():
-                    Fi_mob = Fi_r_act[t,:,n]
+                    Fi_mob = Fi_r_act[t,:,n][:,None] # EB: must be a column vector
                 
                 v_sed = sed_velocity_OLD( np.matlib.repmat(Fi_mob, 1, n_reaches), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
