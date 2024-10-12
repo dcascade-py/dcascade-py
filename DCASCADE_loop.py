@@ -248,10 +248,65 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         # loop for all reaches:
         for n in network['n_hier']:
             
-            
-            #---Extracts the deposit layer left in previous time step          
+            #---1) Extracts the deposit layer left in previous time step          
             V_dep_old = Qbi_dep_old[n] # extract the deposit layer of the reach 
             
+            #---2) Compute the transport capacity [m3/s] of the initial reach layers
+            # Look for the layers to be in in the active layer, 
+            # and its sediment class fraction (Fi_r_act), and D50 (D50_AL)
+            _,_,_, Fi_r_act[t,n,:] = layer_search([], V_dep_old, al_vol_all[0,n], roundpar)            
+            D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)           
+            # In case the active layer is empty, I use the GSD of the previous timestep
+            if np.sum(Fi_r_act[t,n,:]) == 0:
+               Fi_r_act[t,n,:] = Fi_r_act[t-1,n,:] 
+            # Transport capacity in m3/s
+            tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)    
+        
+            #---3) Get the cascades entering the reach n, at this time step (Qbi_pass_from_n_up) [m3/d],
+            # concatenate the Qbi_pass if we have many reaches upstream.
+            reach_upstream = np.squeeze(network['upstream_node'][n], axis = 1)
+            if len(reach_upstream) != 0:
+                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] for i in reach_upstream])) 
+            else:
+                # Case if there is no reach upstream
+                Qbi_pass_from_n_up = []  
+            # Add them to the transported storing matrix for this reach
+            for cascade in Qbi_pass_from_n_up:
+                Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                
+            #---3) Compute the velocity of these cascades [m/s]
+            # coef_AL_vel = 0.1
+            # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
+            hVel = al_depth_all[t,n]  
+            for cascade in Qbi_pass_from_n_up:
+                v_sed_cascade = cascade_velocity(indx_velocity, hVel, reach_data.wac[n], phi, minvel)
+            
+            
+                #1 Reaply the trcap to the cascades themselves ? (Like in v1)
+                #2 Recalculate trcap to all cascade, including them in an active layer
+                
+            #---4) Check if the cascades stops there or not
+            # if they stop, they are added to a temporary deposit layer
+            # if they don't stop they are added to Qbi_pass[n]
+            
+            #---5) To consider a time lag, we take the time for the first cascade to 
+            #arrive at the outlet and mobilise directly from the reach during this time
+            
+            #---6) Take the passing cascades, compute tr_cap, or these cascade 
+            # and including reach material if needed
+            
+            #---7) Deposit or complete depending if we are over or under capacity
+            # function tr_cap deposit ?
+            # What is deposited is directly added to the deposit layer
+            
+            #---8) Update the deposit layer to be used for the next time step
+            # with the over capacity cascades
+            # then with the stopping cascades (arriving at the end of the time step)
+            
+            #---9) Store Qbi_pass in the mobilised matrix
+            
+            
+##########################################         
             #---Extract the cascades, that had stopped in reach n at t-1 [m3/d]
             if Qbi_input[t,n,:].ndim == 1:
                 vect = np.expand_dims(np.append(n, Qbi_input[t,n,:]), axis = 0)
@@ -271,14 +326,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             Qbi_incoming = sortdistance(Qbi_incoming, network['upstream_distance_list'][n])
             
                        
-            # Get the cascades entering the reach n, at this time step (Qbi_pass_from_n_up) [m3/d],
-            # concatenate the Qbi_pass if we have many reaches upstream.
-            reach_upstream = np.squeeze(network['upstream_node'][n], axis = 1)
-            if len(reach_upstream) != 0:
-                Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] for i in reach_upstream])) 
-            else:
-                # Case if there is no reach upstream
-                Qbi_pass_from_n_up = []    
+  
             
             if consider_passing_sed_in_tr_cap == True:
                 # Include the cascades arriving from the reach(es) upstream in this time step (Qbi_pass_from_n_up) 
@@ -305,8 +353,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
             if np.sum(Fi_r_act[t,n,:]) == 0:
                Fi_r_act[t,n,:] = Fi_r_act[t-1,n,:] 
                       
-            # Calculate transport capacity in m3/s
-            tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
+
             # Total volume possibly mobilised in the time step
             tr_cap = tr_cap_per_s * ts_length
             # Store tr_cap
