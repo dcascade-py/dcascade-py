@@ -331,12 +331,22 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
         Qbi_pass = [[] for n in range(n_reaches)]
         
         # loop for all reaches:
-        for n in network['n_hier']:            
+        for n in network['n_hier']:    
+            # Find reach downstream of reach n
+            n_down = network['downstream_node'][n] #DD: traiter du cas outlet
+            
+            # Store the transported volumes arriving in reach n, during this time step
+            # Note: we store the volume by original provenance
+            for cascade in Qbi_pass[n]:
+                Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                # DD: If we want to store instead the direct provenance
+                # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
+            
             #---1) Extracts the deposit layer left in previous time step          
-            V_dep_old = Qbi_dep_old[n] # extract the deposit layer of the reach 
+            V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
             
             #---2) Compute the velocity of the cascades arriving in reach n that day, 
-            #      from the reach(es) upstream [m/s]
+            #      from the reach(es) upstream [m/s] (Qbi_pass[n])
             # coef_AL_vel = 0.1
             # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
             hVel = al_depth_all[t,n]  
@@ -347,25 +357,33 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                                        indx_tr_cap, indx_partition,
                                        reach_data.wac[n], slope[t,n], Q[t,n], v[n], h[n],
                                        phi, minvel, psi,
-                                       V_dep_old, al_vol_all[0,n],
+                                       V_dep_init, al_vol_all[0,n],
                                        roundpar)
             
-            #---3) Update the time in each cascade, by adding the time to pass 
-            # trought the current reach.
-            # Volumes stop if the new time is larger than the time step, 
-            # which means we remove the volumes from the arriving cascades (Qbi_pass[n])
-            # and we add it to a temporary array (to_be_deposited),
-            # that will be added to Vdep at the end of the loop
+            #---3) Decide weather cascades, or parts of cascades, stop or not
+            # based on their velocity in the current reach.
+            # The elapsed time (tnew) to arrive at the reach outlet is calculated.
+            # If the new time is larger than the time step, the volume stops (Vm_stop), 
+            # which means is it added to a temporary array (to_be_deposited),
+            # that will be added to Vdep at the end of the reach loop.
+            # If the new time is still lower than one time step, the volume can 
+            # travel to the outlet of the reach. In this case, we update the 
+            # new volume and the new time in Qbi_pass[n] 
+            # Note: the time is in time step unit (not in seconds)
             to_be_deposited = []
             for cascade in Qbi_pass[n]:
                 t_travel_n = reach_data.length[n] / (cascade.velocities * ts_length)
                 t_new = cascade.elapsed_time + t_travel_n
                 Vm_stop, Vm_continue = stop_or_not(t_new, cascade.volume)
+                # ---> reprendre
                 if Vm_stop is not None:
-                    cascade.volume[:, 1:] -= Vm_stop[:, 1:]
-                    if np.all(cascade.volume[:, 1:] == 0):
-                        Qbi_pass[n].remove(cascade)
-                    to_be_deposited.append(cascade.volume)
+                    to_be_deposited.append(Vm_stop)
+                    # cascade.volume[:, 1:] -= Vm_stop[:, 1:]
+                    # if np.all(cascade.volume[:, 1:] == 0):
+                    #     Qbi_pass[n].remove(cascade)                    
+                if Vm_continue is not None:
+                    cascade.volume = Vm_continue
+                    cascade.elapsed_time = t_new
             
             #---4) Mobilise volumes from the reach material before considering 
             # the passing cascades. 
@@ -394,7 +412,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 # Time for mobilising
                 time_for_mobilising = time_lag * ts_length
                 # Get the sediment fraction and D50 in the active layer.
-                _,_,_, Fi_r_act[t,n,:] = layer_search([], V_dep_old, al_vol_all[0,n], roundpar)
+                _,_,_, Fi_r_act[t,n,:] = layer_search([], V_dep_init, al_vol_all[0,n], roundpar)
                 D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)           
                 # In case the active layer is empty, I use the GSD of the previous timestep
                 if np.sum(Fi_r_act[t,n,:]) == 0:
@@ -410,98 +428,58 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 volume_mobilisable = tr_cap_per_s * time_for_mobilising         
                 # Mobilise from the reach layers
                 eros_max_vol_time_lag = eros_max_vol[0,n] * time_lag
-                V_inc_EL, V_dep_EL, V_dep, _ = layer_search([], V_dep_old, eros_max_vol_time_lag, roundpar, n, t)
+                V_inc_EL, V_dep_EL, V_dep, _ = layer_search([], V_dep_init, eros_max_vol_time_lag, roundpar, n, t)
                 [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, volume_mobilisable, roundpar)
-                
-            #---> Reprendre !
+                # The Vmob is added to the arriving sediment for the reach downstream
+                elapsed_time = np.zeros(n_classes) #it elapsed time is 0
+                provenance = n
+                Qbi_pass[n_down].append(Cascade(provenance, elapsed_time, V_mob))
+                                                          
             #---5) Now mobilise material considering that cascades are passing
             # at the outlet. We recalculate the transport capacity by including 
             # now the passing cascades.          
             if compare_with_tr_cap == True and Qbi_pass != []:
                 # Compute the transport capacity
-                Q_passing = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
-                Q_passing_per_s = copy.deepcopy(Q_passing)
-                _,_,_, Fi_r = layer_search(Q_passing_per_s, V_dep, al_vol_all[0,n], roundpar) 
+                Q_pass_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
+                Q_pass_volume_per_s = copy.deepcopy(Q_pass_volume)
+                _,_,_, Fi_r = layer_search(Q_pass_volume_per_s, V_dep, al_vol_all[0,n], roundpar) 
                 D50_2 = D_finder(Fi_r, 50, psi)   
                 tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_2, slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
                 # Total volume possibly mobilised in this time step part
                 time_for_mobilising_2 = (1-time_lag) * ts_length
                 volume_mobilisable_2 = tr_cap_per_s * time_for_mobilising_2
                 
-                diff_with_capacity = tr_cap - sum_pass
-                
-                # Sediment classes with negative values in diff_with_capacity are deposited, 
-                # i.e. directly added to Qbi_dep
+                # Compare sum of passing cascade to the mobilisable volume (for each sediment class)
+                sum_pass = np.sum(Q_pass_volume[:,1:], axis=0)
+                diff_with_capacity = volume_mobilisable_2 - sum_pass
+                                    
+                # Sediment classes with positive values in diff_with_capacity are mobilised from the reach n,
+                # V_mob is the mobilised cascade, V_dep is the new deposit layer           
+                diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)     
+                if np.any(diff_pos): 
+                    # Mobilise from the reach layers
+                    eros_max_vol_time_lag_2 = eros_max_vol[0,n] * (1-time_lag) #erosion maximum
+                    V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Q_pass_volume, V_dep, eros_max_vol_time_lag_2, roundpar, n, t)
+                    [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)
+                                        
+                # Sediment classes with negative values in diff_with_capacity
+                # are over capacity
+                # They are deposited, i.e. directly added to Vdep
+                # The rest is passed to the next reach
                 diff_neg=-np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
                 if np.any(diff_neg):  
-                    Vm_removed, Qbi_pass[n], residual = deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n], roundpar)
-                    # Vm_removed is directly added to Qbi_dep for the next time step
-                    # but we do it after we mobilise from the reach
-                    to_be_deposited = Vm_removed
-                    # Qbi_tr[t+1][[Vm_removed[:,0].astype(int)], n, :] += Vm_removed[:, 1:]
-                else:
-                    to_be_deposited = None
-                    
-                # Sediment classes with positive values are mobilised from the reach n,
-                # V_mob is the mobilised cascade, V_dep is the new deposit layer           
-                diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)
-                # We also add the volume mobilised during the time lag, 
-                # because it is also mobilised from the reach n
-                if time_lag_for_Vmob == True:
-                    diff_pos += volume_time_lag        
-                if np.any(diff_pos):                               
-                    [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, diff_pos, roundpar)         
-                else:
-                    # Case when there is no mobilised volume from the reach n
-                    V_mob = None
-                    V_dep = V_dep_old #in this case, V_dep has not changed in reach n
-                
-                
-                
-                
-                # Mobilise from the reach layers
-                eros_max_vol_time_lag_2 = eros_max_vol[0,n] * (1-time_lag)
-                V_inc_EL, V_dep_EL, V_dep, _ = layer_search(Q_passing, V_dep, eros_max_vol_time_lag_2, roundpar, n, t)
-                [V_mob, V_dep] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep, volume_mobilisable, roundpar)
-           else:
-               # Add all cascades to Qbi_pass n downstream
-               
+                    Vm_removed, passing_cascade_list, residual = deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n], roundpar)
+                    V_dep = np.concatenate([V_dep, Vm_removed], axis=0)
+                    Qbi_pass[n_down].extend(passing_cascade_list)                    
+                                
+            #---6) Deposit now the stopping cascades in Vdep
+            V_dep = np.concatenate([V_dep, to_be_deposited], axis=0)
 
-                        
-
-            # #---3) Get the cascades entering the reach n, at this time step (Qbi_pass_from_n_up) [m3/d],
-            # # concatenate the Qbi_pass if we have many reaches upstream.
-            # reach_upstream = np.squeeze(network['upstream_node'][n], axis = 1)
-            # if len(reach_upstream) != 0:
-            #     Qbi_pass_from_n_up = list(itertools.chain(*[Qbi_pass[int(i)] for i in reach_upstream])) 
-            # else:
-            #     # Case if there is no reach upstream
-            #     Qbi_pass_from_n_up = []  
-            # # Add them to the transported storing matrix for this reach
-            # for cascade in Qbi_pass_from_n_up:
-            #     Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
-                
-
-            
-            
-
-                
-
-        
-            
-            #---6) Take the passing cascades, compute tr_cap, or these cascade 
-            # and including reach material if needed
-            
-            #---7) Deposit or complete depending if we are over or under capacity
-            # function tr_cap deposit ?
-            # What is deposited is directly added to the deposit layer
-            
-            #---8) Update the deposit layer to be used for the next time step
-            # with the over capacity cascades
-            # then with the stopping cascades (arriving at the end of the time step)
-            
-            #---9) Store Qbi_pass in the mobilised matrix, and add the cascades to
-            # Qbi_pass of the reach downstream + store them in the Qbi_tr of this reach
+            #---7) Store Qbi_pass in the mobilised matrix, and add the cascades to
+            for cascade in Qbi_pass[n_down]:
+                Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                # DD: If we want to store instead the direct provenance
+                # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
             
             
 ##########################################         
