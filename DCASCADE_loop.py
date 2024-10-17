@@ -194,7 +194,56 @@ def compute_time_lag(cascade_list):
         time_lag = np.min(time_arrays, axis=0) 
         
     return time_lag
-                
+
+
+def cascades_stop_or_continue(cascade_list, reach_length, ts_length):
+    ''' Fonction to decide if the traveling cascades in cascade list stop in 
+    the reach or not, due to the end of the time step.
+    Inputs:
+        cascade_list:           list of traveling cascades
+        reach_length:           reach physical length
+        ts_length:              time step length
+        
+    Return:
+        cascade_list:           same cascade list updated. Stopping cascades or 
+                                partial volumes have been removed
+                                
+                                
+        depositing_volumes:     the volumes to be deposited in this reach. 
+                                Note: We keep track of the entering time t_in in to_be_deposited,
+                                to deposit later according to this time
+
+    '''   
+    to_be_deposited = []
+    
+    for cascade in Qbi_pass[n]:
+        # Time in, time travel, and time out in time step unit (not seconds)
+        t_in = cascade.elapsed_time
+        t_travel_n = reach_length / (cascade.velocities * ts_length)
+        t_out = t_in + t_travel_n
+        # Vm_stop is the stopping part of the cascade volume
+        # Vm_continue is the continuing part
+        Vm_stop, Vm_continue = stop_or_not(t_out, cascade.volume)
+        
+        if Vm_stop is not None:
+            to_be_deposited.append((Vm_stop, t_in))
+            
+            if Vm_continue is None: 
+                # no part of the volume continues, we remove the entire cascade
+                Qbi_pass[n].remove(cascade)
+            else: 
+                # some part of the volume continues, we update the volume
+                cascade.volume = Vm_continue
+                                
+        if Vm_continue is not None:
+            # update time for continuing cascades
+            cascade.elapsed_time = t_new   
+    
+    return cascade_list, depositing_volumes
+               
+
+
+
 
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, indx_velocity, 
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
@@ -363,11 +412,13 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                 
                 
             # Compute the velocity of the cascades in this reach [m/s] 
+            
             # coef_AL_vel = 0.1
             # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
             hVel = al_depth_all[t,n]  
             indx_velocity = 1                       # method for calculating the velocity
             indx_velocity_partitioning = 1         # way we divide the sediments sizes in the traveling section
+            
             compute_cascades_velocities(Qbi_pass[n], 
                                        indx_velocity, indx_velocity_partitioning, hVel,
                                        indx_tr_cap, indx_partition,
@@ -377,29 +428,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                                        roundpar)
             
             # Decides weather cascades, or parts of cascades, stop or not.
-            # The elapsed time (tnew) to arrive at the reach outlet is calculated.
-            # If the new time is larger than the time step, the volume stops (Vm_stop), 
-            # which means is it added to a temporary array (to_be_deposited), and 
-            # it is removed from the passing cascades (Qbi_pass[n]).
-            # If the new time is still lower than one time step, the volume can 
-            # travel to the outlet of the reach. In this case, we update the 
-            # new volume and the new time in the cascade list (Qbi_pass[n]) 
-            # Note: the time is in time step unit (not in seconds)
-            to_be_deposited = []
-            for cascade in Qbi_pass[n]:
-                t_travel_n = reach_data.length[n] / (cascade.velocities * ts_length)
-                t_new = cascade.elapsed_time + t_travel_n
-                Vm_stop, Vm_continue = stop_or_not(t_new, cascade.volume)
-                if Vm_stop is not None:
-                    to_be_deposited.append(Vm_stop)
-                    if Vm_continue is None:
-                        Qbi_pass[n].remove(cascade)
-                    else:
-                        cascade.volume = Vm_continue
-                if Vm_continue is not None:
-                    cascade.elapsed_time = t_new                        
-                
+            Qbi_pass[n], to_be_deposited = cascades_stop_or_continue(Qbi_pass[n], reach_data.length[n], ts_length)
             
+                     
+                            
             ###------Step 2 : Mobilise volumes from the reach material before 
             # considering the passing cascades. 
             # The parameter "time_lag" is the proportion of the time step where this
@@ -501,7 +533,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, i
                     Qbi_pass[n_down].extend(passing_cascade_list)                    
                                 
             ###-----Step 4: Finalisation.
-            # Deposit now the stopping cascades in Vdep,             
+            # Deposit now the stopping cascades in Vdep, by ordering first the 
+            # volume by the time they had arrived at the inlet of the reach
+            # --> order             
             V_dep = np.concatenate([V_dep, to_be_deposited], axis=0)
             # and store it for next time step
             Qbi_dep_0[n] = np.float32(V_dep)
