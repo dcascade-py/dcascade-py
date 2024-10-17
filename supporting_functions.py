@@ -468,11 +468,11 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
 
 def stop_or_not(t_new, Vm):
     ''' 
-    Function that decides if traveling cascades of sediments will stop in this 
-    reach or not, depending on time.
+    Function that decides if a volume of sediments will stop in this 
+    reach or not, depending on time. Part of the volume can stop or continue. 
     
     t_new: elapsed time since beginning of time step for Vm, for each sed class
-    Vm: traveling cascade of sediments
+    Vm: traveling volume of sediments
     '''
     cond_stop = np.insert([t_new>1], 0, True)
     Vm_stop = np.zeros_like(Vm)
