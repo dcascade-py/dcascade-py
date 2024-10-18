@@ -132,6 +132,7 @@ def compute_cascades_velocities(reach_cascades_list,
             
     if indx_velocity == 2:
         # concatenate cascades in one volume, and compact it by original provenance
+        # DD: should the cascade volume be in [m3/s] ?
         volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0) 
         volume_all_cascades = matrix_compact(volume_all_cascades)
         
@@ -149,7 +150,21 @@ def compute_cascades_velocities(reach_cascades_list,
         
         for cascade in reach_cascades_list:
             cascade.velocities = velocities
-
+    
+    if indx_velocity == 3: 
+        # We want to reproduce old cascade results here, compute velocity from Vdep only
+        incoming_active, Vdep_active, _, _ = layer_search(reach_Vdep, 
+                                                          active_layer_volume, roundpar)
+        
+        velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
+                                       hVel, phi, minvel, psi,
+                                       indx_tr_cap, indx_partition,
+                                       reach_width, reach_slope,
+                                       Q_reach, v, h)
+        
+        for cascade in reach_cascades_list:
+            cascade.velocities = velocities
+        
             
 def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi,
                       indx_tr_cap, indx_partition,
@@ -409,8 +424,6 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
-            if n == 3:
-                print('stop')
                 
             # Find reach downstream of reach n    
             if n != int(network['outlet']):
@@ -485,10 +498,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # In the case time_lag is not all zeros, we mobilise from the reach
             # before the cascades arrive.
             if np.any(time_lag != 0):
-                # Get the sediment fraction and D50 in the active layer.
-                empty_incoming_volume = np.hstack((n, np.zeros(n_classes))) # empty incoming cascade (for computation)
-                empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0)                           
-                _,_,_, Fi_r_act[t,n,:] = layer_search(empty_incoming_volume, V_dep_init, al_vol_all[0,n], roundpar)
+                # Get the sediment fraction and D50 in the active layer.                          
+                _,_,_, Fi_r_act[t,n,:] = layer_search(V_dep_init, al_vol_all[0,n], roundpar, Qbi_incoming = None)
                 D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)           
                 # In case the active layer is empty, I use the GSD of the previous timestep
                 if np.sum(Fi_r_act[t,n,:]) == 0:
@@ -510,7 +521,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 eros_max_vol_t = eros_max_vol[0,n] * np.mean(time_lag)
                 
                 # Mobilise from the reach layers
-                V_inc_EL, V_dep_EL, V_dep_init, _ = layer_search(empty_incoming_volume, V_dep_init, eros_max_vol_t, roundpar)
+                V_inc_EL, V_dep_EL, V_dep_init, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar, Qbi_incoming = None)
                 [V_mob, V_dep_init] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_init, volume_mobilisable, roundpar)
                 
                 # Store this volume only (if option 1 is False):
@@ -536,7 +547,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 Q_pass_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
                 Q_pass_volume = matrix_compact(Q_pass_volume)
                 Q_pass_volume_per_s = copy.deepcopy(Q_pass_volume)
-                _,_,_, Fi_r = layer_search(Q_pass_volume_per_s, V_dep_after_tlag, al_vol_all[0,n], roundpar) 
+                _,_,_, Fi_r = layer_search(V_dep_after_tlag, al_vol_all[0,n], roundpar, Qbi_incoming = Q_pass_volume_per_s) 
                 D50_2 = float(D_finder(Fi_r, 50, psi))   
                 tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_2, slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
                 # Total volume possibly mobilised during (1 - time_lag)
@@ -556,7 +567,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     eros_max_vol_t = eros_max_vol[0,n] * (1 - np.mean(time_lag)) #erosion maximum
                     
                     # Mobilise from the reach layers
-                    V_inc_EL, V_dep_EL, V_dep_after_tlag, _ = layer_search(Q_pass_volume, V_dep_after_tlag, eros_max_vol_t, roundpar)
+                    V_inc_EL, V_dep_EL, V_dep_after_tlag, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar, Qbi_incoming = Q_pass_volume_per_s)
                     [V_mob, V_dep_after_tlag] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_after_tlag, diff_pos, roundpar)
                     
                     # The Vmob is added to the arriving sediment for the reach downstream

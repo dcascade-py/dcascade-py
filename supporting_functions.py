@@ -69,15 +69,15 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
-def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
+def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
     """
     This function searches layers that are to be put in the maximum mobilisable  
     layer of a time step. (i.e. the maximum depth to be mobilised). 
 
-    INPUTS:
-    Qbi_incoming :      is the cascade stopping there from the previous time step
+    INPUTS:    
     V_dep_old is :      the reach deposit layer
     V_lim_tot_n  :      is the total maximum volume to be mobilised
+    Qbi_incoming :      is the cascade stopping there from the previous time step
     
     RETURN:
     V_inc2act    :      Layers of the incoming volume to be put in the active layer
@@ -85,6 +85,12 @@ def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
     V_dep        :      remaining deposit layer
     Fi_r_reach   :      fraction of sediment in the active layer
     """
+    if Qbi_incoming == None:
+        # Empty layer (for computation)
+        n_classes = V_dep_old.shape[1] - 1
+        empty_incoming_volume = np.hstack((0, np.zeros(n_classes))) 
+        empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0) 
+        Qbi_incoming = empty_incoming_volume
 
     # if, considering the incoming volume, I am still under the threshold of the active layer volume...
     if (V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])) > 0:
