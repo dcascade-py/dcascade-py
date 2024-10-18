@@ -85,7 +85,7 @@ def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
     V_dep        :      remaining deposit layer
     Fi_r_reach   :      fraction of sediment in the active layer
     """
-    if Qbi_incoming == None:
+    if Qbi_incoming is None:
         # Empty layer (for computation)
         n_classes = V_dep_old.shape[1] - 1
         empty_incoming_volume = np.hstack((0, np.zeros(n_classes))) 

@@ -443,6 +443,28 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # Extracts the deposit layer left in previous time step          
             V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
             
+            
+            if consider_overtaking_sed_in_outputs == False:
+                if Qbi_input[t,n,:].ndim == 1:
+                    vect = np.expand_dims(np.append(n, Qbi_input[t,n,:]), axis = 0)
+                else: 
+                    vect = np.c_[np.repeat(n, Qbi_input[t,n,:].shape[0]), Qbi_input[t,n,:]]
+                
+                Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
+                Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
+                
+                if Qbi_incoming.size == 0:
+                    Qbi_incoming = np.hstack((n, np.zeros(n_classes))) # put an empty cascade if no incoming volumes are present (for computation)
+                
+                if Qbi_incoming.ndim == 1:
+                    Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
+    
+                # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first (DD: relative to original provenance ?)
+                Qbi_incoming = sortdistance(Qbi_incoming, network['upstream_distance_list'][n])
+            else:
+                Qbi_incoming = None 
+                
+            
             ###------Step 1 : Cascades generated from the reaches upstream during 
             # the present time step, are passing the inlet of the reach
             # (stored in Qbi_pass[n]).
@@ -507,7 +529,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # before the cascades arrive.
             if np.any(time_lag != 0):
                 # Get the sediment fraction and D50 in the active layer.                          
-                _,_,_, Fi_r_act[t,n,:] = layer_search(V_dep_init, al_vol_all[0,n], roundpar, Qbi_incoming = None)
+                _,_,_, Fi_r_act[t,n,:] = layer_search(V_dep_init, al_vol_all[0,n], roundpar, Qbi_incoming = Qbi_incoming)
                 D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)           
                 # In case the active layer is empty, I use the GSD of the previous timestep
                 if np.sum(Fi_r_act[t,n,:]) == 0:
@@ -529,7 +551,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 eros_max_vol_t = eros_max_vol[0,n] * np.mean(time_lag)
                 
                 # Mobilise from the reach layers
-                V_inc_EL, V_dep_EL, V_dep_init, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar, Qbi_incoming = None)
+                V_inc_EL, V_dep_EL, V_dep_init, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar, Qbi_incoming = Qbi_incoming)
                 [V_mob, V_dep_init] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_init, volume_mobilisable, roundpar)
                 
                 # Store this volume only (if option 1 is False):
@@ -604,10 +626,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
 
             ###-----Step 4: Finalisation.
             # Deposit now the stopping cascades in Vdep 
-            if to_be_deposited is not None:
-                V_dep_final = np.concatenate([V_dep_final, to_be_deposited], axis=0)
+            if to_be_deposited is not None:     
                 if consider_overtaking_sed_in_outputs == False:
                     Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
+                else:
+                    V_dep_final = np.concatenate([V_dep_final, to_be_deposited], axis=0)
                 
             # Store Vdep for next time step
             Qbi_dep_0[n] = np.float32(V_dep_final)
