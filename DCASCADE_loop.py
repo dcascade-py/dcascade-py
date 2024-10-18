@@ -122,6 +122,7 @@ def compute_cascades_velocities(reach_cascades_list,
     than the active layer, we consider all the cascade volume.
     '''
     if indx_velocity == 1:
+        velocities_list = []
         for cascade in reach_cascades_list:
             cascade.velocities = volume_velocities(cascade.volume, 
                                                    indx_velocity_partitioning, 
@@ -129,6 +130,9 @@ def compute_cascades_velocities(reach_cascades_list,
                                                    indx_tr_cap, indx_partition,
                                                    reach_width, reach_slope,
                                                    Q_reach, v, h)
+            velocities_list.append(cascade.velocities)
+        # In this case, we store the averaged velocities obtained among all the cascades
+        velocities = np.mean(np.array(velocities_list), axis = 0)
             
     if indx_velocity == 2:
         # concatenate cascades in one volume, and compact it by original provenance
@@ -164,11 +168,14 @@ def compute_cascades_velocities(reach_cascades_list,
         
         for cascade in reach_cascades_list:
             cascade.velocities = velocities
+    
+    return velocities
         
             
 def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi,
                       indx_tr_cap, indx_partition,
                       reach_width, reach_slope, Q_reach, v, h):
+    
     ''' Compute the velocity of the volume of sediments. The transport capacity [m3/s]
     is calculated on this volume, and the velocity is calculated by dividing the 
     transport capacity by a section (hVel x width x (1 - porosity)). 
@@ -430,7 +437,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
-            if t==1 and n==2:
+            if t==36 and n==37:
                 print('ok')
                 
             # Find reach downstream of reach n    
@@ -486,13 +493,15 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
                 hVel = al_depth_all[t,n]  
     
-                compute_cascades_velocities(Qbi_pass[n], 
+                velocities = compute_cascades_velocities(Qbi_pass[n], 
                                            indx_velocity, indx_velocity_partition, hVel,
                                            indx_tr_cap, indx_partition,
                                            reach_data.wac[n], slope[t,n], Q[t,n], v[n], h[n],
                                            phi, minvel, psi,
                                            V_dep_init, al_vol_all[0,n],
                                            roundpar)
+                # Store velocities
+                V_sed[t, n, :] = velocities * ts_length
             
             # Decides weather cascades, or parts of cascades, 
             # finish the time step here or not.
@@ -657,7 +666,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             
         """End of the reach loop"""
         
-        #Save Qbi_dep according to saving frequency
+        # Save Qbi_dep according to saving frequency
         if save_dep_layer == 'always':
             Qbi_dep[t+1] = copy.deepcopy(Qbi_dep_0)            
         if save_dep_layer == 'yearly':
@@ -671,7 +680,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             Vm = cascade.volume
             Q_out[t, [Vm[:,0].astype(int)], :] += Vm[:,1:]
             
-        #in case of changing slope..
+        # in case of changing slope..
         if update_slope == True:
             #..change the slope accordingly to the bed elevation
             slope[t+1,:], node_el[t+1,:] = change_slope(node_el[t+1,:] ,reach_data.length, network, s = min_slope)

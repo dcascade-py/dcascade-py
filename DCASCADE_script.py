@@ -146,7 +146,7 @@ indx_tr_cap = 2 # Wilkock and Crowe 2003
 indx_partition = 4 # Shear stress correction
 indx_flo_depth = 1 # Manning
 indx_slope_red = 1 # None
-indx_velocity = 3 # method for calculating velocity
+indx_velocity = 1 # method for calculating velocity
 indx_velocity_partition = 1 # same velocity for all classes
 
 # Options for the cascade algorithm:        
