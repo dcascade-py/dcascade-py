@@ -281,6 +281,7 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
     # If they are, concatenate the deposited volumes in the reverse arrival time order
     if depositing_volume_list != []:
         depositing_volume = np.concatenate(depositing_volume_list, axis=0)
+        depositing_volume = matrix_compact(depositing_volume)
     else:
         depositing_volume = None
     
@@ -437,7 +438,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
-            if t==36 and n==37:
+            if t==35 and n==30:
                 print('ok')
                 
             # Find reach downstream of reach n    
