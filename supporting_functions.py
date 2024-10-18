@@ -69,13 +69,13 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
-def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar, n, t, temp_idx):
+def layer_search(Qbi_incoming, V_dep_old, V_lim_tot_n, roundpar):
     """
     This function searches layers that are to be put in the maximum mobilisable  
     layer of a time step. (i.e. the maximum depth to be mobilised). 
 
     INPUTS:
-    Qbi_incomimg :      is the cascade stopping there from the previous time step
+    Qbi_incoming :      is the cascade stopping there from the previous time step
     V_dep_old is :      the reach deposit layer
     V_lim_tot_n  :      is the total maximum volume to be mobilised
     
@@ -493,8 +493,8 @@ def stop_or_not(t_new, Vm):
 def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     ''' This function remove the quantity V_remove from the list of cascades. 
     The order in which we take the cascade is from largest times (arriving later) 
-    to shortest times (arriving first). Cascade arriving first are passing in priority,
-    in turn, cascades arriving later are deposited in priority.
+    to shortest times (arriving first). Hypotheticaly, cascade arriving first 
+    are passing in priority, in turn, cascades arriving later are deposited in priority.
     If two cascades have the same time, they are processed as one same cascade.
     
     INPUTS:
