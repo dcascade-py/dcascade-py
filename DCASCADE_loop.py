@@ -186,8 +186,8 @@ def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi
     
     # Compute the transport capacity
     [ tr_cap_per_s, pci ] = tr_cap_function(sed_class_fraction, D50,  
-                                       reach_slope, reach_width,
-                                       Q_reach, v , h, psi, 
+                                       reach_slope, Q_reach, reach_width,
+                                       v , h, psi, 
                                        indx_tr_cap, indx_partition)
     
     Svel = hVel * reach_width * (1 - phi)  # the global section where all sediments pass through
@@ -218,16 +218,16 @@ def compute_time_lag(cascade_list, n_classes):
     return time_lag
 
 
-def cascades_end_time_or_not(cascade_list, reach_length, ts_length):
+def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
     ''' Fonction to decide if the traveling cascades in cascade list stop in 
     the reach or not, due to the end of the time step.
     Inputs:
-        cascade_list:           list of traveling cascades
+        cascade_list_old:    list of traveling cascades
         reach_length:           reach physical length
         ts_length:              time step length
         
     Return:
-        cascade_list:           same cascade list updated. Stopping cascades or 
+        cascade_list_new:       same cascade list updated. Stopping cascades or 
                                 partial volumes have been removed
                                                           
         depositing_volume:      the volume to be deposited in this reach. 
@@ -235,10 +235,16 @@ def cascades_end_time_or_not(cascade_list, reach_length, ts_length):
                                 at the inlet, so that volume arriving first 
                                 deposit first.
     '''   
+    # Order cascades according to their arrival time, so that first arriving 
+    # cascade are deposited first 
+    # Note: in the deposit layer matrix, the upper most layers are the last
+    cascade_list_old = sorted(cascade_list_old, key=lambda x: np.mean(x.elapsed_time))
+    
     depositing_volume_list = []
     arrival_mean_time = []
+    cascades_to_be_completely_removed = []
     
-    for cascade in cascade_list:
+    for cascade in cascade_list_old:
         # Time in, time travel, and time out in time step unit (not seconds)
         t_in = cascade.elapsed_time
         t_travel_n = reach_length / (cascade.velocities * ts_length)
@@ -253,7 +259,7 @@ def cascades_end_time_or_not(cascade_list, reach_length, ts_length):
             
             if Vm_continue is None: 
                 # no part of the volume continues, we remove the entire cascade
-                cascade_list.remove(cascade)
+                cascades_to_be_completely_removed.append(cascade)
             else: 
                 # some part of the volume continues, we update the volume
                 cascade.volume = Vm_continue
@@ -262,15 +268,16 @@ def cascades_end_time_or_not(cascade_list, reach_length, ts_length):
             # update time for continuing cascades
             cascade.elapsed_time = t_out   
     
+    # If they are, remove complete cascades:
+    cascade_list_new = [casc for casc in cascade_list_old if casc not in cascades_to_be_completely_removed]   
+    
+    # If they are, concatenate the deposited volumes in the reverse arrival time order
     if depositing_volume_list != []:
-        # concatenate the deposited volumes in the reverse arrival time order
-        # DD to check: the last layer in the volume matrix will be the top layer (?) 
-        sorted_volumes = [x for _, x in sorted(zip(arrival_mean_time, depositing_volume_list), reverse=True)]
-        depositing_volume = np.concatenate(sorted_volumes, axis=0)
+        depositing_volume = np.concatenate(depositing_volume_list, axis=0)
     else:
         depositing_volume = None
     
-    return cascade_list, depositing_volume
+    return cascade_list_new, depositing_volume
                
 
 
@@ -423,6 +430,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
+            if t==1 and n==2:
+                print('ok')
                 
             # Find reach downstream of reach n    
             if n != int(network['outlet']):
