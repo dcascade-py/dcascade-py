@@ -182,7 +182,7 @@ def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi
     volume_total = np.sum(volume[:,1:])
     volume_total_per_class = np.sum(volume[:,1:], axis = 0)
     sed_class_fraction = volume_total_per_class / volume_total
-    D50 = D_finder(sed_class_fraction, 50, psi)
+    D50 = float(D_finder(sed_class_fraction, 50, psi))
     
     # Compute the transport capacity
     [ tr_cap_per_s, pci ] = tr_cap_function(sed_class_fraction, D50,  
@@ -229,14 +229,13 @@ def cascades_end_time_or_not(cascade_list, reach_length, ts_length):
     Return:
         cascade_list:           same cascade list updated. Stopping cascades or 
                                 partial volumes have been removed
-                                
-                                
-        depositing_volume:     the volumes to be deposited in this reach. 
+                                                          
+        depositing_volume:      the volume to be deposited in this reach. 
                                 They are ordered according to their arrival time
                                 at the inlet, so that volume arriving first 
                                 deposit first.
     '''   
-    to_be_deposited = []
+    depositing_volume_list = []
     arrival_mean_time = []
     
     for cascade in cascade_list:
@@ -249,7 +248,7 @@ def cascades_end_time_or_not(cascade_list, reach_length, ts_length):
         Vm_stop, Vm_continue = stop_or_not(t_out, cascade.volume)
         
         if Vm_stop is not None:
-            to_be_deposited.append(Vm_stop)
+            depositing_volume_list.append(Vm_stop)
             arrival_mean_time.append(np.mean(t_in))
             
             if Vm_continue is None: 
@@ -263,11 +262,11 @@ def cascades_end_time_or_not(cascade_list, reach_length, ts_length):
             # update time for continuing cascades
             cascade.elapsed_time = t_out   
     
-    if to_be_deposited != []:
+    if depositing_volume_list != []:
         # concatenate the deposited volumes in the reverse arrival time order
         # DD to check: the last layer in the volume matrix will be the top layer (?) 
-        sorted_to_be_deposited = [x for _, x in sorted(zip(arrival_mean_time, to_be_deposited), reverse=True)]
-        depositing_volume = np.concatenate(sorted_to_be_deposited, axis=0)
+        sorted_volumes = [x for _, x in sorted(zip(arrival_mean_time, depositing_volume_list), reverse=True)]
+        depositing_volume = np.concatenate(sorted_volumes, axis=0)
     else:
         depositing_volume = None
     
@@ -596,7 +595,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
 
             ###-----Step 4: Finalisation.
             # Deposit now the stopping cascades in Vdep 
-            if to_be_deposited != None:
+            if to_be_deposited is not None:
                 V_dep_final = np.concatenate([V_dep_final, to_be_deposited], axis=0)
                 if consider_overtaking_sed_in_outputs == False:
                     Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
