@@ -183,8 +183,6 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         
         # loop for all reaches:
         for n in Network['NH']:
-            if n==20 and t==30:
-                print('ok')
             
             #---1) Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
             V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
@@ -211,7 +209,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             
             # define incoming matrix in [m3/s]
             Qbi_incoming_per_s = copy.deepcopy(Qbi_incoming)
-            # Qbi_incoming_per_s[:,1:] = Qbi_incoming_per_s[:,1:] / ts_length
+            Qbi_incoming_per_s[:,1:] = Qbi_incoming_per_s[:,1:] / ts_length
                         
             # find the fraction of sediments in the active layer Fi_r_act. 
             # The active layer is made of incoming load in [m3/s], and if it needs to be completed, of deposit layer sediments
