@@ -143,8 +143,8 @@ def compute_cascades_velocities(reach_cascades_list,
             
             volume_total = np.sum(volume_all_cascades[:,1:])
             if volume_total < active_layer_volume:
-                _, Vdep_active, _, _ = layer_search(volume_all_cascades, reach_Vdep, 
-                                       active_layer_volume, roundpar)
+                _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume,
+                                        roundpar, Qbi_incoming = volume_all_cascades)
                 volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
     
             velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning, 
@@ -156,18 +156,18 @@ def compute_cascades_velocities(reach_cascades_list,
             for cascade in reach_cascades_list:
                 cascade.velocities = velocities
     
-    if reproduce_v1 == True:
-        # We want to reproduce old cascade results here, compute velocity from Vdep
-        _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume, roundpar)
+    # if reproduce_v1 == True:
+    #     # We want to reproduce old cascade results here, compute velocity from Vdep
+    #     _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume, roundpar)
                                                                  
-        velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
-                                       hVel, phi, minvel, psi,
-                                       indx_tr_cap, indx_partition,
-                                       reach_width, reach_slope,
-                                       Q_reach, v, h)
+    #     velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
+    #                                    hVel, phi, minvel, psi,
+    #                                    indx_tr_cap, indx_partition,
+    #                                    reach_width, reach_slope,
+    #                                    Q_reach, v, h)
         
-        for cascade in reach_cascades_list:
-            cascade.velocities = velocities
+    #     for cascade in reach_cascades_list:
+    #         cascade.velocities = velocities
     
     return velocities
         
