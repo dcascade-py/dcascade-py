@@ -108,7 +108,7 @@ def compute_cascades_velocities(reach_cascades_list,
                                indx_velocity, indx_velocity_partitioning, hVel,
                                indx_tr_cap, indx_partition,
                                reach_width, reach_slope, Q_reach, v, h,
-                               phi, minvel, psi,
+                               phi, minvel, psi, Qbi_incoming, 
                                reach_Vdep, active_layer_volume,
                                roundpar):
     ''' Compute the velocity of the cascades in reach_cascade_list.
@@ -156,9 +156,9 @@ def compute_cascades_velocities(reach_cascades_list,
             cascade.velocities = velocities
     
     if indx_velocity == 3: 
-        # We want to reproduce old cascade results here, compute velocity from Vdep only
+        # We want to reproduce old cascade results here, compute velocity from Vdep and Qbi_incoming
         incoming_active, Vdep_active, _, _ = layer_search(reach_Vdep, 
-                                                          active_layer_volume, roundpar)
+                                                          active_layer_volume, roundpar, Qbi_incoming = Qbi_incoming)
         
         velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
                                        hVel, phi, minvel, psi,
@@ -295,7 +295,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                   indx_velocity, indx_velocity_partition,
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
                   update_slope, eros_max, save_dep_layer, ts_length,
-                  consider_overtaking_sed_in_outputs,
+                  reproduce_v1,
                   compare_with_tr_cap, time_lag_for_mobilised):
     """
     Main function of the D-CASCADE software.
@@ -438,7 +438,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
-            if t==35 and n==30:
+            if t==30 and n==20:
                 print('ok')
                 
             # Find reach downstream of reach n    
@@ -452,7 +452,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
             
             
-            if consider_overtaking_sed_in_outputs == False:
+            if reproduce_v1 == True:
                 if Qbi_input[t,n,:].ndim == 1:
                     vect = np.expand_dims(np.append(n, Qbi_input[t,n,:]), axis = 0)
                 else: 
@@ -481,7 +481,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                         
             # Store the arriving cascades in the transported matrix (Qbi_tr)
             # Note: we store the volume by original provenance
-            if consider_overtaking_sed_in_outputs == True:
+            if reproduce_v1 == False:
                 for cascade in Qbi_pass[n]:
                     Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
                     # DD: If we want to store instead the direct provenance
@@ -498,7 +498,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                                            indx_velocity, indx_velocity_partition, hVel,
                                            indx_tr_cap, indx_partition,
                                            reach_data.wac[n], slope[t,n], Q[t,n], v[n], h[n],
-                                           phi, minvel, psi,
+                                           phi, minvel, psi, Qbi_incoming,
                                            V_dep_init, al_vol_all[0,n],
                                            roundpar)
                 # Store velocities
@@ -564,8 +564,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 V_inc_EL, V_dep_EL, V_dep_init, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar, Qbi_incoming = Qbi_incoming)
                 [V_mob, V_dep_init] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_init, volume_mobilisable, roundpar)
                 
-                # Store this volume only (if option 1 is False):
-                if consider_overtaking_sed_in_outputs == False:
+                # Store this volume only (if reproduce v1):
+                if reproduce_v1 == True:
                     Qbi_mob[t][[V_mob[:,0].astype(int)], n, :] += V_mob[:, 1:]
                 
                 # The Vmob is added to the arriving sediment for the reach downstream
@@ -637,7 +637,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             ###-----Step 4: Finalisation.
             # Deposit now the stopping cascades in Vdep 
             if to_be_deposited is not None:     
-                if consider_overtaking_sed_in_outputs == False:
+                if reproduce_v1 == True:
                     Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
                 else:
                     V_dep_final = np.concatenate([V_dep_final, to_be_deposited], axis=0)
@@ -646,7 +646,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             Qbi_dep_0[n] = np.float32(V_dep_final)
 
             # Store the mobilised volumes (Qbi_mob),
-            if consider_overtaking_sed_in_outputs == True:
+            if reproduce_v1 == False:
                 for cascade in Qbi_pass[n]:
                     Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
                     # DD: If we want to store instead the direct provenance
