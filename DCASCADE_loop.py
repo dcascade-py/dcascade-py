@@ -121,40 +121,40 @@ def compute_cascades_velocities(reach_cascades_list,
     the list of cascade by some reach material. If the cascade volume is more 
     than the active layer, we consider all the cascade volume.
     '''
-    if reproduce_v1 == False:
-        if indx_velocity == 1:
-            velocities_list = []
-            for cascade in reach_cascades_list:
-                cascade.velocities = volume_velocities(cascade.volume, 
-                                                       indx_velocity_partitioning, 
-                                                       hVel, phi, minvel, psi,
-                                                       indx_tr_cap, indx_partition,
-                                                       reach_width, reach_slope,
-                                                       Q_reach, v, h)
-                velocities_list.append(cascade.velocities)
-            # In this case, we store the averaged velocities obtained among all the cascades
-            velocities = np.mean(np.array(velocities_list), axis = 0)
-                
-        if indx_velocity == 2:
-            # concatenate cascades in one volume, and compact it by original provenance
-            # DD: should the cascade volume be in [m3/s] ?
-            volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0) 
-            volume_all_cascades = matrix_compact(volume_all_cascades)
+    # if reproduce_v1 == True:
+    if indx_velocity == 1:
+        velocities_list = []
+        for cascade in reach_cascades_list:
+            cascade.velocities = volume_velocities(cascade.volume, 
+                                                   indx_velocity_partitioning, 
+                                                   hVel, phi, minvel, psi,
+                                                   indx_tr_cap, indx_partition,
+                                                   reach_width, reach_slope,
+                                                   Q_reach, v, h)
+            velocities_list.append(cascade.velocities)
+        # In this case, we store the averaged velocities obtained among all the cascades
+        velocities = np.mean(np.array(velocities_list), axis = 0)
             
-            volume_total = np.sum(volume_all_cascades[:,1:])
-            if volume_total < active_layer_volume:
-                _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume,
-                                        roundpar, Qbi_incoming = volume_all_cascades)
-                volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
-    
-            velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning, 
-                                           hVel, phi, minvel, psi,
-                                           indx_tr_cap, indx_partition,
-                                           reach_width, reach_slope,
-                                           Q_reach, v, h)
-            
-            for cascade in reach_cascades_list:
-                cascade.velocities = velocities
+    if indx_velocity == 2:
+        # concatenate cascades in one volume, and compact it by original provenance
+        # DD: should the cascade volume be in [m3/s] ?
+        volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0) 
+        volume_all_cascades = matrix_compact(volume_all_cascades)
+        
+        volume_total = np.sum(volume_all_cascades[:,1:])
+        if volume_total < active_layer_volume:
+            _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume,
+                                    roundpar, Qbi_incoming = volume_all_cascades)
+            volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
+
+        velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning, 
+                                       hVel, phi, minvel, psi,
+                                       indx_tr_cap, indx_partition,
+                                       reach_width, reach_slope,
+                                       Q_reach, v, h)
+        
+        for cascade in reach_cascades_list:
+            cascade.velocities = velocities
     
     # if reproduce_v1 == True:
     #     # We want to reproduce old cascade results here, compute velocity from Vdep
@@ -565,6 +565,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 Q_pass_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
                 Q_pass_volume = matrix_compact(Q_pass_volume)
                 Q_pass_volume_per_s = copy.deepcopy(Q_pass_volume)
+                Q_pass_volume_per_s[:,1:] = Q_pass_volume_per_s[:,1:] / ts_length                                            
                 _,_,_, Fi_r = layer_search(V_dep_after_tlag, al_vol_all[0,n], roundpar, Qbi_incoming = Q_pass_volume_per_s) 
                 D50_2 = float(D_finder(Fi_r, 50, psi))   
                 tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_2, slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
@@ -585,7 +586,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     eros_max_vol_t = eros_max_vol[0,n] * (1 - np.mean(time_lag)) #erosion maximum
                     
                     # Mobilise from the reach layers
-                    V_inc_EL, V_dep_EL, V_dep_after_tlag, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar, Qbi_incoming = Q_pass_volume_per_s)
+                    V_inc_EL, V_dep_EL, V_dep_after_tlag, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar, Qbi_incoming = Q_pass_volume)
                     [V_mob, V_dep_after_tlag] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_after_tlag, diff_pos, roundpar)
                     
                     # The Vmob is added to the arriving sediment for the reach downstream
@@ -623,11 +624,12 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
 
             # Store the mobilised volumes (Qbi_mob),
             if reproduce_v1 == False:
-                for cascade in Qbi_pass[n]:
-                    Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
-                    # DD: If we want to store instead the direct provenance
-                    # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
-            
+                if n != int(network['outlet']):
+                    for cascade in Qbi_pass[n_down]:
+                        Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                        # DD: If we want to store instead the direct provenance
+                        # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
+                
             # Compute the changes in bed elevation
             # Modify bed elevation according to increased deposit
             Delta_V = np.sum(Qbi_dep_0[n][:,1:]) -  np.sum(Qbi_dep_old[n][:,1:])
