@@ -108,9 +108,9 @@ def compute_cascades_velocities(reach_cascades_list,
                                indx_velocity, indx_velocity_partitioning, hVel,
                                indx_tr_cap, indx_partition,
                                reach_width, reach_slope, Q_reach, v, h,
-                               phi, minvel, psi, Qbi_incoming, 
+                               phi, minvel, psi, 
                                reach_Vdep, active_layer_volume,
-                               roundpar):
+                               roundpar, reproduce_v1):
     ''' Compute the velocity of the cascades in reach_cascade_list.
     The velocity must be assessed by re-calculating the transport capacity 
     in the present reach, considering the effect of the arriving cascade(s).
@@ -121,48 +121,46 @@ def compute_cascades_velocities(reach_cascades_list,
     the list of cascade by some reach material. If the cascade volume is more 
     than the active layer, we consider all the cascade volume.
     '''
-    if indx_velocity == 1:
-        velocities_list = []
-        for cascade in reach_cascades_list:
-            cascade.velocities = volume_velocities(cascade.volume, 
-                                                   indx_velocity_partitioning, 
-                                                   hVel, phi, minvel, psi,
-                                                   indx_tr_cap, indx_partition,
-                                                   reach_width, reach_slope,
-                                                   Q_reach, v, h)
-            velocities_list.append(cascade.velocities)
-        # In this case, we store the averaged velocities obtained among all the cascades
-        velocities = np.mean(np.array(velocities_list), axis = 0)
+    if reproduce_v1 == False:
+        if indx_velocity == 1:
+            velocities_list = []
+            for cascade in reach_cascades_list:
+                cascade.velocities = volume_velocities(cascade.volume, 
+                                                       indx_velocity_partitioning, 
+                                                       hVel, phi, minvel, psi,
+                                                       indx_tr_cap, indx_partition,
+                                                       reach_width, reach_slope,
+                                                       Q_reach, v, h)
+                velocities_list.append(cascade.velocities)
+            # In this case, we store the averaged velocities obtained among all the cascades
+            velocities = np.mean(np.array(velocities_list), axis = 0)
+                
+        if indx_velocity == 2:
+            # concatenate cascades in one volume, and compact it by original provenance
+            # DD: should the cascade volume be in [m3/s] ?
+            volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0) 
+            volume_all_cascades = matrix_compact(volume_all_cascades)
             
-    if indx_velocity == 2:
-        # concatenate cascades in one volume, and compact it by original provenance
-        # DD: should the cascade volume be in [m3/s] ?
-        volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0) 
-        volume_all_cascades = matrix_compact(volume_all_cascades)
-        
-        volume_total = np.sum(volume_all_cascades[:,1:])
-        if volume_total < active_layer_volume:
-            _, Vdep_active, _, _ = layer_search(volume_all_cascades, reach_Vdep, 
-                                   active_layer_volume, roundpar)
-            volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
-
-        velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning, 
-                                       hVel, phi, minvel, psi,
-                                       indx_tr_cap, indx_partition,
-                                       reach_width, reach_slope,
-                                       Q_reach, v, h)
-        
-        for cascade in reach_cascades_list:
-            cascade.velocities = velocities
+            volume_total = np.sum(volume_all_cascades[:,1:])
+            if volume_total < active_layer_volume:
+                _, Vdep_active, _, _ = layer_search(volume_all_cascades, reach_Vdep, 
+                                       active_layer_volume, roundpar)
+                volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
     
-    if indx_velocity == 3: 
-        # We want to reproduce old cascade results here, compute velocity from Vdep and Qbi_incoming
-        incoming_active, Vdep_active, _, _ = layer_search(reach_Vdep, 
-                                                          active_layer_volume, roundpar, Qbi_incoming = Qbi_incoming)
-        
-        volume_tot = np.concatenate([Vdep_active, incoming_active], axis = 0)
-        
-        velocities = volume_velocities(volume_tot, indx_velocity_partitioning, 
+            velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning, 
+                                           hVel, phi, minvel, psi,
+                                           indx_tr_cap, indx_partition,
+                                           reach_width, reach_slope,
+                                           Q_reach, v, h)
+            
+            for cascade in reach_cascades_list:
+                cascade.velocities = velocities
+    
+    if reproduce_v1 == True:
+        # We want to reproduce old cascade results here, compute velocity from Vdep
+        _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume, roundpar)
+                                                                 
+        velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
                                        hVel, phi, minvel, psi,
                                        indx_tr_cap, indx_partition,
                                        reach_width, reach_slope,
@@ -246,7 +244,7 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
     '''   
     # Order cascades according to their arrival time, so that first arriving 
     # cascade are deposited first 
-    # Note: in the deposit layer matrix, the upper most layers are the last
+    # Note: in the deposit layer matrix, the uppermost layers are the last
     cascade_list_old = sorted(cascade_list_old, key=lambda x: np.mean(x.elapsed_time))
     
     depositing_volume_list = []
@@ -297,8 +295,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                   indx_velocity, indx_velocity_partition,
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
                   update_slope, eros_max, save_dep_layer, ts_length,
-                  reproduce_v1,
-                  compare_with_tr_cap, time_lag_for_mobilised):
+                  time_lag_for_mobilised, 
+                  reproduce_v1):
+    
     """
     Main function of the D-CASCADE software.
     
@@ -440,41 +439,17 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
-            if t==30 and n==20:
-                print('ok')
                 
             # Find reach downstream of reach n    
             if n != int(network['outlet']):
-                n_down = np.squeeze(network['downstream_node'][n], axis = 1) #DD: outlet case
-                n_down = int(n_down) # DD: This is wrong if there is more than 1 reach downstream (to do later)
+                n_down = np.squeeze(network['downstream_node'][n], axis = 1) 
+                n_down = int(n_down) # Note: This is wrong if there is more than 1 reach downstream (to consider later)
             else:
                 n_down = None
                 
             # Extracts the deposit layer left in previous time step          
             V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
-            
-            
-            if reproduce_v1 == True:
-                if Qbi_input[t,n,:].ndim == 1:
-                    vect = np.expand_dims(np.append(n, Qbi_input[t,n,:]), axis = 0)
-                else: 
-                    vect = np.c_[np.repeat(n, Qbi_input[t,n,:].shape[0]), Qbi_input[t,n,:]]
-                
-                Qbi_incoming  =  np.r_[(np.c_[np.array(range(n_reaches)), Qbi_tr[t][:, n,:]]), vect] # the material present at that time step + potential external mat
-                Qbi_incoming  = np.delete(Qbi_incoming, np.sum(Qbi_incoming[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
-                
-                if Qbi_incoming.size == 0:
-                    Qbi_incoming = np.hstack((n, np.zeros(n_classes))) # put an empty cascade if no incoming volumes are present (for computation)
-                
-                if Qbi_incoming.ndim == 1:
-                    Qbi_incoming = np.expand_dims(Qbi_incoming, axis = 0)
-    
-                # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first (DD: relative to original provenance ?)
-                Qbi_incoming = sortdistance(Qbi_incoming, network['upstream_distance_list'][n])
-            else:
-                Qbi_incoming = None 
-                
-            
+                                       
             ###------Step 1 : Cascades generated from the reaches upstream during 
             # the present time step, are passing the inlet of the reach
             # (stored in Qbi_pass[n]).
@@ -500,9 +475,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                                            indx_velocity, indx_velocity_partition, hVel,
                                            indx_tr_cap, indx_partition,
                                            reach_data.wac[n], slope[t,n], Q[t,n], v[n], h[n],
-                                           phi, minvel, psi, Qbi_incoming,
+                                           phi, minvel, psi,
                                            V_dep_init, al_vol_all[0,n],
-                                           roundpar)
+                                           roundpar,
+                                           reproduce_v1)
                 # Store velocities
                 V_sed[t, n, :] = velocities * ts_length
             
@@ -521,7 +497,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # mobilisation occurs, i.e. before the first possible cascade arrives 
             # at the outlet.
             # For now this step 2 is optional.
-            if compare_with_tr_cap == True:
+            if reproduce_v1 == False:
                 if time_lag_for_mobilised == True:
                     time_lag = compute_time_lag(Qbi_pass[n], n_classes)
                 else:
@@ -530,7 +506,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     # reach before the possible cascades arrive
                     time_lag = np.zeros(n_classes)
             else:
-                # in this condition (compare_with_tr_cap = False), 
+                # in this condition (reproduce_v1 = True), 
                 # we always mobilise from the reach itself and 
                 # the passing cascades are passing the outlet, without 
                 # checking the energy available to make them pass,
@@ -541,7 +517,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # before the cascades arrive.
             if np.any(time_lag != 0):
                 # Get the sediment fraction and D50 in the active layer.                          
-                _,_,_, Fi_r_act[t,n,:] = layer_search(V_dep_init, al_vol_all[0,n], roundpar, Qbi_incoming = Qbi_incoming)
+                _,_,_, Fi_r_act[t,n,:] = layer_search(V_dep_init, al_vol_all[0,n], roundpar)
                 D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)           
                 # In case the active layer is empty, I use the GSD of the previous timestep
                 if np.sum(Fi_r_act[t,n,:]) == 0:
@@ -563,7 +539,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 eros_max_vol_t = eros_max_vol[0,n] * np.mean(time_lag)
                 
                 # Mobilise from the reach layers
-                V_inc_EL, V_dep_EL, V_dep_init, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar, Qbi_incoming = Qbi_incoming)
+                V_inc_EL, V_dep_EL, V_dep_init, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar)
                 [V_mob, V_dep_init] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_init, volume_mobilisable, roundpar)
                 
                 # Store this volume only (if reproduce v1):
@@ -638,11 +614,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
 
             ###-----Step 4: Finalisation.
             # Deposit now the stopping cascades in Vdep 
-            if to_be_deposited is not None:     
-                if reproduce_v1 == True:
-                    Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
-                else:
-                    V_dep_final = np.concatenate([V_dep_final, to_be_deposited], axis=0)
+            if to_be_deposited is not None:                   
+                to_be_deposited = sortdistance(to_be_deposited, network['upstream_distance_list'][n])
+                V_dep_final = np.concatenate([V_dep_final, to_be_deposited], axis=0)
                 
             # Store Vdep for next time step
             Qbi_dep_0[n] = np.float32(V_dep_final)
