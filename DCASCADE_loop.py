@@ -160,7 +160,9 @@ def compute_cascades_velocities(reach_cascades_list,
         incoming_active, Vdep_active, _, _ = layer_search(reach_Vdep, 
                                                           active_layer_volume, roundpar, Qbi_incoming = Qbi_incoming)
         
-        velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
+        volume_tot = np.concatenate([Vdep_active, incoming_active], axis = 0)
+        
+        velocities = volume_velocities(volume_tot, indx_velocity_partitioning, 
                                        hVel, phi, minvel, psi,
                                        indx_tr_cap, indx_partition,
                                        reach_width, reach_slope,
