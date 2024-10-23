@@ -121,7 +121,7 @@ def compute_cascades_velocities(reach_cascades_list,
     the list of cascade by some reach material. If the cascade volume is more 
     than the active layer, we consider all the cascade volume.
     '''
-    # if reproduce_v1 == True:
+
     if indx_velocity == 1:
         velocities_list = []
         for cascade in reach_cascades_list:
@@ -156,18 +156,18 @@ def compute_cascades_velocities(reach_cascades_list,
         for cascade in reach_cascades_list:
             cascade.velocities = velocities
     
-    # if reproduce_v1 == True:
-    #     # We want to reproduce old cascade results here, compute velocity from Vdep
-    #     _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume, roundpar)
+    if indx_velocity == 3:
+        # We want to reproduce old cascade results here, compute velocity from Vdep
+        _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume, roundpar)
                                                                  
-    #     velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
-    #                                    hVel, phi, minvel, psi,
-    #                                    indx_tr_cap, indx_partition,
-    #                                    reach_width, reach_slope,
-    #                                    Q_reach, v, h)
+        velocities = volume_velocities(Vdep_active, indx_velocity_partitioning, 
+                                        hVel, phi, minvel, psi,
+                                        indx_tr_cap, indx_partition,
+                                        reach_width, reach_slope,
+                                        Q_reach, v, h)
         
-    #     for cascade in reach_cascades_list:
-    #         cascade.velocities = velocities
+        for cascade in reach_cascades_list:
+            cascade.velocities = velocities
     
     return velocities
         
