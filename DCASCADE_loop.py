@@ -494,8 +494,14 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 else:
                     # in this condition (we compare with tr cap at the outlet,
                     # but no time lag is considered), we don't mobilised from the
-                    # reach before the possible cascades arrive
-                    time_lag = np.zeros(n_classes)
+                    # reach before the possible cascades arrive.
+                    # At the exception that no cascades arrive at the outlet.
+                    if Qbi_pass[n] != []:
+                        time_lag = np.zeros(n_classes)
+                    else: 
+                        # If no cascades arrive at the outlet,
+                        # we mobilise from the reach itself
+                        time_lag = np.ones(n_classes)
             else:
                 # in this condition (compare_with_tr_cap = False), 
                 # we always mobilise from the reach itself and 
