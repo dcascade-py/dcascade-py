@@ -285,7 +285,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                   indx_velocity, indx_velocity_partition,
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
                   update_slope, eros_max, save_dep_layer, ts_length,
-                  compare_with_tr_cap, time_lag_for_mobilised):
+                  consider_overtaking_sed_in_outputs = True,
+                  compare_with_tr_cap = True, time_lag_for_mobilised = True):
     
     """
     Main function of the D-CASCADE software.
@@ -426,6 +427,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
+            
+            # TODO : How to include the lateral input ?
                                
             # Extracts the deposit layer left in previous time step          
             V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
@@ -435,13 +438,14 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # (stored in Qbi_pass[n]).
             # This step make them pass to the outlet of the reach or stop there,
             # depending if they reach the end of the time step or not.
-                        
-            # Store the arriving cascades in the transported matrix (Qbi_tr)
-            # Note: we store the volume by original provenance
-            for cascade in Qbi_pass[n]:
-                Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
-                # DD: If we want to store instead the direct provenance
-                # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)  
+            
+            if consider_overtaking_sed_in_outputs == True:            
+                # Store the arriving cascades in the transported matrix (Qbi_tr)
+                # Note: we store the volume by original provenance
+                for cascade in Qbi_pass[n]:
+                    Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                    # DD: If we want to store instead the direct provenance
+                    # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)  
             
                 
             # Compute the velocity of the cascades in this reach [m/s] 
@@ -467,8 +471,16 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # the time step in this reach
             if Qbi_pass[n] != []:
                 Qbi_pass[n], to_be_deposited = cascades_end_time_or_not(Qbi_pass[n], reach_data.length[n], ts_length)
+                
             else:
                 to_be_deposited = None
+            
+            # In the case we don't consider overpassing sediments
+            # store cascade as transported there for the next time step,
+            # only if it has stopped there
+            if consider_overtaking_sed_in_outputs == False:    
+                if to_be_deposited is not None:
+                    Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
                                                     
             ###------Step 2 : Mobilise volumes from the reach material before 
             # considering the passing cascades. 
@@ -523,12 +535,16 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 # Mobilise from the reach layers
                 V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar)
                 [V_mob, V_dep_init] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, volume_mobilisable, roundpar)
-                
-                # The mobilised cascade is added to a temporary container
+                                
                 if np.any(V_mob[:,1:] != 0): 
+                    # The mobilised cascade is added to a temporary container
                     elapsed_time = np.zeros(n_classes) # its elapsed time is 0
                     provenance = n
                     mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
+                
+                    # Store this volume if we consider only this one
+                    if consider_overtaking_sed_in_outputs == False:
+                        Qbi_mob[t][[V_mob[:,0].astype(int)], n, :] += V_mob[:, 1:]
 
             
             # New deposit layer after this step 2.
@@ -592,12 +608,13 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # Add the cascades that were mobilised in this reach to Qbi_pass[n]
             if mobilized_cascades != []:
                 Qbi_pass[n].extend(mobilized_cascades) 
-                
-            # ..and store the total mobilised volumes (passing + mobilised from the reach)
-            for cascade in Qbi_pass[n]:
-                Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
-                # DD: If we want to store instead the direct provenance
-                # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
+            
+            if consider_overtaking_sed_in_outputs == True:
+                # ..and store the total mobilised volumes (passing + mobilised from the reach)
+                for cascade in Qbi_pass[n]:
+                    Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                    # DD: If we want to store instead the direct provenance
+                    # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
                                                 
             # Deposit the stopping cascades in Vdep 
             if to_be_deposited is not None:                   
