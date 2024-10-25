@@ -356,6 +356,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     Fi_r_act[:,0] = np.nan
     Q_out = np.zeros((timescale, n_reaches, n_classes)) # amount of material delivered outside the network in each timestep
     D50_AL = np.zeros((timescale, n_reaches)) # D50 of the active layer in each reach in each timestep
+    D50_AL2 = np.zeros((timescale, n_reaches))
     V_sed = np.zeros((timescale, n_reaches, n_classes)) #velocities
 
     tr_cap_all = np.zeros((timescale, n_reaches, n_classes)) #transport capacity per each sediment class
@@ -427,6 +428,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
+            if n == 10 and t == 297:
+                print('ok')
             
             # TODO : How to include the lateral input ?
                                
@@ -566,8 +569,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 Q_pass_volume_per_s = copy.deepcopy(Q_pass_volume)
                 Q_pass_volume_per_s[:,1:] = Q_pass_volume_per_s[:,1:] / ts_length                                            
                 _,_,_, Fi_r = layer_search(V_dep_after_tlag, al_vol_all[0,n], roundpar, Qbi_incoming = Q_pass_volume_per_s) 
-                D50_2 = float(D_finder(Fi_r, 50, psi))   
-                tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_2, slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
+                D50_AL2[t,n] = float(D_finder(Fi_r, 50, psi))   
+                tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_AL2[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
                 # Total volume possibly mobilised during (1 - time_lag)
                 time_for_mobilising = (1-time_lag) * ts_length
                 volume_mobilisable = tr_cap_per_s * time_for_mobilising
@@ -588,10 +591,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar, Qbi_incoming = Q_pass_volume)
                     [V_mob, V_dep_after_tlag] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, diff_pos, roundpar)
                     
-                    # The Vmob is added to the temporary container 
-                    elapsed_time = time_lag # it start its journey at the end of the time lag
-                    provenance = n
-                    mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
+                    if np.any(V_mob[:,1:] != 0): 
+                        # The Vmob is added to the temporary container 
+                        elapsed_time = time_lag # it start its journey at the end of the time lag
+                        provenance = n
+                        mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
                                         
                 # Sediment classes with negative values in diff_with_capacity
                 # are over capacity
@@ -1071,13 +1075,13 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     #--Total sediment volume leaving the network
     outcum_tot = np.array([np.sum(x) for x in Q_out])
     df = pd.DataFrame(outcum_tot)
-    df.to_csv('Refactoring_test_file_AnneLaure.txt')
     
     #set all NaN transport capacity to 0
     tr_cap_sum[np.isnan(tr_cap_sum)] = 0 
     
     #set all NaN active layer D50 to 0; 
     D50_AL[np.isnan(D50_AL)] = 0
+    D50_AL2[np.isnan(D50_AL2)] = 0
     
     Q = np.array(Q)
     
@@ -1092,6 +1096,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                    'D50 deposit layer [m]': D50_dep,
                    'D50 mobilised layer [m]': D50_mob,
                    'D50 active layer [m]': D50_AL,
+                   'D50 active layer 2 [m]': D50_AL2,
                    'Transport capacity [m^3]': tr_cap_sum,
                    'Deposit layer [m^3]': V_dep_sum,
                    'Delta deposit layer [m^3]': Delta_V_all,
