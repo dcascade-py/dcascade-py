@@ -288,7 +288,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
                   update_slope, eros_max, save_dep_layer, ts_length,vary_width,
                   consider_overtaking_sed_in_outputs = True,
-                  compare_with_tr_cap = True, time_lag_for_mobilised = False):
+                  compare_with_tr_cap = True, time_lag_for_mobilised = True):
     
     """
     Main function of the D-CASCADE software.
@@ -438,8 +438,15 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
             
             #ccJR - add our inputs to the bed, for the next timestep to deal with. it will at least be available and mass conserving..
-            V_dep_init[0, 1:] += Qbi_input[t,n,:]
-            
+            #V_dep_init[0, 1:] += Qbi_input[t,n,:] #didn't work
+            if t>1 and Qbi_input[t,n,:].sum()>0:
+                # The mobilised cascade is added to a temporary container
+                et0 = np.ones(n_classes) # its elapsed time is 0
+                #how it's done:                 mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
+                arrgh = Qbi_input[t, n, :] #what's in the [0]? 1-7 are grain sizes. 
+                Qtoadd =  np.insert(arrgh, 0, 0)
+                Qtoadd = Qtoadd.reshape(1, -1)
+                Qbi_pass[n].append(Cascade(n, et0, Qtoadd))
             
             if vary_width: #ccJR carying width with hydraulic geometry. Replace this with hypsometric hydraulics next. 
                 wacsave[t,n] =  reach_data.width_a[n] * Q[t,n]**reach_data.width_b[n]
@@ -458,6 +465,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 # Note: we store the volume by original provenance
                 for cascade in Qbi_pass[n]:
                     Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                    
                     # DD: If we want to store instead the direct provenance
                     # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)  
                     #ccJR I may break tracking, bit I want to add inputs. 
@@ -468,7 +476,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 # coef_AL_vel = 0.1
                 # hVel = coef_AL_vel * h                
                 hVel = al_depth_all[t,n]  
-    
+                    
                 velocities = compute_cascades_velocities(Qbi_pass[n], 
                                            indx_velocity, indx_velocity_partition, hVel,
                                            indx_tr_cap, indx_partition,
