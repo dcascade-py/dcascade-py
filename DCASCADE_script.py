@@ -52,7 +52,7 @@ from pathlib import Path
 
 
 #-------River shape files 
-path_river_network = Path('RangitataFC_dH/')
+path_river_network = Path('Input/RangitataFC_dH/')
 name_river_network = 'River_Network5.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
 filename_river_network = path_river_network / name_river_network
 #matlab: outq(:,2) = outq(:,2)*.9; is upper main valley
@@ -61,7 +61,7 @@ filename_river_network = path_river_network / name_river_network
 #and to remove erosion of the gorge, zero sediment at index 4 (matlab reach 5)
 
 #--------Discharge files
-path_q = Path('RangitataFC_dH/')
+path_q = Path('Input/RangitataFC_dH/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 #name_q = 'q_Apr2024_1060.csv'
 name_q = 'q_2024.csv'
