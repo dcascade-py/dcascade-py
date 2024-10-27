@@ -288,7 +288,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
                   update_slope, eros_max, save_dep_layer, ts_length,vary_width,
                   consider_overtaking_sed_in_outputs = True,
-                  compare_with_tr_cap = True, time_lag_for_mobilised = True):
+                  compare_with_tr_cap = True, time_lag_for_mobilised = False):
     
     """
     Main function of the D-CASCADE software.
@@ -436,6 +436,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                                
             # Extracts the deposit layer left in previous time step          
             V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
+            
+            #ccJR - add our inputs to the bed, for the next timestep to deal with. it will at least be available and mass conserving..
+            V_dep_init[0, 1:] += Qbi_input[t,n,:]
+            
             
             if vary_width: #ccJR carying width with hydraulic geometry. Replace this with hypsometric hydraulics next. 
                 wacsave[t,n] =  reach_data.width_a[n] * Q[t,n]**reach_data.width_b[n]
@@ -618,7 +622,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             # Update the deposit layer
             V_dep_final = V_dep_after_tlag      
             
-            
+                        
             ###-----Step 4: Finalisation.
             
             # Add the cascades that were mobilised in this reach to Qbi_pass[n]
@@ -632,8 +636,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     # DD: If we want to store instead the direct provenance
                     # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
             
-            #ccJR - add our inputs to Qbi_mob, for the next timestep to deal with.                        
-            Qbi_mob[t][n,n,:] += Qbi_input[t,n,:]
+
                                     
             # Deposit the stopping cascades in Vdep 
             if to_be_deposited is not None:                   
