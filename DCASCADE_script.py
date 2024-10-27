@@ -148,10 +148,10 @@ Qbi_input = np.zeros((timescale, reach_data.n_reaches, n_classes))
 #ccJR - put in a constant source of the finest sediment in reach 3
 #ccJR UNITS are [m3/timestep] of 'pure sediment.' We here throw out any of Qs that is AFTER 'timescale' timesteps. 
 
-Qbi_input[:,1,6] = Qs[0:timescale,6] * 0.05 #ccJR HARDCODED 5 percent upstream load in 3 reaches. 
-Qbi_input[:,2,6] = Qs[0:timescale,6] * 0.05 #ccJR HARDCODED which is only bin 6, 125micron. 
-Qbi_input[:,3,6] = Qs[0:timescale,6] * 0.05 #ccJR HARDCODED 100% of half is 50% of the natural sand load.
-Qbi_input[:,4,6] = Qs[0:timescale,6] * 0.05 #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
+Qbi_input[:,1,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED aha - adding much more as it is going straight to the bed. 
+Qbi_input[:,2,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED bin 6 125 micron for now. added bin 5. 
+Qbi_input[:,3,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED 100% of half is 50% of the natural sand load.
+Qbi_input[:,4,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
 
 # Define input sediment load in the deposit layer
 deposit = reach_data.deposit * reach_data.length
