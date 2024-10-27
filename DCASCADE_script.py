@@ -52,7 +52,7 @@ from pathlib import Path
 
 
 #-------River shape files 
-path_river_network = Path('Input/RangitataFC_dH/')
+path_river_network = Path('../RangitataFC_dH/')
 name_river_network = 'River_Network5.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
 filename_river_network = path_river_network / name_river_network
 #matlab: outq(:,2) = outq(:,2)*.9; is upper main valley
@@ -61,7 +61,7 @@ filename_river_network = path_river_network / name_river_network
 #and to remove erosion of the gorge, zero sediment at index 4 (matlab reach 5)
 
 #--------Discharge files
-path_q = Path('Input/RangitataFC_dH/')
+path_q = Path('../RangitataFC_dH/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 #name_q = 'q_Apr2024_1060.csv'
 name_q = 'q_2024.csv'
@@ -73,7 +73,7 @@ filename_qs = path_q / name_qs
 
 
 #--------Path to the output folder
-path_results = Path("Oct25RangitataFC_dH/Rev2_5pctsand_1234/")
+path_results = Path("../Oct25RangitataFC_dH/Rev6_VRtest/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -85,7 +85,7 @@ sed_range = [-9, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 7        # number of classes
 
 #---Timescale 
-nrepeats = 5
+nrepeats = 10
 #timescale =  385 # hours   #420
 timescale =  2880 # hours   #420
 ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
@@ -94,15 +94,16 @@ ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = 
 update_slope = True # if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes #ccJR chaged this to a nominal width * depth. which is why 1000 didn't work, too wide for that!
-deposit_layer = 1000 * 10   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
+#what are the units now?
+deposit_layer = 10000 * 2   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
 eros_max = 1             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'yearly' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
-roundpar = 1 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-
+roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+#was this killing my sand inputs? Hourly timestep, smaller volumes than code had before, losing cascades?
 
 
 ################ MAIN ###############
@@ -113,7 +114,7 @@ reach_data = ReachData(network)
 
 # Define the initial deposit layer per each reach in [m3/m] ccJR so this incorporates width. 
 reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
-reach_data.deposit[4] = 1  #ccJR hardcoded GORGE no sources, just whta I give it. 
+# reach_data.deposit[4] = 1  #ccJR hardcoded GORGE no erosion. I think this may have broken things - cascades stopping here?
 # Read/define the water discharge  
 Q = extract_Q(filename_q)
 
@@ -145,13 +146,17 @@ Qs_dframe = extract_Q(filename_qs)
 print('Applying Qs to Reach 2, input shape', Qs_dframe.shape)
 Qs = Qs_dframe.to_numpy()
 Qbi_input = np.zeros((timescale, reach_data.n_reaches, n_classes))
-#ccJR - put in a constant source of the finest sediment in reach 3
-#ccJR UNITS are [m3/timestep] of 'pure sediment.' We here throw out any of Qs that is AFTER 'timescale' timesteps. 
 
-Qbi_input[:,1,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED aha - adding much more as it is going straight to the bed. 
-Qbi_input[:,2,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED bin 6 125 micron for now. added bin 5. 
-Qbi_input[:,3,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED 100% of half is 50% of the natural sand load.
-Qbi_input[:,4,5:6] = Qs[0:timescale,5:6] * 0.5 #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
+#ccJR - put in a constant source of fine sediment in specific reaches
+
+#ccJR UNITS are [m3/timestep] of 'pure sediment.' We here throw out any Qs we read that is AFTER 'timescale' timesteps. 
+add_Qbi=True #switch to turn on or off Qbi_input code
+if add_Qbi:
+    Qbi_input[:,1,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED aha - adding much more as it is going straight to the bed. 
+    Qbi_input[:,2,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED bin 6 125 micron for now. added bin 5. 
+    Qbi_input[:,3,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED 100% of half is 50% of the natural sand load.
+    Qbi_input[:,4,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
+    #Qbi_input[:,10,5:7] = Qs[0:timescale,5:7] * 25 #ccJR HARDCODED test below gorge
 
 # Define input sediment load in the deposit layer
 deposit = reach_data.deposit * reach_data.length
@@ -167,12 +172,12 @@ for n in range(reach_data.n_reaches):
 # Formula selection
 # indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
 # If you want to fix indexes, comment the line above and fix manually the indexes
-indx_tr_cap = 2 # Wilcock and Crowe 2003 is 2, Parker is 1
+indx_tr_cap = 28 # Wilcock and Crowe 2003 is 2, Parker is 1
 indx_partition = 4 # Shear stress correction
 indx_flo_depth = 1 # Manning
 indx_slope_red = 1 # None
 indx_velocity = 2 # 3 and 4 seem to be gone. 2 should vary virtual velocity by grain size. JR to add some sand suspension boosts to this?
-indx_velocity_partition = 1 # same velocity for all classes
+indx_velocity_partition = 2 # same velocity for all classes
 
 # Options for the cascade algorithm:        
 # If all these option are False, we are normally reproducing the results
@@ -194,6 +199,10 @@ time_lag_for_Vmob = True
 #JR addition - variable Wac. Currently with easy to set up hydraulic geometry a,b stored in ReachData
 #width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
 vary_width = True
+
+#JR addition - recalculate roughness from changing GSD. Question - do this annually, or per timestep?
+vary_roughness = True
+
 if vary_width:
     Bcheck = reach_data.width_a * Q.max()**reach_data.width_b
     
@@ -208,7 +217,7 @@ reach_data_original = copy.deepcopy(reach_data)
 data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
                                              indx_velocity, indx_velocity_partition,                           
                                              reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                             roundpar, update_slope, eros_max, save_dep_layer, ts_length,vary_width,
+                                             roundpar, update_slope, eros_max, save_dep_layer, ts_length,vary_width,vary_roughness,
                                              consider_overtaking_sed_in_outputs, compare_with_tr_cap,
                                              time_lag_for_Vmob)
 
@@ -263,7 +272,7 @@ from supporting_functions import D_finder
 
 for NR in range(nrepeats):    
     tot_m = 0
-    # Initialise new deposit layer 
+    # Initialise new deposit layer. make sure to update call to main below. 
     Qbi_dep_in2 = np.zeros((reach_data.n_reaches, 1, n_classes))
     #write a Fs change matrix before the next loop. how many to equilibrate?
     np.set_printoptions(precision=2,suppress=True)
@@ -288,11 +297,12 @@ for NR in range(nrepeats):
         reach_data.D84[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 84, psi)
         
     #update roughness. each vector is length n_reaches
-    Hbar = (data_output['Q'][0:-1]).mean(0) / data_output['wac'][0:-1].mean(0)
-    s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (3*reach_data.D84))
-    C_keul = s8f_keul * np.sqrt(9.81)
-    n_keul = Hbar**(1/6) / C_keul
-    reach_data.n = n_keul
+    if vary_roughness:
+        Hbar = (data_output['flow_depth'][0:-1]).mean(0) 
+        s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (3*reach_data.D84))
+        C_keul = s8f_keul * np.sqrt(9.81)
+        n_keul = Hbar**(1/6) / C_keul
+        reach_data.n = n_keul
     # new el_fn and el_tn. Consider keeping the top reaches, and perhaps our gorge, from moving?
     reach_data.el_fn = extended_output['Node_el'][-1][0:reach_data.n_reaches]
     reach_data.el_tn = extended_output['Node_el'][-1][1:reach_data.n_reaches+1]
@@ -304,7 +314,7 @@ for NR in range(nrepeats):
     # Call dcascade main
     data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
                                                indx_velocity, indx_velocity_partition,                           
-                                               reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                               reach_data, Network, Q, Qbi_input, Qbi_dep_in2, timescale, psi,
                                                roundpar, update_slope, eros_max, save_dep_layer, ts_length,vary_width,
                                                consider_overtaking_sed_in_outputs, compare_with_tr_cap,
                                                time_lag_for_Vmob)
