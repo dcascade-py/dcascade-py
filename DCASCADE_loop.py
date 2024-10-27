@@ -57,6 +57,7 @@ class ReachData:
         self.to_n = geodataframe['ToN'].astype(int).values
         self.slope = geodataframe['Slope'].astype(float).values
         self.wac = geodataframe['Wac'].astype(float).values
+        self.maxwac = geodataframe['maxWac'].astype(float).values
         self.n = geodataframe['n'].astype(float).values
         self.D16 = geodataframe['D16'].astype(float).values
         self.D50 = geodataframe['D50'].astype(float).values
@@ -82,7 +83,8 @@ class ReachData:
         self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else np.nan
         self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else np.nan
         self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else np.nan
-        
+        self.width_a = geodataframe['a'].astype(float).values
+        self.width_b = geodataframe['b'].astype(float).values
     def sort_values_by(self, sorting_array):
         """
         Function to sort the Reaches by the array given in input.
@@ -284,7 +286,7 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, 
                   indx_velocity, indx_velocity_partition,
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
-                  update_slope, eros_max, save_dep_layer, ts_length,
+                  update_slope, eros_max, save_dep_layer, ts_length,vary_width,
                   consider_overtaking_sed_in_outputs = True,
                   compare_with_tr_cap = True, time_lag_for_mobilised = True):
     
@@ -356,9 +358,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     Fi_r_act[:,0] = np.nan
     Q_out = np.zeros((timescale, n_reaches, n_classes)) # amount of material delivered outside the network in each timestep
     D50_AL = np.zeros((timescale, n_reaches)) # D50 of the active layer in each reach in each timestep
-    D50_AL2 = np.zeros((timescale, n_reaches))
     V_sed = np.zeros((timescale, n_reaches, n_classes)) #velocities
-
+    T_record_days = np.zeros((timescale)) #time storage, days #ccJR
+    
     tr_cap_all = np.zeros((timescale, n_reaches, n_classes)) #transport capacity per each sediment class
     tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity 
 
@@ -390,7 +392,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
 
     # Set maximum volume in meters that can be eroded for each reach, for each time step.
     eros_max_all = np.ones((1, n_reaches)) * eros_max
-    eros_max_vol = np.round(eros_max_all * reach_data.wac * reach_data.length, roundpar)
+    eros_max_vol = np.round(eros_max_all * reach_data.maxwac * reach_data.length, roundpar)
 
     # Set active layer volume, the one used for calculating the tr_cap in [m3/s]
     # corresponds to the depth that the river can see every second (more like a continuum carpet ...)  
@@ -404,13 +406,14 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         reference_d = reach_data.D84
     for n in network['n_hier']:
         al_depth = np.maximum(2*reference_d[n], 0.01)
-        al_vol = al_depth * reach_data.wac[n] * reach_data.length[n]
+        al_vol = al_depth * reach_data.maxwac[n] * reach_data.length[n]
         al_vol_all[:,n] = np.repeat(al_vol, timescale, axis=0)
         al_depth_all[:,n] = np.repeat(al_depth, timescale, axis=0)
-
+    if vary_width:
+        wacsave = np.zeros((timescale, n_reaches)) 
     # start waiting bar    
     for t in tqdm(range(timescale-1)):
-        
+        T_record_days[t]=t*ts_length / (60*60*24);
         # Define flow depth and flow velocity from flow_depth_calc
         h, v = choose_flow_depth(reach_data, slope, Q, t, indx_flo_depth)
         flow_depth[t] = h
@@ -428,14 +431,18 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         
         # loop for all reaches:
         for n in network['n_hier']:  
-            if n == 10 and t == 297:
-                print('ok')
             
             # TODO : How to include the lateral input ?
                                
             # Extracts the deposit layer left in previous time step          
             V_dep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
-                                       
+            
+            if vary_width: #ccJR carying width with hydraulic geometry. Replace this with hypsometric hydraulics next. 
+                wacsave[t,n] =  reach_data.width_a[n] * Q[t,n]**reach_data.width_b[n]
+                #wacsave[t,n] =  reach_data.width_a[n] * 250**reach_data.width_b[n]
+                #this is a good place to raplace Q[t,n] with a 'single' Q to test the old constant Wac
+                reach_data.wac[n] = wacsave[t,n]
+                           
             ###------Step 1 : Cascades generated from the reaches upstream during 
             # the present time step, are passing the inlet of the reach
             # (stored in Qbi_pass[n]).
@@ -449,7 +456,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
                     # DD: If we want to store instead the direct provenance
                     # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)  
-            
+                    #ccJR I may break tracking, bit I want to add inputs. 
                 
             # Compute the velocity of the cascades in this reach [m/s] 
             if Qbi_pass[n] != []:
@@ -569,8 +576,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 Q_pass_volume_per_s = copy.deepcopy(Q_pass_volume)
                 Q_pass_volume_per_s[:,1:] = Q_pass_volume_per_s[:,1:] / ts_length                                            
                 _,_,_, Fi_r = layer_search(V_dep_after_tlag, al_vol_all[0,n], roundpar, Qbi_incoming = Q_pass_volume_per_s) 
-                D50_AL2[t,n] = float(D_finder(Fi_r, 50, psi))   
-                tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_AL2[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
+                D50_2 = float(D_finder(Fi_r, 50, psi))   
+                tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_2, slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
                 # Total volume possibly mobilised during (1 - time_lag)
                 time_for_mobilising = (1-time_lag) * ts_length
                 volume_mobilisable = tr_cap_per_s * time_for_mobilising
@@ -591,11 +598,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar, Qbi_incoming = Q_pass_volume)
                     [V_mob, V_dep_after_tlag] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, diff_pos, roundpar)
                     
-                    if np.any(V_mob[:,1:] != 0): 
-                        # The Vmob is added to the temporary container 
-                        elapsed_time = time_lag # it start its journey at the end of the time lag
-                        provenance = n
-                        mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
+                    # The Vmob is added to the temporary container 
+                    elapsed_time = time_lag # it start its journey at the end of the time lag
+                    provenance = n
+                    mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
                                         
                 # Sediment classes with negative values in diff_with_capacity
                 # are over capacity
@@ -625,7 +631,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
                     # DD: If we want to store instead the direct provenance
                     # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
-                                                
+            
+            #ccJR - add our inputs to Qbi_mob, for the next timestep to deal with.                        
+            Qbi_mob[t][n,n,:] += Qbi_input[t,n,:]
+                                    
             # Deposit the stopping cascades in Vdep 
             if to_be_deposited is not None:                   
                 to_be_deposited = sortdistance(to_be_deposited, network['upstream_distance_list'][n])
@@ -660,7 +669,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             
             # Update slope, if required.
             if update_slope == True:
-                node_el[t+1][n]= node_el[t,n] + Delta_V/( np.sum(reach_data.Wac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['Upstream_Node'][n])]) * (1-phi) )
+                node_el[t+1][n]= node_el[t,n] + Delta_V/( np.sum(reach_data.maxwac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['upstream_node'][n])]) * (1-phi) )
             
         """End of the reach loop"""
         
@@ -1075,57 +1084,65 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     #--Total sediment volume leaving the network
     outcum_tot = np.array([np.sum(x) for x in Q_out])
     df = pd.DataFrame(outcum_tot)
+    df.to_csv('Refactoring_test_file_AnneLaure.txt')
     
     #set all NaN transport capacity to 0
     tr_cap_sum[np.isnan(tr_cap_sum)] = 0 
     
     #set all NaN active layer D50 to 0; 
     D50_AL[np.isnan(D50_AL)] = 0
-    D50_AL2[np.isnan(D50_AL2)] = 0
     
     Q = np.array(Q)
     
     #--Output struct definition 
     #data_plot contains the most important D_CASCADE outputs 
-    data_output = {'Channel Width [m]': np.repeat(np.array(reach_data.wac).reshape(1,-1),len(Qbi_dep), axis = 0), 
-                   'Reach slope': slope,
-                   'Discharge [m^3/s]': Q[0:timescale,:],
-                   'Mobilized [m^3]': QB_mob_sum,
-                   'Transported [m^3]': tot_tranported,
-                   'Transported + deposited [m^3]': tot_sed,
-                   'D50 deposit layer [m]': D50_dep,
-                   'D50 mobilised layer [m]': D50_mob,
-                   'D50 active layer [m]': D50_AL,
-                   'D50 active layer 2 [m]': D50_AL2,
-                   'Transport capacity [m^3]': tr_cap_sum,
-                   'Deposit layer [m^3]': V_dep_sum,
-                   'Delta deposit layer [m^3]': Delta_V_all,
-                   'Transported + deposited - per class [m^3]': tot_sed_class,
-                   'Deposited - per class [m^3]': deposited_class,
-                   'Mobilised - per class [m^3]': mobilised_class,
-                   'Transported- per class [m^3]': transported_class,
-                   'Delta deposit layer - per class [m^3]': Delta_V_class,
-                   'Transport capacity - per class [m^3]': tr_cap_class,
-                   'Sed_velocity [m/day]': V_sed,
-                   'Sed_velocity - per class [m/day]': V_sed_class,
-                   'Flow depth': flow_depth,
-                   'Active layer [m]': al_depth_all,
-                   'Maximum erosion layer [m]': eros_max_all,
-                   'Q_out [m^3]': Q_out,
-                   'Q_out_class [m^3]': Q_out_class,
-                   'Q_out_tot [m^3]': outcum_tot
-                   }
+    data_output = {
+        'wac': wacsave,  # Channel Width [m] which is now [m] and shape [t,nreaches]
+        'slope': slope,  # Reach slope
+        'Q': Q[0:timescale, :],  # Discharge [m^3/s]
+        'QB_mob_sum': QB_mob_sum,  # Mobilized [m^3]
+        'tot_tranported': tot_tranported,  # Transported [m^3]
+        'tot_sed': tot_sed,  # Transported + deposited [m^3]
+        'D50_dep': D50_dep,  # D50 deposit layer [m]
+        'D50_mob': D50_mob,  # D50 mobilised layer [m]
+        'D50_AL': D50_AL,  # D50 active layer [m]
+        'tr_cap_sum': tr_cap_sum,  # Transport capacity [m^3]
+        'V_dep_sum': V_dep_sum,  # Deposit layer [m^3]
+        'Delta_V_all': Delta_V_all,  # Delta deposit layer [m^3]
+        'tot_sed_class': tot_sed_class,  # Transported + deposited - per class [m^3]
+        'deposited_class': deposited_class,  # Deposited - per class [m^3]
+        'mobilised_class': mobilised_class,  # Mobilised - per class [m^3]
+        'transported_class': transported_class,  # Transported - per class [m^3]
+        'Delta_V_class': Delta_V_class_all,  # Delta deposit layer - per class [m^3] #ccJR added _all for complete change array. 
+        'tr_cap_class': tr_cap_class,  # Transport capacity - per class [m^3]
+        'V_sed': V_sed,  # Sed_velocity [m/dt]
+        'V_sed_class': V_sed_class,  # Sed_velocity - per class [m/day]
+        'flow_depth': flow_depth,  # Flow depth
+        'al_depth_all': al_depth_all,  # Active layer [m]
+        'eros_max_all': eros_max_all,  # Maximum erosion layer [m]
+        'Q_out': Q_out,  # Q_out [m^3]
+        'Q_out_class': Q_out_class,  # Q_out_class [m^3]
+        'outcum_tot': outcum_tot  # Q_out_tot [m^3]
+        }
 
     if indx_tr_cap == 7:
         data_output["Qc - per class"] = Qc_class
-         
+    dmi = 2**(-psi).reshape(-1,1)      
     #all other outputs are included in the extended_output cell variable 
     extended_output = {'Qbi_tr': Qbi_tr,
                        'Qbi_mob': Qbi_mob,
                        'Q_out': Q_out,
                        'Qbi_dep': Qbi_dep,
                        'Fi_r_ac': Fi_r_act,
-                       'node_el': node_el
+                       'Fi_mob_t': Fi_mob_t,
+                       'Node_el': node_el,
+                       'Length': reach_data.length,
+                       'D16': reach_data.D16,
+                       'D50': reach_data.D50,
+                       'D84': reach_data.D84,
+                       'psi': psi,
+                       'dmi': dmi,
+                       'Tdays': T_record_days,
                        }
     
     return data_output, extended_output
