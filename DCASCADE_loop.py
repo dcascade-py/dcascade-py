@@ -286,7 +286,7 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, 
                   indx_velocity, indx_velocity_partition,
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
-                  update_slope, eros_max, save_dep_layer, ts_length,vary_width,
+                  update_slope, eros_max, save_dep_layer, ts_length,vary_width,vary_roughness,
                   consider_overtaking_sed_in_outputs = True,
                   compare_with_tr_cap = True, time_lag_for_mobilised = True):
     
@@ -312,6 +312,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     eros_max       = maximum erosion depth per time step [m]
     save_dep_layer = saves the deposit layer for each time step
     ts_length      = the length in seconds of the timestep (60*60*24 for daily timesteps)
+    #JR additions
+    vary_width
+    vary_roughness
     
     OUTPUT: 
     data_output      = struct collecting the main aggregated output matrices 
@@ -376,7 +379,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         node_el[:,: ] = node_el[0,:]
     
     # Initialise sediment deposit in the reaches 
-
+    #ccJR - the first part is integer 'n' which is reach. 
     Qbi_dep_0 = [np.expand_dims(np.zeros(n_classes+1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)]
     for n in network['n_hier']:  
         # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
@@ -453,7 +456,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 #wacsave[t,n] =  reach_data.width_a[n] * 250**reach_data.width_b[n]
                 #this is a good place to raplace Q[t,n] with a 'single' Q to test the old constant Wac
                 reach_data.wac[n] = wacsave[t,n]
-                           
+
+                
             ###------Step 1 : Cascades generated from the reaches upstream during 
             # the present time step, are passing the inlet of the reach
             # (stored in Qbi_pass[n]).
@@ -486,8 +490,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                                            roundpar)
                 # Store velocities
                 V_sed[t, n, :] = velocities * ts_length
-            
-            # Decides weather cascades, or parts of cascades, 
+                #ccJR test moving sand much faster in prep for a suspended sand routine. 
+                #V_sed[t, n, psi > - 1] = v[n] * ts_length * 0.1 #moving at 0.1 of the water velocity. 
+            # Decides whether cascades, or parts of cascades, 
             # finish the time step here or not.
             # After this step, Qbi_pass[n] contains volume that do not finish
             # the time step in this reach
@@ -682,6 +687,20 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
             if update_slope == True:
                 node_el[t+1][n]= node_el[t,n] + Delta_V/( np.sum(reach_data.maxwac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['upstream_node'][n])]) * (1-phi) )
             
+            
+            vary_roughness_inloop =True 
+            #update roughness within the time loop. each vector is length n_reaches
+            if vary_roughness_inloop:
+                #need updated D84 at least
+                #reach_data.D16[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 16, psi)
+                #reach_data.D50[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 50, psi)
+                reach_data.D84[n] = D_finder(Fi_r_act[t,n,:], 84, psi)  
+                
+                Hbar = h[n]
+                s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (3*reach_data.D84[n]))
+                C_keul = s8f_keul * np.sqrt(9.81)
+                n_keul = Hbar**(1/6) / C_keul
+                reach_data.n[n] = n_keul            
         """End of the reach loop"""
         
         # Save Qbi_dep according to saving frequency
@@ -697,6 +716,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         if update_slope == True:
             #..change the slope accordingly to the bed elevation
             slope[t+1,:], node_el[t+1,:] = change_slope(node_el[t+1,:] ,reach_data.length, network, s = min_slope)
+
                 
     """end of the time loop"""                
 
