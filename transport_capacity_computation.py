@@ -424,7 +424,93 @@ def choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap):
     elif indx_tr_cap == 7:
         tr_cap, Qc = Rickenmann_formula(D50, slope, Q, wac)
     
+    elif indx_tr_cap == 28:
+        [tr_cap, tau, taur50] =  Wilcock_Crowe_formula(Fi_r_reach, D50, slope, wac, h, psi)
+        
+        [tr_capVR, tauVR] =  VanRijn_formula(Fi_r_reach, D50, slope, wac, v, h, psi)
+        sand_indices = np.where(psi > -1)[0]
+        #print(v,tr_cap[sand_indices], tr_capVR[sand_indices])
+        tr_cap[sand_indices] += tr_capVR[sand_indices] * Fi_r_reach[sand_indices]
+        
     return tr_cap, Qc
+
+def VanRijn_formula(Fi_r_reach, D50, slope, wac, v, h, psi, hiding_max=40):
+    #ccJR = preparing to check suspended sand capacity, not there yet. 
+    dmi = 2 ** (-psi) / 1000  # sediment class diameters in meters
+    rho_w = 1000  # water density in kg/m^3
+    rho_s = 2650  # sediment density in kg/m^3
+    g = 9.81  # gravitational acceleration in m/s^2
+    SRATIO = rho_s / rho_w - 1  # submerged specific gravity of sediment
+    visc_kin = 1e-6  # kinematic viscosity in m^2/s
+    
+    Fi_r_reach = Fi_r_reach.squeeze()
+    vr_a = 2 * D50
+    tau = np.array(RHO_W * GRAV * h * slope) # bed shear stress [Kg m-1 s-1]
+    ustar = np.sqrt(tau / rho_w)
+    
+    gamma_sand = 0.68
+    gamma_gravel = 0.86
+    tr_cap_nolimit = np.zeros(len(psi))
+    
+    sand_indices = np.where(psi > -1)[0]
+    Fr_s = np.sum(Fi_r_reach[sand_indices]) # all sand class sum
+    for p in sand_indices:
+         
+        Dst = dmi[p] * (SRATIO * g / visc_kin ** 2) ** (1 / 3)
+        if 0.1 < Dst <= 4:
+            theta_cr = 0.24 / Dst
+        elif 4 < Dst <= 10:
+            theta_cr = 0.15 * Dst ** -0.64
+        elif 10 < Dst <= 20:
+            theta_cr = 0.04 * Dst ** -0.10
+        elif 20 < Dst <= 150:
+            theta_cr = 0.013 * Dst ** 0.29
+        elif 150 < Dst:
+            theta_cr = 0.055
+            print("Grain size too large perhaps?")
+        else:
+            print("Grain size too small perhaps?")
+            continue
+        #critical bed shear stress
+        tbed_cr = (rho_s - rho_w) * g * dmi[p] * theta_cr
+
+        # McCarron's hiding function
+        gamma_McCarron = gamma_sand + (gamma_gravel - gamma_sand) * (1 - Fr_s) ** 1.73
+        hiding_xi = np.minimum((dmi[p] / D50) ** -gamma_McCarron, hiding_max)
+        # Bed shear stress parameters with and without hiding
+        Tsf = (tau - tbed_cr) / tbed_cr
+        Tsf = np.clip(Tsf, 0, None)
+        
+        Tmf = (tau - hiding_xi * tbed_cr) / tbed_cr
+        Tmf = np.clip(Tmf, 0, None) 
+        
+        # Fall velocity and other transport parameters - any way to speed up by storing??
+        ws = 10 * visc_kin / dmi[p] * (np.sqrt(1 + 0.01 * SRATIO * g * dmi[p] ** 3 / visc_kin ** 2) - 1)
+        ca = 0.015 * (dmi[p] / vr_a) * (Tmf ** 1.5 / Dst ** 0.3)
+
+        # Stratification and shape factors
+        phi_factor = 2.5 * (ws / ustar) ** 0.8 * (ca / 0.65) ** 0.4
+        beta = np.minimum(1 + 2 * (ws / ustar) ** 2, 2)
+        Z = ws / (beta * 0.41 * ustar)
+        Z = np.clip(Z, None, 20)
+        
+        Zpr = Z + phi_factor
+        F = ((vr_a / h) ** Zpr - (vr_a / h) ** 1.2) / ((1 - vr_a / h) ** Zpr * (1.2 - Zpr))
+        F = np.real(np.array(F))
+        F[np.isnan(F)] = 0
+
+        # Suspended transport (m^2/s)
+        Qs_nolimit = F * v * h * ca
+        Qs_nolimit = np.real(np.array(Qs_nolimit))
+        #Qs = Qs_nolimit * Fi_r_reach[:, p]
+        Qs_nolimit[np.isnan(Qs_nolimit)] = 0
+        
+        # Convert to kg/s
+        #tr_cap[p] = Qs * wac * rho_s
+        tr_cap_nolimit[p] = Qs_nolimit * wac * rho_s        
+        
+    return tr_cap_nolimit, tau
+
 
 def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx_partition):
     """
