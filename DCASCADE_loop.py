@@ -328,6 +328,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     outlet = network['n_hier'][-1] #outlet reach ID identification
     n_reaches = reach_data.n_reaches
     n_classes = len(psi)
+    sand_indices = np.where(psi > -1)[0]
     
     # Initialise slopes 
     min_slope = min(reach_data.slope) # put a minimum value to guarantee movement 
@@ -350,6 +351,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         dep_save_number = 1
     if save_dep_layer=='yearly':
         dep_save_number = int(timescale/365)+1 #+1 because we also keep t0.
+    if save_dep_layer=='monthhour':
+        dep_save_number = int(timescale/720)+1 #+1 because we also keep t0.        
     if save_dep_layer=='always':
         dep_save_number=timescale
     Qbi_dep = [[np.expand_dims(np.zeros(n_classes + 1, dtype=numpy.float32), axis = 0) for _ in range(n_reaches)] for _ in range(dep_save_number)]
@@ -449,7 +452,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 arrgh = Qbi_input[t, n, :] #what's in the [0]? 1-7 are grain sizes. 
                 Qtoadd =  np.insert(arrgh, 0, 0)
                 Qtoadd = Qtoadd.reshape(1, -1)
-                Qbi_pass[n].append(Cascade(n, et0, Qtoadd))
+                Qbi_pass[n].append(Cascade(n, et0, Qtoadd)) #ccJR adding source volume here. 
             
             if vary_width: #ccJR carying width with hydraulic geometry. Replace this with hypsometric hydraulics next. 
                 wacsave[t,n] =  reach_data.width_a[n] * Q[t,n]**reach_data.width_b[n]
@@ -472,7 +475,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     
                     # DD: If we want to store instead the direct provenance
                     # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)  
-                    #ccJR I may break tracking, bit I want to add inputs. 
+                    
                 
             # Compute the velocity of the cascades in this reach [m/s] 
             if Qbi_pass[n] != []:
@@ -545,6 +548,27 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 # DD: to be discussed if we keep the active layer (2D90) or a bigger active layer,
                 # since we don't consider any incoming sediment now                          
                 _,_,_, Fi_r_act[t,n,:] = layer_search(V_dep_init, al_vol_all[0,n], roundpar)
+                
+                
+                #ccJR can I work here to get different Fi at different 'depths'? YES.
+                #a small active layer volume returns the material on top - basically sand.
+                #I can split up the bed by active layer 'hypso position' using incremental wac returned by hypsometry
+                #the first 'cascade' in n=4 has index 4 and the most volume - that's it's own-sourced volume
+                # if n==4:
+                #     print(V_dep_init.shape)
+                #     foo_v = 20
+                    
+                #     V_inc2act,V_dep2act,V_dep, Fi_custom = layer_search(V_dep_init, foo_v, roundpar)
+                #     D50_custom = D_finder(Fi_custom, 50, psi) 
+                #     print(1000*D50_custom)
+                    
+                #     #if I run this many times, I dig down V_dep to the sublayer:
+                #     V_inc2act,V_dep2act,V_dep, Fi_custom = layer_search(V_dep, foo_v, roundpar)
+                #     D50_custom = D_finder(Fi_custom, 50, psi) 
+                #     print(1000*D50_custom)
+                    
+                    
+                
                 D50_AL[t,n] = D_finder(Fi_r_act[t,n,:], 50, psi)           
                 # In case the active layer is empty, I use the GSD of the previous timestep
                 if np.sum(Fi_r_act[t,n,:]) == 0:
@@ -561,12 +585,28 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 time_for_mobilising = time_lag * ts_length
                 volume_mobilisable = tr_cap_per_s * time_for_mobilising
                 
+                
                 # Erosion maximum during the time lag 
                 # (we take the mean time lag among the classes)
                 eros_max_vol_t = eros_max_vol[0,n] * np.mean(time_lag)
                 
+                #ccJR attempting to limit the channel's access to sand.
+                sand_access_mod = reach_data.wac[n]**2 / reach_data.maxwac[n]**2 #fraction of maxwac as availability modifier. more powerful - squared ratio. CUT small channels access to sand
+                #sand_access_mod = reach_data.wac[n] / reach_data.maxwac[n] #fraction of maxwac as availability modifier. more powerful - squared ratio. CUT small channels access to sand
+                #eros_max_vol_t[sand_indices] = sand_access_mod * eros_max_vol_t[sand_indices] %this failed - does not have dimension for psi
+                
+                #ccJR if I modify V_dep_init here it will kill mass. if I move thingsa after layer search from EL to not EL
+                
                 # Mobilise from the reach layers
                 V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar)
+                
+                #here I can move deposited sand that layer_search found active, into inactive. currently by a width ratio- next by hypsometric active.
+                #ahhh, but there are multiple cascades in V_dep_EL. 
+                #V_dep_not_EL[0,sand_indices+1] += V_dep_EL[0,sand_indices+1] * (1-sand_access_mod)
+                #then remove same from active. This MAY retain sand on the bed until width increases enough to access it. 
+                #V_dep_EL[0,sand_indices+1] *= sand_access_mod
+                #print(V_dep_EL.shape)
+                
                 [V_mob, V_dep_init] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, volume_mobilisable, roundpar)
                                 
                 if np.any(V_mob[:,1:] != 0): 
@@ -611,8 +651,19 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     # Erosion maximum during (1 - time_lag)
                     eros_max_vol_t = eros_max_vol[0,n] * (1 - np.mean(time_lag)) #erosion maximum
                     
+                    #ccJR attempting to limit the channel's access to sand.
+                    #sand_access_mod = reach_data.wac[n]**2 / reach_data.maxwac[n]**2 #fraction of maxwac as availability modifier. more powerful - squared ratio. CUT small channels access to sand
+                    
                     # Mobilise from the reach layers
                     V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar, Qbi_incoming = Q_pass_volume)
+                    
+                    # how to shield sand from erosion despite capacity? matrix_compact(Q_pass_volume)
+                    #here I can move deposited sand that layer_search found active, into inactive. currently by a width ratio- next by hypsometric active.
+                    #V_dep_not_EL[0,sand_indices+1] += V_dep_EL[0,sand_indices+1] * (1-sand_access_mod)
+                    #then remove same from active
+                    #V_dep_EL[0,sand_indices+1] *= sand_access_mod                    
+                    #print(V_dep_EL.shape)
+                    
                     [V_mob, V_dep_after_tlag] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, diff_pos, roundpar)
                     
                     # The Vmob is added to the temporary container 
@@ -688,7 +739,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 node_el[t+1][n]= node_el[t,n] + Delta_V/( np.sum(reach_data.maxwac[np.append(n, network['upstream_node'][n])] * reach_data.length[np.append(n, network['upstream_node'][n])]) * (1-phi) )
             
             
-            vary_roughness_inloop =True 
+            vary_roughness_inloop = True 
             #update roughness within the time loop. each vector is length n_reaches
             if vary_roughness_inloop:
                 #need updated D84 at least
@@ -709,6 +760,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         if save_dep_layer == 'yearly':
             if int(t+2) % 365 == 0 and t != 0:
                 t_y = int((t+2)/365)
+                Qbi_dep[t_y] = copy.deepcopy(Qbi_dep_0)
+        if save_dep_layer == 'monthhour':
+            if int(t+2) % 720 == 0 and t != 0:
+                t_y = int((t+2)/720)
                 Qbi_dep[t_y] = copy.deepcopy(Qbi_dep_0)
                             
             
