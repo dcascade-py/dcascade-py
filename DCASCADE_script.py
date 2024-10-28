@@ -73,7 +73,7 @@ filename_qs = path_q / name_qs
 
 
 #--------Path to the output folder
-path_results = Path("../Oct25RangitataFC_dH/Rev6_VRtest/")
+path_results = Path("../Oct25RangitataFC_dH/Rev9_100pct234_wac/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -85,7 +85,7 @@ sed_range = [-9, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 7        # number of classes
 
 #---Timescale 
-nrepeats = 10
+nrepeats = 100
 #timescale =  385 # hours   #420
 timescale =  2880 # hours   #420
 ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
@@ -99,7 +99,7 @@ deposit_layer = 10000 * 2   # Initial deposit layer [m]. Warning: will overwrite
 eros_max = 1             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
-save_dep_layer = 'yearly' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
+save_dep_layer = 'monthhour' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
 roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
@@ -152,10 +152,10 @@ Qbi_input = np.zeros((timescale, reach_data.n_reaches, n_classes))
 #ccJR UNITS are [m3/timestep] of 'pure sediment.' We here throw out any Qs we read that is AFTER 'timescale' timesteps. 
 add_Qbi=True #switch to turn on or off Qbi_input code
 if add_Qbi:
-    Qbi_input[:,1,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED aha - adding much more as it is going straight to the bed. 
-    Qbi_input[:,2,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED bin 6 125 micron for now. added bin 5. 
-    Qbi_input[:,3,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED 100% of half is 50% of the natural sand load.
-    Qbi_input[:,4,5:7] = Qs[0:timescale,5:7] * .05 #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
+    #Qbi_input[:,1,5:7] = Qs[0:timescale,5:7] * .25 #ccJR HARDCODED aha - adding much more as it is going straight to the bed. 
+    Qbi_input[:,2,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED bin 6 125 micron for now. added bin 5. 
+    Qbi_input[:,3,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED 100% of half is 50% of the natural sand load.
+    Qbi_input[:,4,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
     #Qbi_input[:,10,5:7] = Qs[0:timescale,5:7] * 25 #ccJR HARDCODED test below gorge
 
 # Define input sediment load in the deposit layer
@@ -163,6 +163,10 @@ deposit = reach_data.deposit * reach_data.length
 
 # Define initial sediment fractions per class in each reaches, using a Rosin distribution
 Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi) 
+
+#cJR I want NO sand coming in the source reaches, so I can specify it myself, distributed safely where I want it. 
+Fi_r[0,5:7] = 0
+Fi_r[1,5:7] = 0
 
 # Initialise deposit layer 
 Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
