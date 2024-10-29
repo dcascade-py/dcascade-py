@@ -588,7 +588,7 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     eros_max_vol_t = eros_max_vol[0,n] * (1 - np.mean(time_lag)) #erosion maximum
                     
                     # Mobilise from the reach layers
-                    V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar, Qbi_incoming = Q_pass_volume)
+                    V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar)
                     [V_mob, V_dep_after_tlag] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, diff_pos, roundpar)
                     
                     if np.any(V_mob[:,1:] != 0): 
