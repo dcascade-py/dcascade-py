@@ -532,7 +532,8 @@ def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi
     is calculated on this volume, and the velocity is calculated by dividing the 
     transport capacity by a section (hVel x width x (1 - porosity)). 
     For partionning the section among the different sediment class in the volume, 
-    two methods are proposed. The first one put the same velocity to all classes.
+    two methods are proposed. 
+    The first one put the same velocity to all classes.
     The second divides the section equally among the classes with non-zero transport 
     capacity, so the velocity stays proportional to the transport capacity of that class.
     
@@ -557,9 +558,10 @@ def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi
         velocities = np.full(len(tr_cap_per_s), velocity_same) # put the same value for all classes
         
     elif indx_velocity_partitioning == 2:
-        Si = Svel / len(tr_cap_per_s)             # same section for all sediments
+        # Get the number of classes that are non 0 in the transport capacity flux:
+        number_with_flux = np.count_nonzero(tr_cap_per_s)
+        Si = Svel / number_with_flux             # same section for all sediments
         velocities = np.maximum(tr_cap_per_s/Si , minvel)
-        # DD: to be improved, the section Svel should be divided by the number of non zeros in tr_cap_per_s
 
     return velocities
 
