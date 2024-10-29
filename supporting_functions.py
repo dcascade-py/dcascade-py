@@ -568,6 +568,248 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
 
 
 
+class Cascade:
+    def __init__(self, provenance, elapsed_time, volume):
+        self.provenance = provenance
+        self.elapsed_time = elapsed_time
+        self.volume = volume
+        # To be filled during the time step
+        self.velocities = np.nan
+            
+        
+class ReachData:
+    def __init__(self, geodataframe):
+        self.n_reaches = len(geodataframe)
+        
+        # Mandatory attributes
+        self.from_n = geodataframe['FromN'].astype(int).values
+        self.to_n = geodataframe['ToN'].astype(int).values
+        self.slope = geodataframe['Slope'].astype(float).values
+        self.wac = geodataframe['Wac'].astype(float).values
+        self.n = geodataframe['n'].astype(float).values
+        self.D16 = geodataframe['D16'].astype(float).values
+        self.D50 = geodataframe['D50'].astype(float).values
+        self.D84 = geodataframe['D84'].astype(float).values
+        self.length = geodataframe['Length'].astype(float).values
+        self.el_fn = geodataframe['el_FN'].astype(float).values
+        self.el_tn = geodataframe['el_TN'].astype(float).values
+
+        # Optional attributes
+        self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else np.nan
+        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else np.nan
+        self.q = geodataframe['Q'].values if 'Q' in geodataframe.columns else np.nan
+        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else np.nan
+        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else np.nan
+        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else np.nan
+        self.tr_limit = geodataframe['tr_limit'].values if 'tr_limit' in geodataframe.columns else np.nan
+        self.x_fn = geodataframe['x_FN'].values if 'x_FN' in geodataframe.columns else np.nan
+        self.y_fn = geodataframe['y_FN'].values if 'y_FN' in geodataframe.columns else np.nan
+        self.x_tn = geodataframe['x_TN'].values if 'x_TN' in geodataframe.columns else np.nan
+        self.y_tn = geodataframe['y_TN'].values if 'y_TN' in geodataframe.columns else np.nan
+        self.ad = geodataframe['Ad'].values if 'Ad' in geodataframe.columns else np.nan
+        self.direct_ad = geodataframe['directAd'].values if 'directAd' in geodataframe.columns else np.nan
+        self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else np.nan
+        self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else np.nan
+        self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else np.nan
+        
+    def sort_values_by(self, sorting_array):
+        """
+        Function to sort the Reaches by the array given in input.
+        """
+        # Making sure the array given has the right length
+        assert(len(sorting_array) == self.n_reaches)
+        
+        # Get the indices that would sort sorting_array
+        sorted_indices = np.argsort(sorting_array)
+        
+        # Loop through all attributes
+        for attr_name in vars(self):
+
+            # Check if these are reach attributes
+            attr_value = vars(self)[attr_name]
+            if isinstance(attr_value, np.ndarray) and len(attr_value) == self.n_reaches:
+                vars(self)[attr_name] = attr_value[sorted_indices]
+                
+        return sorted_indices
+
+
+
+def compute_cascades_velocities(reach_cascades_list, 
+                               indx_velocity, indx_velocity_partitioning, hVel,
+                               indx_tr_cap, indx_partition,
+                               reach_width, reach_slope, Q_reach, v, h,
+                               phi, minvel, psi, 
+                               reach_Vdep, active_layer_volume,
+                               roundpar):
+    
+    ''' Compute the velocity of the cascades in reach_cascade_list.
+    The velocity must be assessed by re-calculating the transport capacity 
+    in the present reach, considering the effect of the arriving cascade(s).
+    Two methods are proposed to re-evaluated the transport capacity, chosen 
+    by the indx_velocity. 
+    First method: the simplest, we re-calculate the transport capacity on each cascade itself.
+    Second method: we consider the active layer volume, to complete, if needed, 
+    the list of cascade by some reach material. If the cascade volume is more 
+    than the active layer, we consider all the cascade volume.
+    '''
+
+    if indx_velocity == 1:
+        velocities_list = []
+        for cascade in reach_cascades_list:
+            cascade.velocities = volume_velocities(cascade.volume, 
+                                                   indx_velocity_partitioning, 
+                                                   hVel, phi, minvel, psi,
+                                                   indx_tr_cap, indx_partition,
+                                                   reach_width, reach_slope,
+                                                   Q_reach, v, h)
+            velocities_list.append(cascade.velocities)
+        # In this case, we store the averaged velocities obtained among all the cascades
+        velocities = np.mean(np.array(velocities_list), axis = 0)
+            
+    if indx_velocity == 2:
+        # concatenate cascades in one volume, and compact it by original provenance
+        # DD: should the cascade volume be in [m3/s] ?
+        volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0) 
+        volume_all_cascades = matrix_compact(volume_all_cascades)
+        
+        volume_total = np.sum(volume_all_cascades[:,1:])
+        if volume_total < active_layer_volume:
+            _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume,
+                                    roundpar, Qbi_incoming = volume_all_cascades)
+            volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
+
+        velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning, 
+                                       hVel, phi, minvel, psi,
+                                       indx_tr_cap, indx_partition,
+                                       reach_width, reach_slope,
+                                       Q_reach, v, h)
+        
+        for cascade in reach_cascades_list:
+            cascade.velocities = velocities
+    
+    return velocities
+        
+            
+def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi,
+                      indx_tr_cap, indx_partition,
+                      reach_width, reach_slope, Q_reach, v, h):
+    
+    ''' Compute the velocity of the volume of sediments. The transport capacity [m3/s]
+    is calculated on this volume, and the velocity is calculated by dividing the 
+    transport capacity by a section (hVel x width x (1 - porosity)). 
+    For partionning the section among the different sediment class in the volume, 
+    two methods are proposed. The first one put the same velocity to all classes.
+    The second divides the section equally among the classes with non-zero transport 
+    capacity, so the velocity stays proportional to the transport capacity of that class.
+    
+    '''
+    # Find volume sediment class fractions and D50
+    volume_total = np.sum(volume[:,1:])
+    volume_total_per_class = np.sum(volume[:,1:], axis = 0)
+    sed_class_fraction = volume_total_per_class / volume_total
+    D50 = float(D_finder(sed_class_fraction, 50, psi))
+    
+    # Compute the transport capacity
+    [ tr_cap_per_s, pci ] = tr_cap_function(sed_class_fraction, D50,  
+                                       reach_slope, Q_reach, reach_width,
+                                       v , h, psi, 
+                                       indx_tr_cap, indx_partition)
+    
+    Svel = hVel * reach_width * (1 - phi)  # the global section where all sediments pass through
+
+    if indx_velocity_partitioning == 1:
+        velocity_same = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
+        velocity_same = np.maximum(velocity_same , minvel)    # apply the min vel threshold
+        velocities = np.full(len(tr_cap_per_s), velocity_same) # put the same value for all classes
+        
+    elif indx_velocity_partitioning == 2:
+        Si = Svel / len(tr_cap_per_s)             # same section for all sediments
+        velocities = np.maximum(tr_cap_per_s/Si , minvel)
+        # DD: to be improved, the section Svel should be divided by the number of non zeros in tr_cap_per_s
+
+    return velocities
+
+
+def compute_time_lag(cascade_list, n_classes):
+    ''' The time lag is the time we use to mobilise from the reach, 
+    before cascades from upstream reaches arrive at the outlet of the present reach.
+    We take it as the time for the first cascade to arrive at the outet.
+    '''
+    
+    if cascade_list == []:
+        time_lag = np.ones(n_classes) # the time lag is the entire time step as no other cascade reach the outlet
+    else:
+        time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
+        time_lag = np.min(time_arrays, axis=0) 
+        
+    return time_lag
+
+
+def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
+    ''' Fonction to decide if the traveling cascades in cascade list stop in 
+    the reach or not, due to the end of the time step.
+    Inputs:
+        cascade_list_old:    list of traveling cascades
+        reach_length:           reach physical length
+        ts_length:              time step length
+        
+    Return:
+        cascade_list_new:       same cascade list updated. Stopping cascades or 
+                                partial volumes have been removed
+                                                          
+        depositing_volume:      the volume to be deposited in this reach. 
+                                They are ordered according to their arrival time
+                                at the inlet, so that volume arriving first 
+                                deposit first.
+    '''   
+    # Order cascades according to their arrival time, so that first arriving 
+    # cascade are deposited first 
+    # Note: in the deposit layer matrix, the uppermost layers are the last
+    cascade_list_old = sorted(cascade_list_old, key=lambda x: np.mean(x.elapsed_time))
+    
+    depositing_volume_list = []
+    arrival_mean_time = []
+    cascades_to_be_completely_removed = []
+    
+    for cascade in cascade_list_old:
+        # Time in, time travel, and time out in time step unit (not seconds)
+        t_in = cascade.elapsed_time
+        t_travel_n = reach_length / (cascade.velocities * ts_length)
+        t_out = t_in + t_travel_n
+        # Vm_stop is the stopping part of the cascade volume
+        # Vm_continue is the continuing part
+        Vm_stop, Vm_continue = stop_or_not(t_out, cascade.volume)
+        
+        if Vm_stop is not None:
+            depositing_volume_list.append(Vm_stop)
+            arrival_mean_time.append(np.mean(t_in))
+            
+            if Vm_continue is None: 
+                # no part of the volume continues, we remove the entire cascade
+                cascades_to_be_completely_removed.append(cascade)
+            else: 
+                # some part of the volume continues, we update the volume
+                cascade.volume = Vm_continue
+                                
+        if Vm_continue is not None:
+            # update time for continuing cascades
+            cascade.elapsed_time = t_out   
+    
+    # If they are, remove complete cascades:
+    cascade_list_new = [casc for casc in cascade_list_old if casc not in cascades_to_be_completely_removed]   
+    
+    # If they are, concatenate the deposited volumes in the reverse arrival time order
+    if depositing_volume_list != []:
+        depositing_volume = np.concatenate(depositing_volume_list, axis=0)
+        depositing_volume = matrix_compact(depositing_volume)
+    else:
+        depositing_volume = None
+    
+    return cascade_list_new, depositing_volume
+               
+
+
+
 
 
 
