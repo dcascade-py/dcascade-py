@@ -74,6 +74,8 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
     OPTIONAL:
     indx_flo_depth      = the index indicating the flow depth formula, default 1 is Manning
     indx_slope_red      = the index indicating the slope reduction formula, default 1 is no reduction
+    
+    Options for the dcascade algorithme (if all False, we reproduce the version 1)
     consider_overtaking_sed_in_outputs = Bool to activate or not this option (default True)
     compare_with_tr_cap                = Bool to activate or not this option (default True)
     time_lag_for_mobilised             = Bool to activate or not this option (default True)
@@ -83,6 +85,11 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
     extended_output  = struct collecting the raw D-CASCADE output datasets
     """
     
+    # Constrain on the option of the algorithm:
+    if compare_with_tr_cap == True and consider_overtaking_sed_in_outputs == False:
+        raise ValueError("You can not use this combination of algorithm options")
+    if time_lag_for_mobilised == True and (consider_overtaking_sed_in_outputs == False or compare_with_tr_cap == False):
+        raise ValueError("You can not use this combination of algorithm options")
     
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
