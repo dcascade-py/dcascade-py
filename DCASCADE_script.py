@@ -39,7 +39,8 @@ from numpy import random
 # import ad hoc functions
 from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing, extract_Q
-from DCASCADE_loop import DCASCADE_main, ReachData
+from DCASCADE_loop import DCASCADE_main
+from supporting_classes import ReachData
 from widget import read_user_input
 import profile
 import os

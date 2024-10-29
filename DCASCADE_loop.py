@@ -18,21 +18,27 @@ import copy
 import sys
 import os
 
-from supporting_functions import D_finder
-from supporting_functions import sortdistance
-from supporting_functions import layer_search
-from supporting_functions import tr_cap_deposit
-from supporting_functions import matrix_compact 
-# from supporting_functions import sed_transfer_simple
-from supporting_functions import change_slope
-from supporting_functions import stop_or_not
+from supporting_classes import ReachData, Cascade
+
+from supporting_functions import D_finder, sortdistance, matrix_compact, change_slope
+from supporting_functions import layer_search, tr_cap_deposit
+from supporting_functions import compute_cascades_velocities
+from supporting_functions import cascades_end_time_or_not
 from supporting_functions import deposit_from_passing_sediments
+from supporting_functions import compute_time_lag
+
 from transport_capacity_computation import tr_cap_function
-from transport_capacity_computation import sed_velocity
-from transport_capacity_computation import sed_velocity_OLD
+
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 import itertools
+
+
+# from supporting_functions import sed_transfer_simple
+# from transport_capacity_computation import sed_velocity
+# from transport_capacity_computation import sed_velocity_OLD
+
+
 
 np.seterr(divide='ignore', invalid='ignore')
              
