@@ -551,6 +551,8 @@ def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi
                                        indx_tr_cap, indx_partition)
     
     Svel = hVel * reach_width * (1 - phi)  # the global section where all sediments pass through
+    if Svel == 0:
+        raise ValueError("The section to compute velocities can not be 0.")
 
     if indx_velocity_partitioning == 1:
         velocity_same = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
@@ -560,9 +562,11 @@ def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi
     elif indx_velocity_partitioning == 2:
         # Get the number of classes that are non 0 in the transport capacity flux:
         number_with_flux = np.count_nonzero(tr_cap_per_s)
-        Si = Svel / number_with_flux             # same section for all sediments
-        velocities = np.maximum(tr_cap_per_s/Si , minvel)
-
+        if number_with_flux != 0:
+            Si = Svel / number_with_flux             # same section for all sediments
+            velocities = np.maximum(tr_cap_per_s/Si, minvel)
+        else:
+            velocities = np.zeros(len(tr_cap_per_s)) # if transport capacity is all 0, velocity is all 0
     return velocities
 
 
