@@ -147,9 +147,27 @@ indx_tr_cap = 2 # Wilkock and Crowe 2003
 indx_tr_partition = 4 # Shear stress correction
 indx_velocity = 1 # method for calculating velocity
 indx_vel_partition = 1 # same velocity for all classes
-
 indx_flo_depth = 1 # Manning
 indx_slope_red = 1 # None
+
+# Options for the cascade algorithm (by default, they are all True):        
+# If all these options are False, we are reproducing the algorithme of 
+# the old version. Which means that cascades are all passing if the time step 
+# is not finished for them (= based on their velocities) + overpassing cascades are 
+# not considered in the mobilised volume nor transported
+
+# Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
+# But this does not change the way sediment move.
+# consider_overtaking_sed_in_outputs = True
+
+# Option 2: If True, we now include present cascades from upstream + reach material
+# in the transport capacity calculation, to check if they should pass or not. 
+# compare_with_tr_cap = True
+
+# Option 3: If True, we consider a time lag between the beginning of the time step,
+# and the arrival of the first cascade to the ToN of the reach, 
+# during which we are able to mobilise from the reach itself
+# time_lag_for_Vmob = True
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
