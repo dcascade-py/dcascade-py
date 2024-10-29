@@ -20,8 +20,6 @@ This file contains the functions:
       according to the transport capacity calculated  
       
     (New functions) 
-    - compute_cascades_velocities
-    - volume_velocities
     - cascades_end_time_or_not
     - stop_or_not
     - deposit_from_passing_sediments
@@ -37,6 +35,7 @@ This script was adapted from the Matlab version by Marco Tangi
 import numpy as np
 import pandas as pd
 from itertools import groupby
+
 
 # ignore divide by 0 
 np.seterr(divide='ignore', invalid='ignore')
@@ -353,100 +352,7 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
 
 
 
-def compute_cascades_velocities(reach_cascades_list, 
-                               indx_velocity, indx_velocity_partitioning, hVel,
-                               indx_tr_cap, indx_partition,
-                               reach_width, reach_slope, Q_reach, v, h,
-                               phi, minvel, psi, 
-                               reach_Vdep, active_layer_volume,
-                               roundpar):
-    
-    ''' Compute the velocity of the cascades in reach_cascade_list.
-    The velocity must be assessed by re-calculating the transport capacity 
-    in the present reach, considering the effect of the arriving cascade(s).
-    Two methods are proposed to re-evaluated the transport capacity, chosen 
-    by the indx_velocity. 
-    First method: the simplest, we re-calculate the transport capacity on each cascade itself.
-    Second method: we consider the active layer volume, to complete, if needed, 
-    the list of cascade by some reach material. If the cascade volume is more 
-    than the active layer, we consider all the cascade volume.
-    '''
 
-    if indx_velocity == 1:
-        velocities_list = []
-        for cascade in reach_cascades_list:
-            cascade.velocities = volume_velocities(cascade.volume, 
-                                                   indx_velocity_partitioning, 
-                                                   hVel, phi, minvel, psi,
-                                                   indx_tr_cap, indx_partition,
-                                                   reach_width, reach_slope,
-                                                   Q_reach, v, h)
-            velocities_list.append(cascade.velocities)
-        # In this case, we store the averaged velocities obtained among all the cascades
-        velocities = np.mean(np.array(velocities_list), axis = 0)
-            
-    if indx_velocity == 2:
-        # concatenate cascades in one volume, and compact it by original provenance
-        # DD: should the cascade volume be in [m3/s] ?
-        volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0) 
-        volume_all_cascades = matrix_compact(volume_all_cascades)
-        
-        volume_total = np.sum(volume_all_cascades[:,1:])
-        if volume_total < active_layer_volume:
-            _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume,
-                                    roundpar, Qbi_incoming = volume_all_cascades)
-            volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
-
-        velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning, 
-                                       hVel, phi, minvel, psi,
-                                       indx_tr_cap, indx_partition,
-                                       reach_width, reach_slope,
-                                       Q_reach, v, h)
-        
-        for cascade in reach_cascades_list:
-            cascade.velocities = velocities
-    
-    return velocities
-        
-            
-def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi,
-                      indx_tr_cap, indx_partition,
-                      reach_width, reach_slope, Q_reach, v, h):
-    
-    ''' Compute the velocity of the volume of sediments. The transport capacity [m3/s]
-    is calculated on this volume, and the velocity is calculated by dividing the 
-    transport capacity by a section (hVel x width x (1 - porosity)). 
-    For partionning the section among the different sediment class in the volume, 
-    two methods are proposed. The first one put the same velocity to all classes.
-    The second divides the section equally among the classes with non-zero transport 
-    capacity, so the velocity stays proportional to the transport capacity of that class.
-    
-    '''
-    # Find volume sediment class fractions and D50
-    volume_total = np.sum(volume[:,1:])
-    volume_total_per_class = np.sum(volume[:,1:], axis = 0)
-    sed_class_fraction = volume_total_per_class / volume_total
-    D50 = float(D_finder(sed_class_fraction, 50, psi))
-    
-    # Compute the transport capacity
-    [ tr_cap_per_s, pci ] = tr_cap_function(sed_class_fraction, D50,  
-                                       reach_slope, Q_reach, reach_width,
-                                       v , h, psi, 
-                                       indx_tr_cap, indx_partition)
-    
-    Svel = hVel * reach_width * (1 - phi)  # the global section where all sediments pass through
-
-    if indx_velocity_partitioning == 1:
-        velocity_same = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
-        velocity_same = np.maximum(velocity_same , minvel)    # apply the min vel threshold
-        velocities = np.full(len(tr_cap_per_s), velocity_same) # put the same value for all classes
-        
-    elif indx_velocity_partitioning == 2:
-        Si = Svel / len(tr_cap_per_s)             # same section for all sediments
-        velocities = np.maximum(tr_cap_per_s/Si , minvel)
-        # DD: to be improved, the section Svel should be divided by the number of non zeros in tr_cap_per_s
-
-    return velocities
 
 
 def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):

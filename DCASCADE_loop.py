@@ -22,21 +22,16 @@ from supporting_classes import ReachData, Cascade
 
 from supporting_functions import D_finder, sortdistance, matrix_compact, change_slope
 from supporting_functions import layer_search, tr_cap_deposit
-from supporting_functions import compute_cascades_velocities
 from supporting_functions import cascades_end_time_or_not
 from supporting_functions import deposit_from_passing_sediments
 from supporting_functions import compute_time_lag
 
-from transport_capacity_computation import tr_cap_function
+from transport_capacity_computation import tr_cap_function, compute_cascades_velocities
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 import itertools
 
-
-# from supporting_functions import sed_transfer_simple
-# from transport_capacity_computation import sed_velocity
-# from transport_capacity_computation import sed_velocity_OLD
 
 
 
@@ -46,10 +41,10 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 
-def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, 
-                  indx_velocity, indx_velocity_partition,
+def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partition,                   
                   reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
-                  update_slope, eros_max, save_dep_layer, ts_length,
+                  update_slope, eros_max, save_dep_layer, ts_length,                  
+                  indx_flo_depth = 1, indx_slope_red = 1,                  
                   consider_overtaking_sed_in_outputs = True,
                   compare_with_tr_cap = True, time_lag_for_mobilised = True):
     
@@ -57,24 +52,31 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     Main function of the D-CASCADE software.
     
     INPUT :
-    indx_tr_cap    = the index indicating the transport capacity formula
-    indx_partition = the index indicating the type of sediment flux partitioning
-    indx_flo_depth = the index indicating the flow depth formula
-    indx_slope_red = the index indicating the slope reduction formula
-    reach_data     = nx1 Struct defining the features of the network reaches
-    network        = 1x1 struct containing for each node info on upstream and downstream nodes
-    Q              = txn matrix reporting the discharge for each timestep
-    Qbi_input      = per each reach and per each timestep is defined an external sediment input of a certain sediment class
-    Qbi_dep_in     = deposit of a sediment material known to be at a certain reach
-                     (it could be that for the same reach id, there are two strata defined so two rows of the dataframe with the top row is the deepest strata)
-    timescale      = length for the time horizion considered
-    psi            = sediment classes considered (from coarse to fine)
-    roundpar       = mimimum volume to be considered for mobilization of subcascade
-                     (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-    update_slope   = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope changes according to sediment deposit.
-    eros_max       = maximum erosion depth per time step [m]
-    save_dep_layer = saves the deposit layer for each time step
-    ts_length      = the length in seconds of the timestep (60*60*24 for daily timesteps)
+    indx_tr_cap         = the index indicating the transport capacity formula
+    indx_tr_partition   = the index indicating the type of sediment flux partitioning
+    indx_velocity       = the index indicating the method for calculating velocity (see compute_cascades_velocities)
+    indx_vel_partition  = the index indicating the type of partitioning in the section used to compute velocity
+    reach_data          = nx1 Struct defining the features of the network reaches
+    network             = 1x1 struct containing for each node info on upstream and downstream nodes
+    Q                   = txn matrix reporting the discharge for each timestep
+    Qbi_input           = per each reach and per each timestep is defined an external sediment input of a certain sediment class
+    Qbi_dep_in          = sediment material volume available in reaches at the beginning of the simulation
+                        (it could be that for the same reach id, there are two strata defined so two rows of the dataframe with the top row is the deepest strata)
+    timescale           = length for the time horizion considered
+    psi                 = sediment classes considered (from coarse to fine)
+    roundpar            = mimimum volume to be considered for mobilization of subcascade
+                         (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+    update_slope        = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope changes according to sediment deposit.
+    eros_max            = maximum erosion depth per time step [m]
+    save_dep_layer      = saving option of the deposit layer for each time step
+    ts_length           = the length in seconds of the timestep (60*60*24 for daily timesteps)
+    
+    OPTIONAL:
+    indx_flo_depth      = the index indicating the flow depth formula, default 1 is Manning
+    indx_slope_red      = the index indicating the slope reduction formula, default 1 is no reduction
+    consider_overtaking_sed_in_outputs = Bool to activate or not this option (default True)
+    compare_with_tr_cap                = Bool to activate or not this option (default True)
+    time_lag_for_mobilised             = Bool to activate or not this option (default True)
     
     OUTPUT: 
     data_output      = struct collecting the main aggregated output matrices 
@@ -224,8 +226,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 hVel = al_depth_all[t,n]  
     
                 velocities = compute_cascades_velocities(Qbi_pass[n], 
-                                           indx_velocity, indx_velocity_partition, hVel,
-                                           indx_tr_cap, indx_partition,
+                                           indx_velocity, indx_vel_partition, hVel,
+                                           indx_tr_cap, indx_tr_partition,
                                            reach_data.wac[n], slope[t,n], Q[t,n], v[n], h[n],
                                            phi, minvel, psi,
                                            V_dep_init, al_vol_all[0,n],
@@ -291,7 +293,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 if np.sum(Fi_r_act[t,n,:]) == 0:
                    Fi_r_act[t,n,:] = Fi_r_act[t-1,n,:] 
                 # Transport capacity in m3/s 
-                tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
+                tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t,n,:] , D50_AL[t,n], slope[t,n], 
+                                                   Q[t,n], reach_data.wac[n], v[n], 
+                                                   h[n], psi, indx_tr_cap, indx_tr_partition)                                   
                 # Store tr_cap (and Qc)
                 tr_cap_all[t,n,:] = tr_cap_per_s
                 tr_cap_sum[t,n] = np.sum(tr_cap_per_s)
@@ -335,7 +339,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                 Q_pass_volume_per_s[:,1:] = Q_pass_volume_per_s[:,1:] / ts_length                                            
                 _,_,_, Fi_r = layer_search(V_dep_after_tlag, al_vol_all[0,n], roundpar, Qbi_incoming = Q_pass_volume_per_s) 
                 D50_AL2[t,n] = float(D_finder(Fi_r, 50, psi))   
-                tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_AL2[t,n], slope[t,n] , Q[t,n], reach_data.wac[n], v[n] , h[n], psi, indx_tr_cap, indx_partition)                                   
+                tr_cap_per_s, Qc = tr_cap_function(Fi_r , D50_AL2[t,n], slope[t,n], 
+                                                   Q[t,n], reach_data.wac[n], v[n], 
+                                                   h[n], psi, indx_tr_cap, indx_tr_partition)                                   
                 # Total volume possibly mobilised during (1 - time_lag)
                 time_for_mobilising = (1-time_lag) * ts_length
                 volume_mobilisable = tr_cap_per_s * time_for_mobilising
