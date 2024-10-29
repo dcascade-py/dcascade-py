@@ -426,6 +426,8 @@ def choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap):
     
     return tr_cap, Qc
 
+
+
 def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx_partition):
     """
     Refers to the transport capacity equation and partitioning 
@@ -464,146 +466,153 @@ def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx
       
     return Qtr_cap, Qc
 
-def sed_velocity(hVel, wac, tr_cap_per_s, phi, indx_velocity, minvel):
-    """
-    This function compute the sediment velocity (in m/s), for each sediment 
-    classes of a given reach n. This calculation is directly done from the 
-    estimated flux (tr_cap) in m3/s, and by dividing it by a section (Active width x transport height). 
-    This function directly impacts the path lengths. 
-    
-    INPUTS:
-    hVel:           height of the total section that we choose for infering velocity from a flux.(reaches x classes) 
-    wac:            Active width of the reach
-    tr_cap_per_s:   transport capacity of each sediment class in the reach (m3/s)
-    phi:            sediment porosity
-    indx_velocity:  index for choosing the method.
-            1- The same velocity is assigned to all classes, based on the total flux. 
-            Even sediment classes that have 0 fluxes are given a velocity, 
-            in order to make travel sediment of this class that are passing through
-            Conceptually, providing the same velocity to all classes, 
-            is like weighting the section of this class i by its fraction in the flux. 
-            (Si=Stot*Qi/Qtot)
-            2- The class velocity is proportional to the flux. 
-            Sediment class with 0 flux will have 0 velocity, which can be a 
-            problem for sediments of this class that are passing trough..
-            The section is divided by the number of classes, equally ditributing
-            vertical space among classes.
-    minvel:         minimum value for velocity
-    
-    RETURN:
-    v_sed_n:        velocities per class of a given reach.
-    """
-    Svel = hVel * wac * (1 - phi)  # the global section where all sediments pass through
-    if indx_velocity == 1:                     
-        v_sed_n = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
-        v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
-        v_sed_n = np.full(len(tr_cap_per_s), v_sed_n) # put the same value for all classes
-    elif indx_velocity == 2:
-        Si = Svel / len(tr_cap_per_s)             # same section for all sediments
-        v_sed_n = np.maximum(tr_cap_per_s/Si , minvel)
-    return v_sed_n
 
-def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi, indx_tr_cap, indx_partition, indx_velocity): 
-    """
-    Function for calculating velocities.
-    OLD method that recalculate the transport capacity in each reach, 
-    using the Fi_r and D50 of the mobilised volume in reach n. 
-    The velocity in each reach (in m/s) is then estimated by dividing the new transport
-    capacity by a section.
-    
-    INPUTS:
-    Fi_r: sediment fractions per class in each reach
-    slope_t: All reaches slopes at time step t
-    Q_t: All reaches' discharge at time step t
-    wac_t: All reaches' discharge at time step t
-    v: All reaches' water velocities
-    h: All reaches' water heights 
-    minvel: minimum velocity threshold
-    phi: sediment size class
-    
-    OUTPUTS:
-    v_sed: [cxn] matrix reporting the velocity for each sediment class c for each reach n [m/s]"""
-    
-    #active layer definition 
-    #active layer as 10% of the water column depth  
-    l_a = 0.1 * h #characteristic vertical length scale for transport.
-    
-    #alternative: active layer as 2*D90 (Parker, 2008)
-    #l_a = 2*D_finder_3(Fi_r_reach, 90 )
-    
-    #D50 definition
-    dmi = 2**(-psi)/1000  #grain size classes[m]
-    
-    # find D values 
-    D50 = D_finder(Fi_r, 50, psi )
-    
-    ## sediment velocity with fractional trasport capacity
 
-    #  by measuring the trasport capacity for the single sed.classes
-    #  indipendenty, we obtain different values of sed. velocity
-    
-    if indx_velocity == 3:
-    
-        #choose transport capacity formula
-        if indx_tr_cap == 1:
 
-            # run tr_cap function independently for each class 
-            tr_cap = np.zeros((len(dmi), len(slope_t)))
-            # ... run the tr.cap function indipendently for each class, setting
-            # the frequency of each class = 1
-            for d in range(len(dmi)): 
-                Fi_r = np.zeros((len(dmi),1))
-                Fi_r[d] = 1
-                Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
-                tr_cap_class = Parker_Klingeman_formula(Fi_r,dmi[d], slope_t, wac_t , h)
-                tr_cap[d,:] = tr_cap_class[d,:]
+
+
+# OLD from version 1 (not used)
+
+# def sed_velocity(hVel, wac, tr_cap_per_s, phi, indx_velocity, minvel):
+#     """
+#     This function compute the sediment velocity (in m/s), for each sediment 
+#     classes of a given reach n. This calculation is directly done from the 
+#     estimated flux (tr_cap) in m3/s, and by dividing it by a section (Active width x transport height). 
+#     This function directly impacts the path lengths. 
+    
+#     INPUTS:
+#     hVel:           height of the total section that we choose for infering velocity from a flux.(reaches x classes) 
+#     wac:            Active width of the reach
+#     tr_cap_per_s:   transport capacity of each sediment class in the reach (m3/s)
+#     phi:            sediment porosity
+#     indx_velocity:  index for choosing the method.
+#             1- The same velocity is assigned to all classes, based on the total flux. 
+#             Even sediment classes that have 0 fluxes are given a velocity, 
+#             in order to make travel sediment of this class that are passing through
+#             Conceptually, providing the same velocity to all classes, 
+#             is like weighting the section of this class i by its fraction in the flux. 
+#             (Si=Stot*Qi/Qtot)
+#             2- The class velocity is proportional to the flux. 
+#             Sediment class with 0 flux will have 0 velocity, which can be a 
+#             problem for sediments of this class that are passing trough..
+#             The section is divided by the number of classes, equally ditributing
+#             vertical space among classes.
+#     minvel:         minimum value for velocity
+    
+#     RETURN:
+#     v_sed_n:        velocities per class of a given reach.
+#     """
+#     Svel = hVel * wac * (1 - phi)  # the global section where all sediments pass through
+#     if indx_velocity == 1:                     
+#         v_sed_n = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
+#         v_sed_n = np.maximum(v_sed_n , minvel)    # apply the min vel threshold
+#         v_sed_n = np.full(len(tr_cap_per_s), v_sed_n) # put the same value for all classes
+#     elif indx_velocity == 2:
+#         Si = Svel / len(tr_cap_per_s)             # same section for all sediments
+#         v_sed_n = np.maximum(tr_cap_per_s/Si , minvel)
+#     return v_sed_n
+
+# def sed_velocity_OLD(Fi_r, slope_t, Q_t, wac_t, v, h, psi, minvel, phi, indx_tr_cap, indx_partition, indx_velocity): 
+#     """
+#     Function for calculating velocities.
+#     OLD method that recalculate the transport capacity in each reach, 
+#     using the Fi_r and D50 of the mobilised volume in reach n. 
+#     The velocity in each reach (in m/s) is then estimated by dividing the new transport
+#     capacity by a section.
+    
+#     INPUTS:
+#     Fi_r: sediment fractions per class in each reach
+#     slope_t: All reaches slopes at time step t
+#     Q_t: All reaches' discharge at time step t
+#     wac_t: All reaches' discharge at time step t
+#     v: All reaches' water velocities
+#     h: All reaches' water heights 
+#     minvel: minimum velocity threshold
+#     phi: sediment size class
+    
+#     OUTPUTS:
+#     v_sed: [cxn] matrix reporting the velocity for each sediment class c for each reach n [m/s]"""
+    
+#     #active layer definition 
+#     #active layer as 10% of the water column depth  
+#     l_a = 0.1 * h #characteristic vertical length scale for transport.
+    
+#     #alternative: active layer as 2*D90 (Parker, 2008)
+#     #l_a = 2*D_finder_3(Fi_r_reach, 90 )
+    
+#     #D50 definition
+#     dmi = 2**(-psi)/1000  #grain size classes[m]
+    
+#     # find D values 
+#     D50 = D_finder(Fi_r, 50, psi )
+    
+#     ## sediment velocity with fractional trasport capacity
+
+#     #  by measuring the trasport capacity for the single sed.classes
+#     #  indipendenty, we obtain different values of sed. velocity
+    
+#     if indx_velocity == 3:
+    
+#         #choose transport capacity formula
+#         if indx_tr_cap == 1:
+
+#             # run tr_cap function independently for each class 
+#             tr_cap = np.zeros((len(dmi), len(slope_t)))
+#             # ... run the tr.cap function indipendently for each class, setting
+#             # the frequency of each class = 1
+#             for d in range(len(dmi)): 
+#                 Fi_r = np.zeros((len(dmi),1))
+#                 Fi_r[d] = 1
+#                 Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
+#                 tr_cap_class = Parker_Klingeman_formula(Fi_r,dmi[d], slope_t, wac_t , h)
+#                 tr_cap[d,:] = tr_cap_class[d,:]
         
-        elif indx_tr_cap == 2: 
-            # run tr_cap function independently for each class 
-            tr_cap = np.zeros((len(dmi), len(slope_t)))
-            # ... run the tr.cap function indipendently for each class, setting
-            # the frequency of each class = 1
-            Fi_r = np.diag(np.full(len(dmi),1))
-            Fi_r = np.repeat(Fi_r[:,:,np.newaxis], len(slope_t), axis = 2)
-            for d in range(len(dmi)): 
-                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r[d,:,:], dmi[d], slope_t, wac_t , h, psi)
-                tr_cap[d,:] = tr_cap_class[d,:]
+#         elif indx_tr_cap == 2: 
+#             # run tr_cap function independently for each class 
+#             tr_cap = np.zeros((len(dmi), len(slope_t)))
+#             # ... run the tr.cap function indipendently for each class, setting
+#             # the frequency of each class = 1
+#             Fi_r = np.diag(np.full(len(dmi),1))
+#             Fi_r = np.repeat(Fi_r[:,:,np.newaxis], len(slope_t), axis = 2)
+#             for d in range(len(dmi)): 
+#                 [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r[d,:,:], dmi[d], slope_t, wac_t , h, psi)
+#                 tr_cap[d,:] = tr_cap_class[d,:]
                 
-            """Fi_r = np.ones((len(dmi), len(slope_t)))
-            [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi, slope_t, wac_t , h, psi)
-            tr_cap[d,:] = tr_cap_class[d,:]"""
+#             """Fi_r = np.ones((len(dmi), len(slope_t)))
+#             [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi, slope_t, wac_t , h, psi)
+#             tr_cap[d,:] = tr_cap_class[d,:]"""
             
-            """for d in range(len(dmi)): 
-                Fi_r = np.zeros((len(dmi),1))
-                Fi_r[d] = 1
-                Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
-                [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi[d], slope_t, wac_t , h, psi) 
-                tr_cap[d,:] = tr_cap_class[d,:]"""
+#             """for d in range(len(dmi)): 
+#                 Fi_r = np.zeros((len(dmi),1))
+#                 Fi_r[d] = 1
+#                 Fi_r = np.matlib.repmat(Fi_r,1,len(slope_t))
+#                 [tr_cap_class, tau, taur50] = Wilcock_Crowe_formula(Fi_r, dmi[d], slope_t, wac_t , h, psi) 
+#                 tr_cap[d,:] = tr_cap_class[d,:]"""
             
-        elif indx_tr_cap == 3: 
-            slope_t_v, dmi_v = np.meshgrid(slope_t, dmi, indexing='xy')
-            h_v, dmi_v = np.meshgrid(h, dmi, indexing='xy')
-            v_v, dmi_v = np.meshgrid(v, dmi, indexing='xy')
-            wac_t_v, dmi_v = np.meshgrid(wac_t, dmi, indexing='xy')
-            tr_cap = Engelund_Hansen_formula(dmi_v, slope_t_v, wac_t_v, v_v, h_v)
+#         elif indx_tr_cap == 3: 
+#             slope_t_v, dmi_v = np.meshgrid(slope_t, dmi, indexing='xy')
+#             h_v, dmi_v = np.meshgrid(h, dmi, indexing='xy')
+#             v_v, dmi_v = np.meshgrid(v, dmi, indexing='xy')
+#             wac_t_v, dmi_v = np.meshgrid(wac_t, dmi, indexing='xy')
+#             tr_cap = Engelund_Hansen_formula(dmi_v, slope_t_v, wac_t_v, v_v, h_v)
             
-        elif indx_tr_cap == 4: 
-            tr_cap = Yang_formula(Fi_r, dmi, slope_t, Q_t, v, h, psi)
+#         elif indx_tr_cap == 4: 
+#             tr_cap = Yang_formula(Fi_r, dmi, slope_t, Q_t, v, h, psi)
             
-        elif indx_tr_cap == 5: 
-            tr_cap = Wong_Parker_formula(dmi, slope_t, wac_t, h)
+#         elif indx_tr_cap == 5: 
+#             tr_cap = Wong_Parker_formula(dmi, slope_t, wac_t, h)
     
-        #calculate velocity
-        multiply = (wac_t * l_a * (1-phi)).to_numpy()
-        v_sed = np.maximum( tr_cap/( multiply[None,:] ) , minvel)
-        v_sed[:, l_a==0] = minvel
+#         #calculate velocity
+#         multiply = (wac_t * l_a * (1-phi)).to_numpy()
+#         v_sed = np.maximum( tr_cap/( multiply[None,:] ) , minvel)
+#         v_sed[:, l_a==0] = minvel
         
-    ## sediment velocity with total transport capacity
+#     ## sediment velocity with total transport capacity
     
-    # sediment velocity found in this way is constant for all sed.classes
-    if indx_velocity == 4:
-        [ Qtr_cap, pci ] = tr_cap_function( Fi_r , D50 ,  slope_t, Q_t, wac_t, v , h, psi, indx_tr_cap , indx_partition)
-        v_sed = np.maximum( Qtr_cap/( wac_t * l_a*(1-phi) * pci ) , minvel)
+#     # sediment velocity found in this way is constant for all sed.classes
+#     if indx_velocity == 4:
+#         [ Qtr_cap, pci ] = tr_cap_function( Fi_r , D50 ,  slope_t, Q_t, wac_t, v , h, psi, indx_tr_cap , indx_partition)
+#         v_sed = np.maximum( Qtr_cap/( wac_t * l_a*(1-phi) * pci ) , minvel)
         
-    return v_sed
+#     return v_sed
     
