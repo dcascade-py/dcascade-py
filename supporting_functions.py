@@ -373,12 +373,11 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
                                 deposit first.
     '''   
     # Order cascades according to their arrival time, so that first arriving 
-    # cascade are deposited first 
-    # Note: in the deposit layer matrix, the uppermost layers are the last
+    # cascade are first in the loop and are deposited first 
+    # Note: in the deposit layer matrix, first rows are the bottom layers
     cascade_list_old = sorted(cascade_list_old, key=lambda x: np.mean(x.elapsed_time))
     
     depositing_volume_list = []
-    arrival_mean_time = []
     cascades_to_be_completely_removed = []
     
     for cascade in cascade_list_old:
@@ -392,26 +391,32 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
         
         if Vm_stop is not None:
             depositing_volume_list.append(Vm_stop)
-            arrival_mean_time.append(np.mean(t_in))
             
             if Vm_continue is None: 
                 # no part of the volume continues, we remove the entire cascade
                 cascades_to_be_completely_removed.append(cascade)
             else: 
-                # some part of the volume continues, we update the volume
+                # some part of the volume continues, we update the volume 
                 cascade.volume = Vm_continue
                                 
         if Vm_continue is not None:
             # update time for continuing cascades
-            cascade.elapsed_time = t_out   
+            cascade.elapsed_time = t_out 
+            # put to 0 the elapsed time of the empty sediment classes
+            # i.e. the classes that have deposited, while other did not
+            # (Necessary for the time lag calculation later in the code)
+            cond_0 = [np.all(cascade.volume[:,1:] == 0, axis = 0)]
+            cascade.elapsed_time[cond_0] = 0
+            
     
     # If they are, remove complete cascades:
     cascade_list_new = [casc for casc in cascade_list_old if casc not in cascades_to_be_completely_removed]   
     
-    # If they are, concatenate the deposited volumes in the reverse arrival time order
+    # If they are, concatenate the deposited volumes 
     if depositing_volume_list != []:
         depositing_volume = np.concatenate(depositing_volume_list, axis=0)
-        depositing_volume = matrix_compact(depositing_volume)
+        if np.all(depositing_volume[:,1:] == 0):
+            raise ValueError("DD check: we have an empty layer stopping ?")
     else:
         depositing_volume = None
     
