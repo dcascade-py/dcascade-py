@@ -430,11 +430,13 @@ def choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap):
         [tr_capVR, tauVR] =  VanRijn_formula(Fi_r_reach, D50, slope, wac, v, h, psi)
         sand_indices = np.where(psi > -1)[0]
         #print(v,tr_cap[sand_indices], tr_capVR[sand_indices])
-        tr_cap[sand_indices] += tr_capVR[sand_indices] * Fi_r_reach[sand_indices]
+        #ccJR hardcoded stability modifier
+        
+        tr_cap[sand_indices] += 0.5 * (tr_capVR[sand_indices] * Fi_r_reach[sand_indices])
         
     return tr_cap, Qc
 
-def VanRijn_formula(Fi_r_reach, D50, slope, wac, v, h, psi, hiding_max=40):
+def VanRijn_formula(Fi_r_reach, D50, slope, wac, v, h, psi, hiding_max=200):
     #ccJR = preparing to check suspended sand capacity, not there yet. 
     dmi = 2 ** (-psi) / 1000  # sediment class diameters in meters
     rho_w = 1000  # water density in kg/m^3
@@ -505,9 +507,9 @@ def VanRijn_formula(Fi_r_reach, D50, slope, wac, v, h, psi, hiding_max=40):
         #Qs = Qs_nolimit * Fi_r_reach[:, p]
         Qs_nolimit[np.isnan(Qs_nolimit)] = 0
         
-        # Convert to kg/s
+        # Convert to  [m3/s]
         #tr_cap[p] = Qs * wac * rho_s
-        tr_cap_nolimit[p] = Qs_nolimit * wac * rho_s        
+        tr_cap_nolimit[p] = Qs_nolimit * wac # [m3/s]   
         
     return tr_cap_nolimit, tau
 
