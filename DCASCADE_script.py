@@ -175,6 +175,10 @@ data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, in
                                              roundpar, update_slope, eros_max, save_dep_layer, ts_length,
                                              indx_flo_depth = indx_flo_depth, 
                                              indx_slope_red = indx_slope_red)
+                                            # consider_overtaking_sed_in_outputs = True,
+                                            # compare_with_tr_cap = True,
+                                            # time_lag_for_Vmob = True)
+
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
 data_output_t = copy.deepcopy(data_output)

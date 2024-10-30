@@ -34,7 +34,6 @@ import itertools
 
 
 
-
 np.seterr(divide='ignore', invalid='ignore')
              
 """ MAIN FUNCTION SECTION """
