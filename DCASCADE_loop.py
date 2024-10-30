@@ -201,7 +201,7 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
         
         # loop for all reaches:
         for n in network['n_hier']:  
-            if n == 10 and t == 297:
+            if n == 37:
                 print('ok')
             
             # TODO : How to include the lateral input ?

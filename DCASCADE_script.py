@@ -140,15 +140,16 @@ Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
 for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
 
-# Formula selection
+# Formula selection:
 # indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+
 # If you want to fix indexes, comment the line above and fix manually the indexes
-indx_tr_cap = 2 # Wilkock and Crowe 2003
-indx_tr_partition = 4 # Shear stress correction
-indx_velocity = 1 # method for calculating velocity
-indx_vel_partition = 1 # same velocity for all classes
-indx_flo_depth = 1 # Manning
-indx_slope_red = 1 # None
+indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
+indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
+indx_velocity = 1 # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
+indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: same section for all classes)
+indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
+indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
 
 # Options for the cascade algorithm (by default, they are all True):        
 # If all these options are False, we are reproducing the algorithme of 
