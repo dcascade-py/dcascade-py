@@ -405,7 +405,7 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
             # put to 0 the elapsed time of the empty sediment classes
             # i.e. the classes that have deposited, while other did not
             # (Necessary for the time lag calculation later in the code)
-            cond_0 = [np.all(cascade.volume[:,1:] == 0, axis = 0)]
+            cond_0 = np.all(cascade.volume[:,1:] == 0, axis = 0)
             cascade.elapsed_time[cond_0] = 0
             
     
