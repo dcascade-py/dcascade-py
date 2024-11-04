@@ -340,6 +340,7 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
                 Q_pass_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
                 Q_pass_volume = matrix_compact(Q_pass_volume)
                 Q_pass_volume_per_s = copy.deepcopy(Q_pass_volume)
+                # DD: should we put it in per second ? 
                 Q_pass_volume_per_s[:,1:] = Q_pass_volume_per_s[:,1:] / ts_length                                            
                 _,_,_, Fi_r = layer_search(V_dep_after_tlag, al_vol_all[0,n], roundpar, Qbi_incoming = Q_pass_volume_per_s) 
                 D50_AL2[t,n] = float(D_finder(Fi_r, 50, psi))   
@@ -418,7 +419,7 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
                 n_down = None
             
             if n != int(network['outlet']):       
-                Qbi_pass[n_down].extend(Qbi_pass[n]) 
+                Qbi_pass[n_down].extend(copy.deepcopy(Qbi_pass[n]))
             # If it is the outlet, we add the cascades to Qout    
             else:
                 for cascade in Qbi_pass[n]:
