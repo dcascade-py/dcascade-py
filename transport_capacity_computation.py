@@ -110,23 +110,30 @@ def Engelund_Hansen_formula(D50, slope, wac, v, h):
     in the reach measured using the Engelund and Hansen equations.
     This function is for use in the D-CASCADE toolbox.
     
+    WARNING: Engelund and Hansen use a factor of 0.1 and but this function uses
+    a factor of 0.05.
+    
+    slope: All reaches' slopes
+    h: All reaches' water heights
+    
     References:
-    Engelund, F., and E. Hansen (1967), A Monograph on Sediment Transport in Alluvial Streams, 
-    Tekniskforlag, Copenhagen.
+    Engelund, F., and E. Hansen (1967), A Monograph on Sediment Transport in 
+    Alluvial Streams, Tekniskforlag, Copenhagen.
     """
     
-    # friction factor
-    C = (2 * GRAV * slope * h) / v**2   
+    # Friction factor (Eq. 3.1.3 of the monograph)
+    C = (2 * GRAV * slope * h) / v**2
 
-    # dimensionless shear stress
+    # Dimensionless shear stress (Eq. 3.2.3)
     tau_eh = (slope * h) / (R_VAR * D50)
-    # dimensionless transport capacity
+    # Dimensionless transport capacity (Eq. 4.3.5), although Engelund and Hansen
+    # find a factor of 0.1 and not 0.05.
     q_eh = 0.05 / C * tau_eh**(5/2)
-    # dimensionful transport capacity per unit width  m3/(s*m )
-    q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * D50**3) # m3/s 
-    qs_eh = q_eh_dim * wac
-    
-    tr_cap = qs_eh # m3/s
+    # Dimensionful transport capacity per unit width [m3/(s*m)]
+    # (page 56 of the monograph)
+    q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * D50**3) # m3/s
+    # Dimensionful transport capacity [m3/s]
+    tr_cap = q_eh_dim * wac
     
     return tr_cap
 

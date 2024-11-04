@@ -7,39 +7,73 @@ Created on Thu Sep  5 13:50:28 2024
 
 import numpy as np
 import numpy.matlib
-from transport_capacity_computation import Wilcock_Crowe_formula
+from transport_capacity_computation import Wilcock_Crowe_formula, Engelund_Hansen_formula
 
+# To account for potential imprecision or errors in the calculations, we use
+# an " absolute tolerance" EPSILON of 0.0001.
+EPSILON = 1e-4
 
-
-
-def test_wilcock_Crowe_formula():
+def test_engelund_hansen_formula():
+    '''
+    Precision of calculations for transport capacity [m^3/s] with the input values:
     
-    #input parameters that are used to check if formula in the script gives the same results as the original W&C formula
+    expected_tr_cap = 0.046356178
+    computed_tr_cap = 0.04635618
+    
+    Relative difference = 2.12719452e-09
+    '''
+    
+    # Input parameters that are used to check if the formula in the function
+    # gives the same results as the original formula
+    D50 = 0.01
+    slope = 0.05
+    wac = np.array([10])
+    v = 2
+    h = 0.5
+    
+    # Manually calculated transport capacity
+    expected_tr_cap = 0.046356178
+    
+    # Computing the transport capacity with the D-CASCADE implementation
+    computed_tr_cap = Engelund_Hansen_formula(D50, slope, wac, v, h)
+    
+    # Asserting the computed value is equal to manually calculated one, allowing
+    # for with error tolerance EPSILON
+    np.testing.assert_allclose(computed_tr_cap[0], expected_tr_cap, atol=EPSILON)
+
+
+def test_wilcock_crowe_formula():
+    '''
+    Precision of calculations for transport capacity [m^3/s] with the input values:
+    
+    expected_tr_cap = 0.00586
+    computed_tr_cap = 0.00582
+    
+    Relative difference = 0.68%
+    '''
+    
+    # Input parameters that are used to check if the formula in the function
+    # gives the same results as the original formula
     Fi_r_reach = np.array([0.01])
     D50 = 0.01
-    Slope = 0.05
-    Wac = np.array([10])
+    slope = 0.05
+    wac = np.array([10])
     h = 0.5
     psi = np.array([-1])
     
-    #manually calculated tr_cap
-    expected_trCap_WC =  0.0058621118228
+    # Manually calculated transport capacity
+    expected_tr_cap = 0.0058621118228
     
-    # importing tr_cap from W&C formula in script
-    trCap_WC_script, tau, tau_r50 = Wilcock_Crowe_formula(Fi_r_reach, D50, Slope, Wac, h, psi)
+    # Computing the transport capacity with the D-CASCADE implementation
+    computed_tr_cap, tau, tau_r50 = Wilcock_Crowe_formula(Fi_r_reach, D50, slope, wac, h, psi)
     
-    #comparing the first 4 decimals
-    np.testing.assert_allclose(trCap_WC_script[0][0], expected_trCap_WC, atol=1e-4)
-    
-    '''
-    curent calculations for daily transport capacity [m^3/day] with the above mentioned values
-    
-    daily_expected_trCap_WC = 0.00586 * 60 *60 * 24 = 506,30
-    daily_trCap_WC_script = 0.00582 * 60 * 60 * 24 = 502,85
-    
-    difference = 0.68%
-
-    '''
+    # Asserting the computed value is equal to manually calculated one, allowing
+    # for with error tolerance EPSILON
+    np.testing.assert_allclose(computed_tr_cap[0][0], expected_tr_cap, atol=EPSILON)
 
 if __name__ == "__main__":
-    test_wilcock_Crowe_formula()
+    test_wilcock_crowe_formula()
+    test_engelund_hansen_formula()
+    print("All tests successfully run.")
+    
+    
