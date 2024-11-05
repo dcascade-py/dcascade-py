@@ -64,16 +64,19 @@ filename_river_network = path_river_network / name_river_network
 path_q = Path('../RangitataFC_dH/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 #name_q = 'q_Apr2024_1060.csv'
-name_q = 'q_2024.csv'
+#name_q = 'q_2024.csv'
+name_q = 'q_50_250_1000_square.csv'
+
 filename_q = path_q / name_q
 
 #csv file with the size of q timeseries. could simplify to just specific reaches, but let's keep full structure for now. 
-name_qs = 'qsand_40pct_gravUpper68_2024.csv'
+#name_qs = 'qsand_40pct_gravUpper68_2024.csv'
+name_qs = 'qsand_50_250_1000_square.csv'
 filename_qs = path_q / name_qs
 
 
 #--------Path to the output folder
-path_results = Path("./Results/Rev1_100pct234_dVact_8lay_halfQs/")
+path_results = Path("./Results/RevQtest_0/Const50_250_1k/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -85,9 +88,9 @@ sed_range = [-9, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 7        # number of classes
 
 #---Timescale 
-nrepeats = 80
+nrepeats = 10
 #timescale =  385 # hours   #420
-timescale =  2880 # hours   #420
+timescale =  2882 # hours   #420
 ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
@@ -96,6 +99,7 @@ update_slope = True # if False: slope is constant, if True, slope changes accord
 #---Initial layer sizes #ccJR chaged this to a nominal width * depth. which is why 1000 didn't work, too wide for that!
 #what are the units now?
 deposit_layer = .25   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
+deposit_layer = 1 # for constQ runs   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
 nlayers_init = 8 #ccJR split up deposit layers
 eros_max = .25             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
@@ -103,7 +107,7 @@ eros_max = .25             # Maximum depth (threshold) that can be eroded in one
 save_dep_layer = 'monthhour' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
-roundpar = 1 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+roundpar = 2 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 #was this killing my sand inputs? Hourly timestep, smaller volumes than code had before, losing cascades?
 
 
@@ -175,7 +179,7 @@ Qbi_dep_in = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
 for n in range(reach_data.n_reaches):
     for nl in range(nlayers_init):
         Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:]
-    Qbi_dep_in[n,4:nlayers_init,5:7]     = 0.01 #low sand IC : layer. initial condition testing. 0 is the bottom, nlayers_init-1 is the top (thalweg)
+    Qbi_dep_in[n,0:nlayers_init,5:7]     = 0.01 #low sand IC : layer. initial condition testing. 0 is the bottom, nlayers_init-1 is the top (thalweg)
 
 # Formula selection
 # indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
