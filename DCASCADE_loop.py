@@ -257,7 +257,7 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
                     Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
                                                     
             ###------Step 2 : Mobilise volumes from the reach material before 
-            # considering the passing cascades. 
+            # considering the passing cascades (if they are passing cascades). 
             # The parameter "time_lag" is the proportion of the time step where this
             # mobilisation occurs, i.e. before the first possible cascade arrives 
             # at the outlet.
