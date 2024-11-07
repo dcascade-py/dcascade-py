@@ -75,7 +75,7 @@ sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 6        # number of classes
 
 #---Timescale 
-timescale = 10 # days 
+timescale = 20 # days 
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
@@ -146,8 +146,8 @@ for n in range(reach_data.n_reaches):
 # If you want to fix indexes, comment the line above and fix manually the indexes
 indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
 indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
-indx_velocity = 1 # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
-indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: same section for all classes)
+indx_velocity = 2 # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
+indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
 indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
 indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
 
@@ -159,26 +159,26 @@ indx_slope_red = 1 # None (alternatives where developed for accounting for mount
 
 # Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
 # But this does not change the way sediment move.
-# consider_overtaking_sed_in_outputs = True
+op1 = True
 
 # Option 2: If True, we now include present cascades from upstream + reach material
 # in the transport capacity calculation, to check if they should pass or not. 
-# compare_with_tr_cap = True
+op2 = True
 
 # Option 3: If True, we consider a time lag between the beginning of the time step,
 # and the arrival of the first cascade to the ToN of the reach, 
 # during which we are able to mobilise from the reach itself
-# time_lag_for_Vmob = True
+op3 = True
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
                                              reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                              roundpar, update_slope, eros_max, save_dep_layer, ts_length,
                                              indx_flo_depth = indx_flo_depth, 
-                                             indx_slope_red = indx_slope_red)
-                                            # consider_overtaking_sed_in_outputs = True,
-                                            # compare_with_tr_cap = True,
-                                            # time_lag_for_Vmob = True)
+                                             indx_slope_red = indx_slope_red,
+                                             consider_overtaking_sed_in_outputs = op1,
+                                             compare_with_tr_cap = op2,
+                                             time_lag_for_mobilised = op3)
 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
