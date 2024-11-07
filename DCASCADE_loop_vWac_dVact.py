@@ -31,8 +31,12 @@ from transport_capacity_computation import tr_cap_function
 from transport_capacity_computation import sed_velocity
 from transport_capacity_computation import sed_velocity_OLD
 from flow_depth_calc import choose_flow_depth
+from flow_depth_calc import hypso_manning_Q
+
 from slope_reduction import choose_slopeRed
 import itertools
+from scipy.interpolate import interp1d
+from scipy.optimize import fsolve
 
 np.seterr(divide='ignore', invalid='ignore')
              
@@ -85,6 +89,8 @@ class ReachData:
         self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else np.nan
         self.width_a = geodataframe['a'].astype(float).values
         self.width_b = geodataframe['b'].astype(float).values
+        #self.Hvec = geodataframe['Hvec'].astype(float).values if 'Hvec' in geodataframe.columns else np.nan
+        #self.Wvec = geodataframe['Wvec'].astype(float).values if 'Wvec' in geodataframe.columns else np.nan
     def sort_values_by(self, sorting_array):
         """
         Function to sort the Reaches by the array given in input.
@@ -285,10 +291,11 @@ def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
 
 def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red, 
                   indx_velocity, indx_velocity_partition,
-                  reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
+                  reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, 
+                  reach_hypsometry, reach_hypsometry_data,roundpar, 
                   update_slope, eros_max, save_dep_layer, ts_length,vary_width,vary_roughness,
                   consider_overtaking_sed_in_outputs = True,
-                  compare_with_tr_cap = True, time_lag_for_mobilised = True):
+                  compare_with_tr_cap = True, time_lag_for_mobilised = True,hypsolayers = False):
     
     """
     Main function of the D-CASCADE software.
@@ -315,13 +322,15 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     #JR additions
     vary_width
     vary_roughness
+    Hvec
+    Wvec
     
     OUTPUT: 
     data_output      = struct collecting the main aggregated output matrices 
     extended_output  = struct collecting the raw D-CASCADE output datasets
     """
     
-    hypsolayers = True #move this to calling options when ready, ensure it works false!
+    #hypsolayers = True #move this to calling options when ready, ensure it works false!
     ################### Fixed parameters
     phi = 0.4 # sediment porosity in the maximum active layer
     minvel = 0.0000001
@@ -366,8 +375,10 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
     Q_out = np.zeros((timescale, n_reaches, n_classes)) # amount of material delivered outside the network in each timestep
     D50_AL = np.zeros((timescale, n_reaches)) # D50 of the active layer in each reach in each timestep
     V_sed = np.zeros((timescale, n_reaches, n_classes)) #velocities
-    T_record_days = np.zeros((timescale)) #time storage, days #ccJR
     
+    T_record_days = np.zeros((timescale)) #time storage, days #ccJR
+    h_save = np.zeros((timescale, n_reaches)) #hydraulics storage,  #ccJR
+    v_save = np.zeros((timescale, n_reaches)) #hydraulics storage,  #ccJR
     tr_cap_all = np.zeros((timescale, n_reaches, n_classes)) #transport capacity per each sediment class
     tr_cap_sum = np.zeros((timescale, n_reaches)) #total transport capacity 
 
@@ -457,6 +468,54 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
         # loop for all reaches:
         for n in network['n_hier']:  
             
+                
+            #if we have hypsometry - rearrange some of this for speed / pre loop definition.
+            if reach_hypsometry[n] == True:
+                #reach_hypsometry_data[n]['Zvec']
+                #redo h_ferguson to run a Q loop, redolfi style. 
+                #print(reach_hypsometry_data[n]['Hvec'])
+                #print(reach_hypsometry_data[n]['Wvec'])
+                Hvec = reach_hypsometry_data[n]['Hvec']
+                Wvec = reach_hypsometry_data[n]['Wvec']
+                #Winterp_func = interp1d(Hvec ,Wvec,  bounds_error=False, fill_value="extrapolate")
+                Xinterp_func = interp1d(Wvec, Hvec , bounds_error=False, fill_value="extrapolate")
+                dX = 2
+                Xgrid =  np.arange(0, reach_data.maxwac[n] + dX, dX) #width regular grid now
+                Zgrid = Xinterp_func(Xgrid)
+                Zgrid = np.nan_to_num(Zgrid, posinf=10, neginf=10)
+                # Define the function to solve
+                def func(D):
+                    Q_Eng, b_Eng, JS = hypso_manning_Q(D, Zgrid, dX, reach_data.n[n], slope[t,n])
+                    return (Q_Eng/Q[t,n])-1
+            
+                # Solve for eta using fsolve. needed a higher guess for some reaches to converge - 3x Manning for now?
+                try:
+                    eta, info, ier, msg = fsolve(func, 3*h[n], full_output=True)
+                    if ier != 1:
+                        print("Reach", n, " did not converge,",h[n],eta, ". Message:", msg)
+                        # Handle the case where fsolve did not converge, for example:
+                        eta = h[n]  # or some fallback value if appropriate
+                except Exception as e:
+                    print("fsolve fail:", e)
+                    raise
+                    
+                #use eta to get h 
+                Q_Eng, b_Eng, JS = hypso_manning_Q(eta, Zgrid, dX, reach_data.n[n], slope[t,n])
+                #WHERE TO FROM HERE. I now have a variety of h,v data. 
+                #I can destroy the new information by making h = mean(JS.) for nonzero returns. let's do that first. 
+                #print([reach_data.wac[n]] / b_Eng )
+                v_save[t,n] = JS['Vsave'].mean()
+                h_save[t,n] = JS['Hsave'].mean()
+                #print('v,h frac of manning:', v_save[t,n]/v[n], h_save[t,n]/h[n])
+                h_save[t,n]/h[n]
+                
+                h[n] = h_save[t,n]
+                v[n] = v_save[t,n]
+                reach_data.wac[n] = b_Eng
+                #can I summarize by my height bins? or are we working in width now?
+                
+                #integrate? use a theoretical concentration below to determine the capacity? for SAND this could work nicely.                
+                        
             # TODO : How to include the lateral input ?
             if np.isnan(Qbi_dep_0[n].sum()):
                 print(f"NaN detected Qbi_dep_0 t={t+1}, n={n}")
@@ -482,10 +541,12 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     
             #ccJR hypso - REMOVE 'overburden' which is volume of (wacmax - wac) for now. the 2.0 or 1.5 changes the range. adding 1 slicevol keeps it away from the edge.
             if hypsolayers:
-                slicevol = 2.0 * (1/n_layers) * reach_data.wac[n]* reach_data.length[n]
-                hypso_V_above = (reach_data.maxwac[n] - reach_data.wac[n])* reach_data.length[n] * 2.0 + slicevol #original bed depth 2m. this controls the range; do I want to b
+                slicevol = 2.0 * (1/n_layers) * reach_data.maxwac[n]* reach_data.length[n] #1/nlayer
+                hypso_V_above = (reach_data.maxwac[n] - reach_data.wac[n])* reach_data.length[n] * 1.0 + slicevol #original bed depth 2m. this controls the range; do I want to b
                 Vfracsave[t,n] = hypso_V_above / Qbi_dep_0[n].sum() #fraction we are removing.
-            
+                #ccJR thjs definitely needs checking with my understanding of where cascades deposit to 
+                #and erode from. I am trying to set a datum near the 'middle' and let widths alter
+                #where we access teh bed volume.
                 #strip off overburden here:
                 _,V_dep_init,V_dep_overburden, Fi_slice = layer_search(Qbi_dep_old[n], hypso_V_above, roundpar)
             else:
@@ -833,7 +894,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                             D50_custom = D_finder(Fi_slice, 50, psi) 
                             #print(1000*D50_custom, (Fi_slice[5:7].sum()*100).round(3) ) #great - the sand is at the top,
                             Qbi_FiLayers[t_y,n,nl,:] = Fi_slice #might lose a bit at the bottom if major aggradation?
-
+                else:
+                    for n in network['n_hier']: 
+                        #handle saving an active layer Fi at save_dep_layer times. 
+                        _,_,_, Fi_slice = layer_search(Qbi_dep_old[n], al_vol_all[t,n], roundpar)
+                        Qbi_FiLayers[t_y,n,0,:] = Fi_slice
         # in case of changing slope..
         if update_slope == True:
             #..change the slope accordingly to the bed elevation
@@ -1057,6 +1122,8 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                        'dmi': dmi,
                        'Tdays': T_record_days,
                        'Vfracsave': Vfracsave,
+                       'v_save': v_save,
+                       'h_save': h_save,
                        }
     
     return data_output, extended_output
