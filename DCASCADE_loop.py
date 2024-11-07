@@ -197,8 +197,7 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
         # volumes of sediment passing through a reach in this timestep,
         # ready to go to the next reach in the same time step.
         Qbi_pass = [[] for n in range(n_reaches)]
-        
-        
+                
         # loop for all reaches:
         for n in network['n_hier']:  
             
@@ -226,9 +225,9 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
             if Qbi_pass[n] != []:
                 # Define the section height:
                 # coef_AL_vel = 0.1
-                # hVel = coef_AL_vel * h                
-                hVel = al_depth_all[t,n]  
-    
+                # hVel = coef_AL_vel * h[n]                
+                hVel = al_depth_all[t,n] 
+                
                 velocities = compute_cascades_velocities(Qbi_pass[n], 
                                            indx_velocity, indx_vel_partition, hVel,
                                            indx_tr_cap, indx_tr_partition,
@@ -261,28 +260,8 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
             # The parameter "time_lag" is the proportion of the time step where this
             # mobilisation occurs, i.e. before the first possible cascade arrives 
             # at the outlet.
-            # For now this step 2 is optional.
-            if compare_with_tr_cap == True:
-                if time_lag_for_mobilised == True:
-                    time_lag = compute_time_lag(Qbi_pass[n], n_classes)
-                else:
-                    # in this condition (we compare with tr cap at the outlet,
-                    # but no time lag is considered), we don't mobilised from the
-                    # reach before the possible cascades arrive.
-                    # At the exception that no cascades arrive at the outlet.
-                    if Qbi_pass[n] != []:
-                        time_lag = np.zeros(n_classes)
-                    else: 
-                        # If no cascades arrive at the outlet,
-                        # we mobilise from the reach itself
-                        time_lag = np.ones(n_classes)
-            else:
-                # in this condition (compare_with_tr_cap = False), 
-                # we always mobilise from the reach itself and 
-                # the passing cascades are passing the outlet, without 
-                # checking the energy available to make them pass,
-                # like in version 1 of the code
-                time_lag = np.ones(n_classes)                      
+            time_lag = compute_time_lag(Qbi_pass[n], n_classes, compare_with_tr_cap, time_lag_for_mobilised)
+                                
                            
             # In the case time_lag is not all zeros, we mobilise from the reach
             # before the cascades arrive, proportionally to this time_lag

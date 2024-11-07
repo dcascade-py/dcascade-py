@@ -521,19 +521,47 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
 
 
 
-def compute_time_lag(cascade_list, n_classes):
+def compute_time_lag(cascade_list, n_classes, compare_with_tr_cap, time_lag_for_mobilised):
     ''' The time lag is the time we use to mobilise from the reach, 
     before cascades from upstream reaches arrive at the outlet of the present reach.
     We take it as the time for the first cascade to arrive at the outet.
+    Depending on the algorithm options, 
+    
+    cascade_list            : the list of cascade objects. Can be empty.
+    compare_with_tr_cap     : bool for the option if we conpare with tr_cap. 
+    time_lag_for_mobilised  : bool for the option if we include a time lag.
     '''
     
-    if cascade_list == []:
-        time_lag = np.ones(n_classes) # the time lag is the entire time step as no other cascade reach the outlet
+    if compare_with_tr_cap == True:
+        if time_lag_for_mobilised == True:
+            if cascade_list == []:
+                time_lag = np.ones(n_classes) # the time lag is the entire time step as no other cascade reach the outlet
+            else:
+                time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
+                time_lag = np.min(time_arrays, axis=0) 
+        else:
+            # in this condition (we compare with tr cap at the outlet,
+            # but no time lag is considered), we don't mobilised from the
+            # reach before the possible cascades arrive.
+            # At the exception that no cascades arrive at the outlet.
+            if cascade_list != []:
+                time_lag = np.zeros(n_classes)
+            else: 
+                # If no cascades arrive at the outlet,
+                # we mobilise from the reach itself
+                time_lag = np.ones(n_classes)
     else:
-        time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
-        time_lag = np.min(time_arrays, axis=0) 
-        
-    return time_lag
+        # in this condition (compare_with_tr_cap = False), 
+        # we always mobilise from the reach itself and 
+        # the passing cascades are passing the outlet, without 
+        # checking the energy available to make them pass,
+        # like in version 1 of the code
+        time_lag = np.ones(n_classes)     
+    
+    return time_lag    
+
+
+ 
 
 
 
