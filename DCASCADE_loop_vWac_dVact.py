@@ -488,9 +488,9 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     Q_Eng, b_Eng, JS = hypso_manning_Q(D, Zgrid, dX, reach_data.n[n], slope[t,n])
                     return (Q_Eng/Q[t,n])-1
             
-                # Solve for eta using fsolve. needed a higher guess for some reaches to converge - 3x Manning for now?
+                # Solve for eta using fsolve. needed a higher guess for some reaches to converge - 4x Manning for now?
                 try:
-                    eta, info, ier, msg = fsolve(func, 3*h[n], full_output=True)
+                    eta, info, ier, msg = fsolve(func, 4*h[n], full_output=True)
                     if ier != 1:
                         print("Reach", n, " did not converge,",h[n],eta, ". Message:", msg)
                         # Handle the case where fsolve did not converge, for example:
@@ -541,8 +541,11 @@ def DCASCADE_main(indx_tr_cap, indx_partition, indx_flo_depth, indx_slope_red,
                     
             #ccJR hypso - REMOVE 'overburden' which is volume of (wacmax - wac) for now. the 2.0 or 1.5 changes the range. adding 1 slicevol keeps it away from the edge.
             if hypsolayers:
-                slicevol = 2.0 * (1/n_layers) * reach_data.maxwac[n]* reach_data.length[n] #1/nlayer
-                hypso_V_above = (reach_data.maxwac[n] - reach_data.wac[n])* reach_data.length[n] * 1.0 + slicevol #original bed depth 2m. this controls the range; do I want to b
+                #slicevol = 2.0 * (1/n_layers) * reach_data.maxwac[n]* reach_data.length[n] #1/nlayer
+                slicevol = Qbi_dep_0[n].sum() *(reach_data.wac[n] / reach_data.maxwac[n])
+                hypso_V_above = slicevol #from one direction
+                #hypso_V_above = Qbi_dep_0[n].sum()- slicevol # test, from the other direction
+                #hypso_V_above = (reach_data.maxwac[n] - reach_data.wac[n])* reach_data.length[n] * 1.0 + slicevol #original bed depth 2m. this controls the range; do I want to b
                 Vfracsave[t,n] = hypso_V_above / Qbi_dep_0[n].sum() #fraction we are removing.
                 #ccJR thjs definitely needs checking with my understanding of where cascades deposit to 
                 #and erode from. I am trying to set a datum near the 'middle' and let widths alter
