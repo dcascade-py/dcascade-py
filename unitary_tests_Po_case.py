@@ -119,7 +119,7 @@ def test_Po_Engelund_all_new_options_false():
                                                  roundpar, update_slope, eros_max, save_dep_layer, ts_length,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
+                                                 time_lag_for_mobilise = op3)
     
       
 
@@ -265,7 +265,7 @@ def test_Po_Wilcock_all_new_options_false():
                                                  roundpar, update_slope, eros_max, save_dep_layer, ts_length,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
+                                                 time_lag_for_mobilise = op3)
         
     # Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)

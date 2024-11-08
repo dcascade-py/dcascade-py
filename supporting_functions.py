@@ -86,33 +86,30 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
-def layer_search(deposit_layers, max_volume, roundpar, passing_cascades = None):
+
+def layer_search(volume_layers, volume_max, roundpar):
     """
-    This function searches uppermost layers from the reach deposit layer, 
-    plus eventual passing cascades, to be put in a maximum volume.
+    This function searches uppermost layers from a volume of layers, 
+    to correspond to a maximum volume.
     The maximum volume can represent for example the active layer, 
-    i.e. what we consider as active during the transport process.
-    or the maximum to be eroded per time step
+    i.e. what we consider as active during the transport process,
+    or a maximum to be eroded per time step.
      
 
     INPUTS:    
-    deposit_layers :    the reach deposit layers
-    max_volume  :       is the total maximum volume to be mobilised
-    Qbi_incoming :      is the cascade stopping there from the previous time step
+    volume_layers :     the volume layers (2x2, with first column indicating 
+                                           original provenance)
+    volume_max    :     is the total maximum volume to be mobilised (float)
+    roundpar      :     number of decimal to round volumes
     
     RETURN:
-    V_inc2act    :      Layers of the incoming volume to be put in the active layer
-    V_dep2act    :      layers of the deposit volume to be put in the active layer
-    V_dep        :      remaining deposit layer
-    Fi_r_reach   :      fraction of sediment in the active layer
+    Vlayer_max      :      Layers to be put in this maximum volume
+    Vremain         :      remaining layers 
+    Fi_r_reach      :      fraction of sediment in the Vlayer_max
+    D50             :      D50 in Vlayer_max
     """
     
-    if Qbi_incoming is None:
-        # Empty layer (for computation)
-        n_classes = V_dep_old.shape[1] - 1
-        empty_incoming_volume = np.hstack((0, np.zeros(n_classes))) 
-        empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0) 
-        Qbi_incoming = empty_incoming_volume
+    
 
     # if, considering the incoming volume, I am still under the threshold of the active layer volume...
     if (V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])) > 0:
@@ -209,8 +206,8 @@ def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
      
 
     INPUTS:    
-    deposit_layers :    the reach deposit layers
-    max_volume  :       is the total maximum volume to be mobilised
+    V_dep_old :    the reach deposit layers
+    V_lim_tot_n  :       is the total maximum volume to be mobilised
     Qbi_incoming :      is the cascade stopping there from the previous time step
     
     RETURN:
@@ -636,58 +633,59 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     return r_Vmob, cascade_list, V_remove
 
 
-def compute_time_lag(cascade_list, n_classes):
-    '''
-    '''
-    if cascade_list == []:
-        # the time lag is the entire time step as no cascade reach the outlet
-        time_lag = np.ones(n_classes) 
-    else:
-        # Otherwise, the time lag corresponds the smallest time per class
-        # to reach the outlet
-        time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
-        time_lag = np.min(time_arrays, axis=0) 
-
-
-
-# def compute_time_lag(cascade_list, n_classes, compare_with_tr_cap, time_lag_for_mobilised):
-#     ''' The time lag is the time we use to mobilise from the reach, 
-#     before cascades from upstream reaches arrive at the outlet of the present reach.
-#     We take it as the time for the first cascade to arrive at the outet.
-#     Depending on the algorithm options, 
-    
-#     cascade_list            : the list of cascade objects. Can be empty.
-#     compare_with_tr_cap     : bool for the option if we conpare with tr_cap. 
-#     time_lag_for_mobilised  : bool for the option if we include a time lag.
+# def compute_time_lag(cascade_list, n_classes):
 #     '''
-    
-#     if compare_with_tr_cap == True:
-#         if time_lag_for_mobilised == True:
-#             if cascade_list == []:
-#                 time_lag = np.ones(n_classes) # the time lag is the entire time step as no other cascade reach the outlet
-#             else:
-#                 time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
-#                 time_lag = np.min(time_arrays, axis=0) 
-#         else:
-#             # in this condition (we compare with tr cap at the outlet,
-#             # but no time lag is considered), we don't mobilised from the
-#             # reach before the possible cascades arrive.
-#             # At the exception that no cascades arrive at the outlet.
-#             if cascade_list != []:
-#                 time_lag = np.zeros(n_classes)
-#             else: 
-#                 # If no cascades arrive at the outlet,
-#                 # we mobilise from the reach itself
-#                 time_lag = np.ones(n_classes)
+#     '''
+#     if cascade_list == []:
+#         # the time lag is the entire time step as no cascade reach the outlet
+#         time_lag = np.ones(n_classes) 
 #     else:
-#         # in this condition (compare_with_tr_cap = False), 
-#         # we always mobilise from the reach itself and 
-#         # the passing cascades are passing the outlet, without 
-#         # checking the energy available to make them pass,
-#         # like in version 1 of the code
-#         time_lag = np.ones(n_classes)     
+#         # Otherwise, the time lag corresponds the smallest time per class
+#         # to reach the outlet
+#         time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
+#         time_lag = np.min(time_arrays, axis=0) 
+
+
+
+def compute_time_lag(cascade_list, n_classes, 
+                     passing_cascade_in_trcap, time_lag_for_mobilised):
+    ''' The time lag is the time we use to mobilise from the reach, 
+    before cascades from upstream reaches arrive at the outlet of the present reach.
+    We take it as the time for the first cascade to arrive at the outet.
+    Depending on the algorithm options, 
     
-#     return time_lag    
+    cascade_list            : the list of cascade objects. Can be empty.
+    compare_with_tr_cap     : bool for the option if we conpare with tr_cap. 
+    time_lag_for_mobilised  : bool for the option if we include a time lag.
+    '''
+    
+    if compare_with_tr_cap == True:
+        if time_lag_for_mobilised == True:
+            if cascade_list == []:
+                time_lag = np.ones(n_classes) # the time lag is the entire time step as no other cascade reach the outlet
+            else:
+                time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
+                time_lag = np.min(time_arrays, axis=0) 
+        else:
+            # in this condition (we compare with tr cap at the outlet,
+            # but no time lag is considered), we don't mobilised from the
+            # reach before the possible cascades arrive.
+            # At the exception that no cascades arrive at the outlet.
+            if cascade_list != []:
+                time_lag = np.zeros(n_classes)
+            else: 
+                # If no cascades arrive at the outlet,
+                # we mobilise from the reach itself
+                time_lag = np.ones(n_classes)
+    else:
+        # in this condition (compare_with_tr_cap = False), 
+        # we always mobilise from the reach itself and 
+        # the passing cascades are passing the outlet, without 
+        # checking the energy available to make them pass,
+        # like in version 1 of the code
+        time_lag = np.ones(n_classes)     
+    
+    return time_lag    
 
 
  
