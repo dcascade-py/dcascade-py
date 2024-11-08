@@ -86,14 +86,131 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
-def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
+def layer_search(deposit_layers, max_volume, roundpar, passing_cascades = None):
     """
-    This function searches layers that are to be put in the maximum mobilisable  
-    layer of a time step. (i.e. the maximum depth to be mobilised). 
+    This function searches uppermost layers from the reach deposit layer, 
+    plus eventual passing cascades, to be put in a maximum volume.
+    The maximum volume can represent for example the active layer, 
+    i.e. what we consider as active during the transport process.
+    or the maximum to be eroded per time step
+     
 
     INPUTS:    
-    V_dep_old is :      the reach deposit layer
-    V_lim_tot_n  :      is the total maximum volume to be mobilised
+    deposit_layers :    the reach deposit layers
+    max_volume  :       is the total maximum volume to be mobilised
+    Qbi_incoming :      is the cascade stopping there from the previous time step
+    
+    RETURN:
+    V_inc2act    :      Layers of the incoming volume to be put in the active layer
+    V_dep2act    :      layers of the deposit volume to be put in the active layer
+    V_dep        :      remaining deposit layer
+    Fi_r_reach   :      fraction of sediment in the active layer
+    """
+    
+    if Qbi_incoming is None:
+        # Empty layer (for computation)
+        n_classes = V_dep_old.shape[1] - 1
+        empty_incoming_volume = np.hstack((0, np.zeros(n_classes))) 
+        empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0) 
+        Qbi_incoming = empty_incoming_volume
+
+    # if, considering the incoming volume, I am still under the threshold of the active layer volume...
+    if (V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])) > 0:
+
+        # ... I put sediment from the deposit layer into the active layer
+        # remaining active layer volume after considering incoming sediment cascades
+        V_lim_dep = V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])
+        csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis = 0)) # EB check again 
+
+        V_inc2act = Qbi_incoming  # all the incoming volume will end up in the active layer
+
+        # find active layer
+         
+        if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty # EB check again 
+            # if the cascades in the deposit have combined
+            # volume that is less then the active layer volume (i've reached the bottom)
+            
+            print(' reach the bottom ....')
+
+            V_dep2act = V_dep_old  # I put all the deposit into the active layer
+            V_dep = np.c_[V_dep_old[0,0], np.zeros((1,Qbi_incoming.shape[1]-1))]
+
+
+        else:
+            
+            index = np.max(np.argwhere(csum >= V_lim_dep))
+
+
+            # if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
+            # The layer on the threshold (defined by position index) gets divided according to perc_layer
+            perc_layer = (V_lim_dep - np.sum(V_dep_old[csum < V_lim_dep, 1:]))/sum(V_dep_old[index, 1:])  # EB check again  # percentage to be lifted from the layer on the threshold 
+
+            # remove small negative values that can arise from the difference being very close to 0
+            perc_layer = np.maximum(0, perc_layer)
+
+            if ~np.isnan(roundpar):
+                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer, decimals=roundpar))).reshape(1, -1), V_dep_old[csum<V_lim_dep,:]))
+                V_dep = np.vstack((V_dep_old[0:index,:], np.hstack((V_dep_old[index,0], np.around(V_dep_old[index,1:]* (1-perc_layer), decimals=roundpar)))))
+            else: 
+                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around( V_dep_old[index, 1:]*perc_layer))).reshape(1, -1), V_dep_old[csum < V_lim_dep, :]))
+                V_dep = np.vstack((V_dep_old[0:index, :], np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:] * (1-perc_layer))))))
+    
+
+    else:  # if the incoming sediment volume is enough to completely fill the active layer...
+
+        # ... deposit part of the incoming cascades
+        #    proportionally to their volume and the volume of the active layer,
+        #    and put the rest into the active layer
+
+        # percentage of the volume to put in the active layer for all the cascades
+        perc_dep = V_lim_tot_n / np.sum(Qbi_incoming[:, 1:])
+
+        if ~np.isnan(roundpar):
+            Qbi_incoming_dep = np.around(Qbi_incoming[:, 1:]*(1-perc_dep), decimals=roundpar)
+        else:
+            # this contains the fraction of the incoming volume to be deposited
+            Qbi_incoming_dep = Qbi_incoming[:, 1:]*(1-perc_dep)
+
+        V_inc2act = np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming[:, 1:] - Qbi_incoming_dep))
+        V_dep2act = np.append(V_dep_old[0, 0], np.zeros((1, Qbi_incoming.shape[1]-1)))
+        
+        if V_dep2act.ndim == 1: 
+            V_dep2act = V_dep2act[None, :]
+
+        # if, given the round, the deposited volume of the incoming cascades is not 0...
+        if any(np.sum(Qbi_incoming[:, 1:]*(1-perc_dep), axis = 0)):
+            V_dep = np.vstack((V_dep_old, np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming_dep))))
+        else:
+            V_dep = V_dep_old  # ... i leave the deposit as it was.
+
+    # remove empty rows (if the matrix is not already empty)
+    if (np.sum(V_dep2act[:, 1:], axis = 1)!=0).any():       
+        V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis = 1) != 0, :]
+
+    # find active layer GSD
+
+    # find the GSD of the active layer, for the transport capacity calculation
+    Fi_r_reach = (np.sum(V_dep2act[:, 1:], axis=0) + np.sum(V_inc2act[:, 1:], axis=0)) / (np.sum(V_dep2act[:, 1:]) + np.sum(V_inc2act[:, 1:]))
+    # if V_act is empty, i put Fi_r equal to 0 for all classes
+    Fi_r_reach[np.isinf(Fi_r_reach) | np.isnan(Fi_r_reach)] = 0
+    
+
+    return V_inc2act, V_dep2act, V_dep, Fi_r_reach
+
+
+
+def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
+    """
+    This function searches uppermost layers from the reach deposit layer, 
+    plus eventual passing cascades, to be put in a maximum volume.
+    The maximum volume can represent for example the active layer, 
+    i.e. what we consider as active during the transport process.
+    or the maximum to be eroded per time step
+     
+
+    INPUTS:    
+    deposit_layers :    the reach deposit layers
+    max_volume  :       is the total maximum volume to be mobilised
     Qbi_incoming :      is the cascade stopping there from the previous time step
     
     RETURN:
@@ -519,46 +636,58 @@ def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
     return r_Vmob, cascade_list, V_remove
 
 
-
-
-def compute_time_lag(cascade_list, n_classes, compare_with_tr_cap, time_lag_for_mobilised):
-    ''' The time lag is the time we use to mobilise from the reach, 
-    before cascades from upstream reaches arrive at the outlet of the present reach.
-    We take it as the time for the first cascade to arrive at the outet.
-    Depending on the algorithm options, 
-    
-    cascade_list            : the list of cascade objects. Can be empty.
-    compare_with_tr_cap     : bool for the option if we conpare with tr_cap. 
-    time_lag_for_mobilised  : bool for the option if we include a time lag.
+def compute_time_lag(cascade_list, n_classes):
     '''
-    
-    if compare_with_tr_cap == True:
-        if time_lag_for_mobilised == True:
-            if cascade_list == []:
-                time_lag = np.ones(n_classes) # the time lag is the entire time step as no other cascade reach the outlet
-            else:
-                time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
-                time_lag = np.min(time_arrays, axis=0) 
-        else:
-            # in this condition (we compare with tr cap at the outlet,
-            # but no time lag is considered), we don't mobilised from the
-            # reach before the possible cascades arrive.
-            # At the exception that no cascades arrive at the outlet.
-            if cascade_list != []:
-                time_lag = np.zeros(n_classes)
-            else: 
-                # If no cascades arrive at the outlet,
-                # we mobilise from the reach itself
-                time_lag = np.ones(n_classes)
+    '''
+    if cascade_list == []:
+        # the time lag is the entire time step as no cascade reach the outlet
+        time_lag = np.ones(n_classes) 
     else:
-        # in this condition (compare_with_tr_cap = False), 
-        # we always mobilise from the reach itself and 
-        # the passing cascades are passing the outlet, without 
-        # checking the energy available to make them pass,
-        # like in version 1 of the code
-        time_lag = np.ones(n_classes)     
+        # Otherwise, the time lag corresponds the smallest time per class
+        # to reach the outlet
+        time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
+        time_lag = np.min(time_arrays, axis=0) 
+
+
+
+# def compute_time_lag(cascade_list, n_classes, compare_with_tr_cap, time_lag_for_mobilised):
+#     ''' The time lag is the time we use to mobilise from the reach, 
+#     before cascades from upstream reaches arrive at the outlet of the present reach.
+#     We take it as the time for the first cascade to arrive at the outet.
+#     Depending on the algorithm options, 
     
-    return time_lag    
+#     cascade_list            : the list of cascade objects. Can be empty.
+#     compare_with_tr_cap     : bool for the option if we conpare with tr_cap. 
+#     time_lag_for_mobilised  : bool for the option if we include a time lag.
+#     '''
+    
+#     if compare_with_tr_cap == True:
+#         if time_lag_for_mobilised == True:
+#             if cascade_list == []:
+#                 time_lag = np.ones(n_classes) # the time lag is the entire time step as no other cascade reach the outlet
+#             else:
+#                 time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
+#                 time_lag = np.min(time_arrays, axis=0) 
+#         else:
+#             # in this condition (we compare with tr cap at the outlet,
+#             # but no time lag is considered), we don't mobilised from the
+#             # reach before the possible cascades arrive.
+#             # At the exception that no cascades arrive at the outlet.
+#             if cascade_list != []:
+#                 time_lag = np.zeros(n_classes)
+#             else: 
+#                 # If no cascades arrive at the outlet,
+#                 # we mobilise from the reach itself
+#                 time_lag = np.ones(n_classes)
+#     else:
+#         # in this condition (compare_with_tr_cap = False), 
+#         # we always mobilise from the reach itself and 
+#         # the passing cascades are passing the outlet, without 
+#         # checking the energy available to make them pass,
+#         # like in version 1 of the code
+#         time_lag = np.ones(n_classes)     
+    
+#     return time_lag    
 
 
  

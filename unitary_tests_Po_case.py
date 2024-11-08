@@ -117,8 +117,8 @@ def test_Po_Engelund_all_new_options_false():
     data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
                                                  reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                                  roundpar, update_slope, eros_max, save_dep_layer, ts_length,
-                                                 consider_overtaking_sed_in_outputs = op1,
-                                                 compare_with_tr_cap = op2,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
     
       
@@ -263,8 +263,8 @@ def test_Po_Wilcock_all_new_options_false():
     data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
                                                  reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                                  roundpar, update_slope, eros_max, save_dep_layer, ts_length,
-                                                 consider_overtaking_sed_in_outputs = op1,
-                                                 compare_with_tr_cap = op2,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
         
     # Test the total mobilised volume per reach
