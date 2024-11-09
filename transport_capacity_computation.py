@@ -224,6 +224,9 @@ class TransportCapacityCalculator:
         q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * self.D50**3) # m3/s
         # Dimensionful transport capacity [m3/s]
         tr_cap = q_eh_dim * self.wac
+        print(C, tau_eh, q_eh, q_eh_dim)
+        print(tr_cap)
+        print(bjo)
         
         return {"tr_cap": tr_cap}
     
