@@ -11,7 +11,7 @@ from preprocessing import graph_preprocessing, extract_Q
 from pathlib import Path
 import geopandas as gpd
 from GSD import GSDcurvefit
-
+import time
 
 
 
@@ -387,11 +387,13 @@ def test_Po_Engelund_all_new_options_true():
                             # (= arriving cascade + possibly reach material)   
     indx_vel_partition = 1  # same velocity for all classes
                
-
     # Run definition
+    start = time.time()
     data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
                                                  reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                                  roundpar, update_slope, eros_max, save_dep_layer, ts_length)
+    end = time.time()
+    print(end - start)
         
     # Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
