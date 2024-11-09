@@ -7,7 +7,7 @@ Created on Thu Sep  5 13:50:28 2024
 
 import numpy as np
 import numpy.matlib
-from transport_capacity_computation import Wilcock_Crowe_formula, Engelund_Hansen_formula
+from transport_capacity_computation import TransportCapacityCalculator
 
 # To account for potential imprecision or errors in the calculations, we use
 # an " absolute tolerance" EPSILON of 0.0001.
@@ -35,11 +35,12 @@ def test_engelund_hansen_formula():
     expected_tr_cap = 0.046356178
     
     # Computing the transport capacity with the D-CASCADE implementation
-    computed_tr_cap = Engelund_Hansen_formula(D50, slope, wac, v, h)
+    calculator = TransportCapacityCalculator(np.nan, D50, slope, np.nan, wac, v, h, np.nan)
+    computed_tr_cap = calculator.Engelund_Hansen_formula()
     
     # Asserting the computed value is equal to manually calculated one, allowing
     # for with error tolerance EPSILON
-    np.testing.assert_allclose(computed_tr_cap[0], expected_tr_cap, atol=EPSILON)
+    np.testing.assert_allclose(computed_tr_cap['tr_cap'][0], expected_tr_cap, atol=EPSILON)
 
 
 def test_wilcock_crowe_formula():
@@ -65,11 +66,12 @@ def test_wilcock_crowe_formula():
     expected_tr_cap = 0.0058621118228
     
     # Computing the transport capacity with the D-CASCADE implementation
-    computed_tr_cap, tau, tau_r50 = Wilcock_Crowe_formula(Fi_r_reach, D50, slope, wac, h, psi)
+    calculator = TransportCapacityCalculator(Fi_r_reach, D50, slope, np.nan, wac, np.nan, h, psi)
+    computed_tr_cap = calculator.Wilcock_Crowe_formula()
     
     # Asserting the computed value is equal to manually calculated one, allowing
     # for with error tolerance EPSILON
-    np.testing.assert_allclose(computed_tr_cap[0][0], expected_tr_cap, atol=EPSILON)
+    np.testing.assert_allclose(computed_tr_cap['tr_cap'][[0]], expected_tr_cap, atol=EPSILON)
 
 if __name__ == "__main__":
     test_wilcock_crowe_formula()
