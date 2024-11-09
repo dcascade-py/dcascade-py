@@ -18,7 +18,7 @@ from constants import (
 )
 
 class TransportCapacityCalculator:
-    def __init__(self, Fi_r_reach, D50, slope, Q, wac, v, h, psi, gamma=0.05):
+    def __init__(self, fi_r_reach, D50, slope, Q, wac, v, h, psi, gamma=0.05):
         # Dictionary mapping indices to different formula
         self.index_to_formula = {
             1: self.Parker_Klingeman_formula,
@@ -29,7 +29,7 @@ class TransportCapacityCalculator:
             6: self.Ackers_White_formula,
             7: self.Rickenmann_formula
         }
-        self.Fi_r_reach = Fi_r_reach
+        self.fi_r_reach = fi_r_reach
         self.D50 = D50
         self.slope = slope
         self.Q = Q
@@ -37,20 +37,8 @@ class TransportCapacityCalculator:
         self.v = v
         self.h = h
         self.psi = psi
-
-    # def execute(self, index, *args, **kwargs):
-    #     """
-    #     Chooses the transport capacity function based on the given index.
-    #     """
-    #     # EB D50 entries change according to formula index - it would be good to create a class 
-    #     # to call with the string name of the formula
-    #
-    #     # Execute the formula corresponding to the given index
-    #     if index in self.index_to_formula:
-    #         return self.index_to_formula[index](*args, **kwargs)
-    #     else:
-    #         print("Invalid index.")
-    #         return None
+        self.dmi = 2**(-self.psi) / 1000 # sediment classes diameter [m]
+        self.gamma = gamma # hiding factor
         
     def choose_formula(self, indx_tr_cap):
         """
@@ -70,42 +58,6 @@ class TransportCapacityCalculator:
         Qc = result.get("Qc", np.nan)
         
         return tr_cap, Qc
-        
-        
-# def choose_formula(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap): 
-#     """
-#     Chooses the transport capacity function based on the given index (indx_tr_cap).
-#     """
-#     # EB D50 entries change according to formula index - it would be good to create a class 
-#     # to call with the string name of the formula 
-#
-#     tau = np.nan
-#     taur50 = np.nan
-#     Qc = np.nan
-#
-#     #choose transport capacity formula
-#     if indx_tr_cap == 1:
-#         tr_cap = Parker_Klingeman_formula(Fi_r_reach, D50, slope, wac, h, psi)
-#
-#     elif indx_tr_cap == 2:
-#         tr_cap =  Wilcock_Crowe_formula(Fi_r_reach, D50, slope, wac, h, psi)
-#
-#     elif indx_tr_cap == 3: 
-#         tr_cap = Engelund_Hansen_formula(D50, slope, wac, v, h)
-#
-#     elif indx_tr_cap == 4: 
-#         tr_cap = Yang_formula(Fi_r_reach, D50, slope, Q, v, h, psi) 
-#
-#     elif indx_tr_cap == 5: 
-#         tr_cap = Wong_Parker_formula(D50, slope, wac, h)
-#
-#     elif indx_tr_cap == 6: 
-#         tr_cap = Ackers_White_formula(D50, slope, Q, v, h)        
-#
-#     elif indx_tr_cap == 7:
-#         tr_cap, Qc = Rickenmann_formula(D50, slope, Q, wac)
-#
-#     return tr_cap, Qc
 
     def Parker_Klingeman_formula(self):
         """
@@ -118,20 +70,13 @@ class TransportCapacityCalculator:
         Parker and Klingeman (1982). On why gravel bed streams are paved. Water Resources Research.
         """
         
-        #if 'gamma' not in kwargs: # if gamma was not given as input
-        #    gamma = 0.05 # hiding factor
-        
-        dmi = 2**(-self.psi) / 1000 # sediment classes diameter [m]
-        
-        ## Transport capacity from Parker and Klingema equations
-        
         tau = RHO_W * GRAV * self.h * self.slope # bed shear stress [Kg m-1 s-1]
         
         # tau_r50 formula from Mueller et al. (2005)
         # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
         tau_r50 = (0.021 + 2.18 * self.slope) * (RHO_W * R_VAR * GRAV * self.D50)
         
-        tau_ri = tau_r50 * (dmi/self.D50)** self.gamma # reference shear stress for each sediment class [Kg m-1 s-1]
+        tau_ri = tau_r50 * (self.dmi/self.D50)** self.gamma # reference shear stress for each sediment class [Kg m-1 s-1]
         phi_ri = tau / tau_ri
         
         # Dimensionless transport rate for each sediment class [-]
@@ -152,8 +97,6 @@ class TransportCapacityCalculator:
         References:
         Wilcock, Crowe(2003). Surface-based transport model for mixed-size sediment. Journal of Hydraulic Engineering.
         """
-    
-        dmi = 2**(-self.psi) / 1000 # sediment classes diameter [m]
         
         if self.fi_r_reach.ndim == 1:
             self.fi_r_reach = self.fi_r_reach[:,None]
@@ -170,9 +113,9 @@ class TransportCapacityCalculator:
         # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
         tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
         
-        b = 0.67 / (1 + np.exp(1.5 - dmi / self.D50)) # hiding factor
+        b = 0.67 / (1 + np.exp(1.5 - self.dmi / self.D50)) # hiding factor
         
-        fact = (dmi / self.D50)**b
+        fact = (self.dmi / self.D50)**b
         tau_ri = tau_r50 * fact[:,None] # reference shear stress for each sediment class [Kg m-1 s-1]
         
         phi_ri = tau / tau_ri
@@ -224,13 +167,10 @@ class TransportCapacityCalculator:
         q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * self.D50**3) # m3/s
         # Dimensionful transport capacity [m3/s]
         tr_cap = q_eh_dim * self.wac
-        print(C, tau_eh, q_eh, q_eh_dim)
-        print(tr_cap)
-        print(bjo)
         
         return {"tr_cap": tr_cap}
     
-    def Yang_formula(fi_r_reach, D50, slope, Q, v, h, psi): 
+    def Yang_formula(self): 
         """
         Returns the value of the transport capacity [m3/s] for each sediment class
         in the reach measured using the Yang equations.
@@ -243,10 +183,9 @@ class TransportCapacityCalculator:
         #v=onepage&q=yang%20sediment%20transport%201973&f=false
         """
     
-        dmi = 2**(-psi) / 1000 # sediment classes diameter [m]
         nu = 1.003*1E-6        # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
         
-        GeoStd = GSD_std(fi_r_reach, dmi);
+        GeoStd = GSD_std(self.fi_r_reach, self.dmi);
         
         #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of Sediment Particles. (1933)
         #         
@@ -258,20 +197,21 @@ class TransportCapacityCalculator:
         #      w = 0.51*nu/D50*(D50**3*GRAV*R_VAR/nu**2)**0.553 # EQ. 4: http://www.wseas.us/e-library/conferences/2009/cambridge/WHH/WHH06.pdf 
         
         #2)  settling velocity for grains - Rubey (1933)
-        F = (2 / 3 + 36 * nu**2 / (GRAV * D50**3 * R_VAR))**0.5 - (36 * nu**2/(GRAV * D50**3 * R_VAR))**0.5
-        w = F * (D50 * GRAV * R_VAR)**0.5 #settling velocity
+        F = (2 / 3 + 36 * nu**2 / (GRAV * self.D50**3 * R_VAR))**0.5 - (36 * nu**2/(GRAV * self.D50**3 * R_VAR))**0.5
+        w = F * (self.D50 * GRAV * R_VAR)**0.5 #settling velocity
         
         # use corrected sediment diameter
-        tau = 1000 * GRAV * h * slope
+        tau = 1000 * GRAV * self.h * self.slope
         vstar = np.sqrt(tau / 1000)
-        w50 = (16.17 * D50**2)/(1.8 * 10**(-5) + (12.1275 * D50**3)**0.5)
+        w50 = (16.17 * self.D50**2)/(1.8 * 10**(-5) + (12.1275 * self.D50**3)**0.5)
         
-        De = (1.8 * D50) / (1 + 0.8 * (vstar / w50)**0.1 * (GeoStd - 1)**2.2)
+        De = (1.8 * self.D50) / (1 + 0.8 * (vstar / w50)**0.1 * (GeoStd - 1)**2.2)
         
-        U_star = np.sqrt(De * GRAV * slope) # shear velocity 
+        U_star = np.sqrt(De * GRAV * self.slope) # shear velocity 
         
         # 1) Yang Sand Formula
-        log_C = 5.165 - 0.153 * np.log10(w * De / nu) - 0.297 * np.log10(U_star / w) + (1.78 - 0.36 * np.log10(w * De / nu) - 0.48 * np.log10(U_star / w)) * np.log10(v * slope / w) 
+        log_C = 5.165 - 0.153 * np.log10(w * De / nu) - 0.297 * np.log10(U_star / w) \
+        + (1.78 - 0.36 * np.log10(w * De / nu) - 0.48 * np.log10(U_star / w)) * np.log10(self.v * self.slope / w) 
         
         # 2) Yang Gravel Formula
         #log_C = 6.681 - 0.633*np.log10(w*D50/nu) - 4.816*np.log10(U_star/w) + (2.784-0.305*np.log10(w*D50/nu)-0.282*np.log10(U_star/w))*np.log10(v*slope/w) 
@@ -279,7 +219,7 @@ class TransportCapacityCalculator:
         QS_ppm = 10**(log_C) # in ppm 
         
         QS_grams = QS_ppm # in g/m3
-        QS_grams_per_sec = QS_grams * Q # in g/s
+        QS_grams_per_sec = QS_grams * self.Q # in g/s
         QS_kg = QS_grams_per_sec / 1000 # in kg/s
         
         QS_Yang = QS_kg / RHO_S # m3/s
@@ -288,7 +228,7 @@ class TransportCapacityCalculator:
         
         return {"tr_cap": tr_cap}
     
-    def Ackers_White_formula(D50, slope, Q, v, h):
+    def Ackers_White_formula(self):
         """
         Returns the value of the transport capacity [m3/s] for each sediment class
         in the reach measured using the Ackers and White equations.
@@ -302,7 +242,7 @@ class TransportCapacityCalculator:
         #FR = v/np.sqrt(g*h)     #Froude number
         
         # Ackers - White suggest to use the D35 instead of the D50
-        D_AW = D50
+        D_AW = self.D50
         
         nu = 1.003*1E-6 # kinematic viscosity @ 20�C: http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
         #nu = 0.000011337  # kinematic viscosity (ft2/s)
@@ -316,7 +256,7 @@ class TransportCapacityCalculator:
         D_gr = D_AW * (GRAV * R_VAR / nu**2)**(1/3) #dimensionless grain size - EB change coding line if D_gr is different from a number 
         
         #shear velocity
-        u_ast = np.sqrt(GRAV * h * slope)
+        u_ast = np.sqrt(GRAV * self.h * self.slope)
         
         ## Transport capacity 
         
@@ -338,16 +278,16 @@ class TransportCapacityCalculator:
             n[D_gr < 60] = 1 - 0.56 * np.log10(D_gr[D_gr < 60])
         
         ## mobility factor
-        F_gr = u_ast**n / np.sqrt(GRAV * D_AW * R_VAR) * (v / (np.sqrt(32) * np.log10(alpha * h / D_AW)))**(1 - n)
+        F_gr = u_ast**n / np.sqrt(GRAV * D_AW * R_VAR) * (self.v / (np.sqrt(32) * np.log10(alpha * self.h / D_AW)))**(1 - n)
          
         # dimensionless transport
         G_gr = C * (np.maximum(F_gr / A - 1, 0) )**m
         
         # weight concentration of bed material (Kg_sed / Kg_water)
-        QS_ppm = G_gr * (R_VAR + 1) * D_AW * (v / u_ast)**n / h
+        QS_ppm = G_gr * (R_VAR + 1) * D_AW * (self.v / u_ast)**n / self.h
         
         # transport capacity (Kg_sed / s)
-        QS_kg = RHO_W * Q * QS_ppm
+        QS_kg = RHO_W * self.Q * QS_ppm
         
         # transport capacity [m3/s]
         QS_AW = QS_kg / RHO_S
@@ -355,7 +295,8 @@ class TransportCapacityCalculator:
         tr_cap = QS_AW
         
         return {"tr_cap": tr_cap}
-    def Wong_Parker_formula(D50, slope, wac, h):
+    
+    def Wong_Parker_formula(self):
         """
         Returns the value of the transport capacity [m3/s] for each sediment class
         in the reach measured using the Wong-Parker equations. 
@@ -373,19 +314,19 @@ class TransportCapacityCalculator:
         tauC = 0.0495  # tauC = 0.0470
         
         # dimensionless shear stress
-        tauWP = (slope * h) / (R_VAR * D50)
+        tauWP = (self.slope * self.h) / (R_VAR * self.D50)
         # dimensionless transport capacity
         qWP = alpha* (np.maximum(tauWP - tauC, 0))**beta
         # dimensionful transport capacity [m3/(s*m)] 
-        qWP_dim = qWP * np.sqrt(R_VAR * GRAV * D50**3) # [m3/(s*m)] (formula from the original cascade paper)
+        qWP_dim = qWP * np.sqrt(R_VAR * GRAV * self.D50**3) # [m3/(s*m)] (formula from the original cascade paper)
         
-        QS_WP = qWP_dim * wac # [m3/s]
+        QS_WP = qWP_dim * self.wac # [m3/s]
         
         tr_cap = QS_WP # [m3/s]
     
         return {"tr_cap": tr_cap}
     
-    def Rickenmann_formula(D50, slope, Q, wac):
+    def Rickenmann_formula(self):
         """
         Rickenmann's formula for bedload transport capacity based on unit discharge
         for slopes of 0.04% - 20%.
@@ -402,11 +343,11 @@ class TransportCapacityCalculator:
         """
         
         # Q is on whole width, Qunit = Q/w
-        Qunit = Q / wac
+        Qunit = self.Q / self.wac
         
         exponent_e = 1.5
         # critical unit discharge
-        Qc = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (D50 ** exponent_e) * (slope ** (-1.12))
+        Qc = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (self.D50 ** exponent_e) * (self.slope ** (-1.12))
     
         #Check if Q is smaller than Qc
         Qarr = np.full_like(Qc, Qunit)
@@ -414,9 +355,9 @@ class TransportCapacityCalculator:
         Qb = np.zeros_like(Qc)
         
         condition = (Qarr - Qc) < 0
-        Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * (slope ** 1.5))
+        Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * (self.slope ** 1.5))
     
-        Qb_Wac = Qb * wac
+        Qb_Wac = Qb * self.wac
         tr_cap = Qb_Wac
     
         return {"tr_cap": tr_cap, "Qc": Qc}
@@ -497,34 +438,39 @@ def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx
     formula chosen by the  user and return the value of the transport capacity 
     and the relative Grain Size Distrubution (pci) for each sediment class in the reach.
     """  
-    dmi = 2**(-psi) / 1000 #sediment classes diameter (m)
         
     ##choose partitioning formula for computation of sediment transport rates for individual size fractions
     
     #formulas from: 
     #Molinas, A., & Wu, B. (2000): Comparison of fractional bed material load computation methods in sand?bed channels. 
     #Earth Surface Processes and Landforms: The Journal of the British Geomorphological Research Group
+    
+    
+    # EB D50 entries change according to formula index - it would be good to create a class 
+    # to call with the string name of the formula 
+    dmi = 2**(-psi) / 1000 #sediment classes diameter (m)
 
     Qtr_cap = np.zeros(len(psi))[None]
     
-    calculator = TransportCapacityCalculator(Fi_r_reach, D50, slope, Q, wac, v, h, psi)
-    
     if indx_partition == 1: # Direct computation by the size fraction approach  
-        
+        calculator = TransportCapacityCalculator(Fi_r_reach, dmi, slope, Q, wac, v, h, psi)
         Qtr_cap,Qc = calculator.choose_formula(indx_tr_cap)
         pci = Fi_r_reach
         
     elif indx_partition == 2: # The BMF approach (Bed Material Fraction)
+        calculator = TransportCapacityCalculator(Fi_r_reach, dmi, slope, Q, wac, v, h, psi)
         tr_cap, Qc = calculator.choose_formula(indx_tr_cap)
         Qtr_cap = Fi_r_reach*tr_cap
         pci = Fi_r_reach 
         
     elif indx_partition == 3: # The TCF approach (Transport Capacity Fraction) with the Molinas formula (Molinas and Wu, 2000)
         pci = Molinas_rates(Fi_r_reach, h, v, slope, dmi*1000, D50*1000)
+        calculator = TransportCapacityCalculator(Fi_r_reach, D50, slope, Q, wac, v, h, psi)
         tr_cap, Qc = calculator.choose_formula(indx_tr_cap)
         Qtr_cap = pci * tr_cap
     
     elif indx_partition == 4: #Shear stress correction approach (for fractional transport formulas)
+        calculator = TransportCapacityCalculator(Fi_r_reach, D50, slope, Q, wac, v, h, psi)
         tr_cap, Qc = calculator.choose_formula(indx_tr_cap)
         Qtr_cap = tr_cap #these formulas returns already partitioned results;
         pci = Qtr_cap / np.sum(Qtr_cap)
