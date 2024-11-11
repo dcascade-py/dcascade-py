@@ -112,6 +112,9 @@ class ReachData:
             rugosity = self.geodf['D84'].astype(float).values
         return rugosity
 
+
+
+
 class SedimentarySystem:
     ''' Class for managing sediment exchanges, reassembling, and storing
     '''
@@ -131,27 +134,40 @@ class SedimentarySystem:
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
         
-        # Fill in matrice
-        self.slope = None
-        self.node_el = None
+        # Setted variables      
+        self.eros_max_vol = None
+        self.eros_max_depth = None
+        self.al_vol = None
+        self.al_depth = None   
+        
+        # Storing matrices for outputs
         self.Qbi_dep = None
         self.Qbi_tr = None
         self.Qbi_mob = None
-        self.Qbi_dep_0 = None
-        self.Fi_r_act = None
-        self.Q_out = None
         self.V_sed = None
-        self.tr_cap_all = None
-        self.Qc_class_all = None        # DD: can it be optional ?
-        # self.Delta_V_class_all = None   # DD: To be removed
-        self.D50_AL = None  # D50 of the active layer in each reach in each timestep
-        self.D50_AL2 = None
-        # self.tr_cap_sum = None  # total transport capacity 
+        self.Q_out = None
+        self.slope = None
+        self.node_el = None
         self.flow_depth = None
+        self.tr_cap = None  # DD: could be a list if they are many
+        self.D50_al = None  # DD: could be a list if they are many
+        self.Fi_al = None   # DD: could be a list if they are many
+        
+        # To be replaced ?
+        self.Qbi_dep_0 = None 
+        
+                
+        
+        
+        # self.tr_cap_all = None
+        # self.Qc_class_all = None        # DD: can it be optional ?
+        # self.Delta_V_class_all = None   # DD: To be removed
+        # self.D50_AL = None  # D50 of the active layer in each reach in each timestep
+        # self.D50_AL2 = None
+        # self.tr_cap_sum = None  # total transport capacity 
+        
         # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
-        self.al_vol_all = None  # store the volumes
-        self.al_depth_all = None  # store also the depths 
-        self.eros_max_vol = None
+
         
     def create_3d_zero_array(self):
         return np.zeros((self.timescale, self.n_reaches, self.n_classes))
@@ -185,7 +201,7 @@ class SedimentarySystem:
        
     def initialize_storing_matrices(self): 
     
-        # create Qbi dep matrix with size size depending on how often we want to save it:
+        # Create Qbi dep matrix with size size depending on how often we want to save it:
         if self.save_dep_layer=='never':
             dep_save_number = 1
         if self.save_dep_layer=='yearly':
@@ -196,16 +212,17 @@ class SedimentarySystem:
         
         self.Qbi_tr = [np.zeros((self.n_reaches, self.n_reaches, self.n_classes), dtype=np.float32) for _ in range(self.timescale)] # sediment within the reach AFTER transfer, which also gives the provenance 
         self.Qbi_mob = [np.zeros((self.n_reaches, self.n_reaches, self.n_classes), dtype=np.float32) for _ in range(self.timescale)] # sediment within the reach BEFORE transfer, which also gives the provenance
-        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1, dtype=np.float32), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches  
         # Note Qbi_tr and Qbi_mob are 3D matrices, if we add the time as a 4th dimension, we can not look at the matrix in spyder. 
-        self.Fi_r_act = np.empty((self.timescale, self.n_reaches, self.n_classes)) # contains grain size distribution of the active layer
-        self.Fi_r_act[:,0] = np.nan
-        
+               
+        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1, dtype=np.float32), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches  
+       
         # 3D arrays
         self.Q_out = self.create_3d_zero_array()  # amount of material delivered outside the network in each timestep
         self.V_sed = self.create_3d_zero_array()  # velocities
-        self.tr_cap_all = self.create_3d_zero_array()  # transport capacity per each sediment class
-        self.Qc_class_all = self.create_3d_zero_array()
+        self.tr_cap = self.create_3d_zero_array()  # transport capacity per each sediment class
+        self.Fi_al = self.create_3d_zero_array() # contains grain size distribution of the active layer
+        self.Fi_al[:,0] = np.nan #DD: why ?
+        # self.Qc_class_all = self.create_3d_zero_array()
         # self.Delta_V_class_all = self.create_3d_zero_array()
         
         # 2D arrays
@@ -214,10 +231,7 @@ class SedimentarySystem:
         # self.tr_cap_sum = self.create_2d_zero_array()  # total transport capacity 
         self.flow_depth = self.create_2d_zero_array()
         # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
-        self.al_vol_all = self.create_2d_zero_array()  # store the volumes
-        self.al_depth_all = self.create_2d_zero_array()  # store also the depths 
-     
-        
+ 
     def set_sediment_initial_deposit(self, network, Qbi_dep_in):
     
         for n in network['n_hier']:  
@@ -232,17 +246,19 @@ class SedimentarySystem:
     
         self.Qbi_dep[0] = copy.deepcopy(self.Qbi_dep_0)  # store init condition of dep layer
         
-    def set_erosion_maximum(self, eros_max, roundpar):
-    
+    def set_erosion_maximum(self, eros_max_depth_, roundpar):
         # Set maximum volume in meters that can be eroded for each reach, for each time step.
-        self.eros_max_all = np.ones((1, self.n_reaches)) * eros_max
-        self.eros_max_vol = np.round(self.eros_max_all * self.reach_data.wac * self.reach_data.length, roundpar)
+        self.eros_max_depth = np.ones((1, self.n_reaches)) * eros_max_depth_
+        self.eros_max_vol = np.round(self.eros_max_depth * self.reach_data.wac * self.reach_data.length, roundpar)
         
     def set_active_layer(self):       
-        ''' Set active layer volume, i.e. the one used for calculating the tranport 
-        capacity in [m3/s]. Corresponds to the depth that the river can see 
-        every second (more like a continuum carpet ...) defined here as 2.D90 
-        [Parker 2008].  '''
+        # Set active layer volume, i.e. the one used for calculating the tranport 
+        # capacity in [m3/s]. Corresponds to the depth that the river can see 
+        # every second (more like a continuum carpet ...) defined here as 2.D90 
+        # [Parker 2008].
+        
+        self.al_vol = self.create_2d_zero_array()  
+        self.al_depth = self.create_2d_zero_array()  
         
         # We take the input D90, or if not provided, the D84:
         if ~np.isnan(self.reach_data.D90):
@@ -250,10 +266,10 @@ class SedimentarySystem:
         else:
             reference_d = self.reach_data.D84
         for n in self.network['n_hier']:
-            al_depth = np.maximum(2 * reference_d[n], 0.01)
-            al_vol = al_depth * self.reach_data.wac[n] * self.reach_data.length[n]
-            self.al_vol_all[:,n] = np.repeat(al_vol, self.timescale, axis=0)
-            self.al_depth_all[:,n] = np.repeat(al_depth, self.timescale, axis=0)        
+            al_depth_t = np.maximum(2 * reference_d[n], 0.01)
+            al_vol_t = al_depth_t * self.reach_data.wac[n] * self.reach_data.length[n]
+            self.al_vol[:,n] = np.repeat(al_vol_t, self.timescale, axis=0)
+            self.al_depth[:,n] = np.repeat(al_depth_t, self.timescale, axis=0)        
     
     
     

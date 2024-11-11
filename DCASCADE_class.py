@@ -17,7 +17,7 @@ np.seterr(divide='ignore', invalid='ignore')
 # Supporting functions
 from supporting_functions import D_finder, sortdistance, matrix_compact, change_slope
 from supporting_functions import layer_search, tr_cap_deposit
-from supporting_functions import cascades_end_time_or_not
+# from supporting_functions import cascades_end_time_or_not
 from supporting_functions import deposit_from_passing_sediments
 from supporting_functions import compute_time_lag
 
@@ -77,6 +77,42 @@ class DCASCADE:
         if self.time_lag_for_mobilised == True and (self.passing_cascade_in_outputs == False or self.passing_cascade_in_trcap == False):
             raise ValueError("You can not use this combination of algorithm options")
      
+
+    def compute_time_lag(self, cascade_list):
+        # The time lag is the time we use to mobilise from the reach, 
+        # before cascades from upstream reaches arrive at the outlet of the present reach.
+        # We take it as the time for the first cascade to arrive at the outet.
+        # Depending on the algorithm options, 
+        
+        # cascade_list            : the list of passing cascade objects. Can be empty.
+        
+        if self.passing_cascade_in_trcap == True:
+            if self.time_lag_for_mobilised == True:
+                if cascade_list == []:
+                    time_lag = np.ones(self.n_classes) # the time lag is the entire time step as no other cascade reach the outlet
+                else:
+                    time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
+                    time_lag = np.min(time_arrays, axis=0) 
+            else:
+                # in this condition (we compare with tr cap at the outlet,
+                # but no time lag is considered), we don't mobilised from the
+                # reach before the possible cascades arrive.
+                # At the exception that no cascades arrive at the outlet.
+                if cascade_list != []:
+                    time_lag = np.zeros(self.n_classes)
+                else: 
+                    # If no cascades arrive at the outlet,
+                    # we mobilise from the reach itself
+                    time_lag = np.ones(self.n_classes)
+        else:
+            # in this condition (compare_with_tr_cap = False), 
+            # we always mobilise from the reach itself and 
+            # the passing cascades are passing the outlet, without 
+            # checking the energy available to make them pass,
+            # like in version 1 of the code
+            time_lag = np.ones(self.n_classes)     
+        
+        return time_lag           
         
     def run(self, Q, roundpar):
         # start waiting bar    
@@ -143,7 +179,9 @@ class DCASCADE:
                 # After this step, Qbi_pass[n] contains volume that do not finish
                 # the time step in this reach
                 if Qbi_pass[n] != []:
-                    Qbi_pass[n], to_be_deposited = self.sedim_sys.cascades_end_time_or_not(Qbi_pass[n], self.reach_data.length[n], self.ts_length)
+                    Qbi_pass[n], to_be_deposited = self.sedim_sys.cascades_end_time_or_not(Qbi_pass[n], 
+                                                                                           self.reach_data.length[n], 
+                                                                                           self.ts_length)
                     
                 else:
                     to_be_deposited = None
@@ -172,7 +210,7 @@ class DCASCADE:
                 # before the cascades arrive, i.e. during this time_lag
                 mobilized_cascades = []
                 Vdep = Vdep_init
-                if np.any(time_lag != 0):
+                if np.any(time_lag != 0): #--> reprendre ici
                     tr_cap_per_s, D50_AL, Fi_r = compute_transport_capacity(Vdep, 
                                                                         self.al_vol_all[0,n], 
                                                                         roundpar, self.psi)
