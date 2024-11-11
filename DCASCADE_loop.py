@@ -174,9 +174,11 @@ class DCASCADE:
     def set_active_layer(self, reach_data, network):
         # AL to move to the sedimentary system class (?)
         
-        # Set active layer volume, the one used for calculating the tr_cap in [m3/s]
-        # corresponds to the depth that the river can see every second (more like a continuum carpet ...)  
-        # defined here as 2.D90 [Parker 2008]
+        ''' Set active layer volume, i.e. the one used for calculating the tranport 
+        capacity in [m3/s]. Corresponds to the depth that the river can see 
+        every second (more like a continuum carpet ...) defined here as 2.D90 
+        [Parker 2008].  '''
+        
         # We take the input D90, or if not provided, the D84:
         if ~np.isnan(reach_data.D90):
             reference_d = reach_data.D90
@@ -470,7 +472,7 @@ class DCASCADE:
        
         for t in (np.arange(len(self.Qbi_dep)-1)):
             for n in range(len(self.Qbi_dep[t])): 
-                q_t = Qbi_dep[t][n] 
+                q_t = self.Qbi_dep[t][n] 
                 #total material in the deposit layer 
                 V_dep_sum[t,n] = np.sum(q_t[:,1:])
                 # total volume in the deposit layer for each timestep, divided by sed.class 
@@ -520,8 +522,8 @@ class DCASCADE:
         for t in np.arange(len(Qbi_dep_class)):
             Fi_dep_t = Qbi_dep_class[t]/ (np.sum(Qbi_dep_class[t],axis = 1).reshape(-1,1))
             Fi_dep_t[np.isnan(Fi_dep_t)] = 0
-            for i in np.arange(n_reaches):
-                D50_dep[t,i] = D_finder(Fi_dep_t[i,:], 50, psi)
+            for i in np.arange(self.n_reaches):
+                D50_dep[t,i] = D_finder(Fi_dep_t[i,:], 50, self.psi)
                 
                 
         #--Total material in a reach in each timestep, divided by class (transported + dep)
@@ -693,24 +695,24 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
     extended_output  = struct collecting the raw D-CASCADE output datasets
     """
     
-    cascade = DCASCADE(timescale, ts_length, save_dep_layer, update_slope, 
+    dcascade = DCASCADE(timescale, ts_length, save_dep_layer, update_slope, 
                        indx_flo_depth, indx_slope_red, indx_tr_cap, indx_tr_partition,
                        indx_velocity, indx_vel_partition,
                        compare_with_tr_cap, 
                        consider_overtaking_sed_in_outputs, time_lag_for_mobilised)
-    cascade.initialize_sedim_system(phi=0.4, minvel=0.0000001, outlet=network['n_hier'][-1],
+    dcascade.initialize_sedim_system(phi=0.4, minvel=0.0000001, outlet=network['n_hier'][-1],
                                     n_reaches=reach_data.n_reaches, psi=psi)
-    cascade.initialize_slopes(reach_data)
-    cascade.initialize_elevations(reach_data)
-    cascade.initialize_sediment_variables()
+    dcascade.initialize_slopes(reach_data)
+    dcascade.initialize_elevations(reach_data)
+    dcascade.initialize_sediment_variables()
     
-    cascade.set_sediment_deposit(network, Qbi_dep_in)
-    cascade.set_erosion_maximum(eros_max, reach_data, roundpar)
-    cascade.set_active_layer(reach_data, network)    
+    dcascade.set_sediment_deposit(network, Qbi_dep_in)
+    dcascade.set_erosion_maximum(eros_max, reach_data, roundpar)
+    dcascade.set_active_layer(reach_data, network)    
     
-    cascade.run(reach_data, network, Q, roundpar)
+    dcascade.run(reach_data, network, Q, roundpar)
     
-    data_output, extended_output = cascade.output_processing(reach_data, Q)
+    data_output, extended_output = dcascade.output_processing(reach_data, Q)
     
     return data_output, extended_output
 
