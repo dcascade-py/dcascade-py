@@ -86,133 +86,133 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
-def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
-    """
-    This function searches layers that are to be put in the maximum mobilisable  
-    layer of a time step. (i.e. the maximum depth to be mobilised). 
+# def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
+#     """
+#     This function searches layers that are to be put in the maximum mobilisable  
+#     layer of a time step. (i.e. the maximum depth to be mobilised). 
 
-    INPUTS:    
-    V_dep_old is :      the reach deposit layer
-    V_lim_tot_n  :      is the total maximum volume to be mobilised
-    Qbi_incoming :      is the cascade stopping there from the previous time step
+#     INPUTS:    
+#     V_dep_old is :      the reach deposit layer
+#     V_lim_tot_n  :      is the total maximum volume to be mobilised
+#     Qbi_incoming :      is the cascade stopping there from the previous time step
     
-    RETURN:
-    V_inc2act    :      Layers of the incoming volume to be put in the active layer
-    V_dep2act    :      layers of the deposit volume to be put in the active layer
-    V_dep        :      remaining deposit layer
-    Fi_r_reach   :      fraction of sediment in the active layer
-    """
+#     RETURN:
+#     V_inc2act    :      Layers of the incoming volume to be put in the active layer
+#     V_dep2act    :      layers of the deposit volume to be put in the active layer
+#     V_dep        :      remaining deposit layer
+#     Fi_r_reach   :      fraction of sediment in the active layer
+#     """
     
-    if Qbi_incoming is None:
-        # Empty layer (for computation)
-        n_classes = V_dep_old.shape[1] - 1
-        empty_incoming_volume = np.hstack((0, np.zeros(n_classes))) 
-        empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0) 
-        Qbi_incoming = empty_incoming_volume
+#     if Qbi_incoming is None:
+#         # Empty layer (for computation)
+#         n_classes = V_dep_old.shape[1] - 1
+#         empty_incoming_volume = np.hstack((0, np.zeros(n_classes))) 
+#         empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0) 
+#         Qbi_incoming = empty_incoming_volume
 
-    # if, considering the incoming volume, I am still under the threshold of the active layer volume...
-    if (V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])) > 0:
+#     # if, considering the incoming volume, I am still under the threshold of the active layer volume...
+#     if (V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])) > 0:
 
-        # ... I put sediment from the deposit layer into the active layer
-        # remaining active layer volume after considering incoming sediment cascades
-        V_lim_dep = V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])
-        csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis = 0)) # EB check again 
+#         # ... I put sediment from the deposit layer into the active layer
+#         # remaining active layer volume after considering incoming sediment cascades
+#         V_lim_dep = V_lim_tot_n - np.sum(Qbi_incoming[:, 1:])
+#         csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis = 0)) # EB check again 
 
-        V_inc2act = Qbi_incoming  # all the incoming volume will end up in the active layer
+#         V_inc2act = Qbi_incoming  # all the incoming volume will end up in the active layer
 
-        # find active layer
+#         # find active layer
          
-        if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty # EB check again 
-            # if the cascades in the deposit have combined
-            # volume that is less then the active layer volume (i've reached the bottom)
+#         if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty # EB check again 
+#             # if the cascades in the deposit have combined
+#             # volume that is less then the active layer volume (i've reached the bottom)
             
-            print(' reach the bottom ....')
+#             print(' reach the bottom ....')
 
-            V_dep2act = V_dep_old  # I put all the deposit into the active layer
-            V_dep = np.c_[V_dep_old[0,0], np.zeros((1,Qbi_incoming.shape[1]-1))]
+#             V_dep2act = V_dep_old  # I put all the deposit into the active layer
+#             V_dep = np.c_[V_dep_old[0,0], np.zeros((1,Qbi_incoming.shape[1]-1))]
 
 
-        else:
+#         else:
             
-            index = np.max(np.argwhere(csum >= V_lim_dep))
+#             index = np.max(np.argwhere(csum >= V_lim_dep))
 
 
-            # if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
-            # The layer on the threshold (defined by position index) gets divided according to perc_layer
-            perc_layer = (V_lim_dep - np.sum(V_dep_old[csum < V_lim_dep, 1:]))/sum(V_dep_old[index, 1:])  # EB check again  # percentage to be lifted from the layer on the threshold 
+#             # if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
+#             # The layer on the threshold (defined by position index) gets divided according to perc_layer
+#             perc_layer = (V_lim_dep - np.sum(V_dep_old[csum < V_lim_dep, 1:]))/sum(V_dep_old[index, 1:])  # EB check again  # percentage to be lifted from the layer on the threshold 
 
-            # remove small negative values that can arise from the difference being very close to 0
-            perc_layer = np.maximum(0, perc_layer)
+#             # remove small negative values that can arise from the difference being very close to 0
+#             perc_layer = np.maximum(0, perc_layer)
 
-            if ~np.isnan(roundpar):
-                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer, decimals=roundpar))).reshape(1, -1), V_dep_old[csum<V_lim_dep,:]))
-                V_dep = np.vstack((V_dep_old[0:index,:], np.hstack((V_dep_old[index,0], np.around(V_dep_old[index,1:]* (1-perc_layer), decimals=roundpar)))))
-            else: 
-                V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around( V_dep_old[index, 1:]*perc_layer))).reshape(1, -1), V_dep_old[csum < V_lim_dep, :]))
-                V_dep = np.vstack((V_dep_old[0:index, :], np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:] * (1-perc_layer))))))
+#             if ~np.isnan(roundpar):
+#                 V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer, decimals=roundpar))).reshape(1, -1), V_dep_old[csum<V_lim_dep,:]))
+#                 V_dep = np.vstack((V_dep_old[0:index,:], np.hstack((V_dep_old[index,0], np.around(V_dep_old[index,1:]* (1-perc_layer), decimals=roundpar)))))
+#             else: 
+#                 V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around( V_dep_old[index, 1:]*perc_layer))).reshape(1, -1), V_dep_old[csum < V_lim_dep, :]))
+#                 V_dep = np.vstack((V_dep_old[0:index, :], np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:] * (1-perc_layer))))))
     
 
-    else:  # if the incoming sediment volume is enough to completely fill the active layer...
+#     else:  # if the incoming sediment volume is enough to completely fill the active layer...
 
-        # ... deposit part of the incoming cascades
-        #    proportionally to their volume and the volume of the active layer,
-        #    and put the rest into the active layer
+#         # ... deposit part of the incoming cascades
+#         #    proportionally to their volume and the volume of the active layer,
+#         #    and put the rest into the active layer
 
-        # percentage of the volume to put in the active layer for all the cascades
-        perc_dep = V_lim_tot_n / np.sum(Qbi_incoming[:, 1:])
+#         # percentage of the volume to put in the active layer for all the cascades
+#         perc_dep = V_lim_tot_n / np.sum(Qbi_incoming[:, 1:])
 
-        if ~np.isnan(roundpar):
-            Qbi_incoming_dep = np.around(Qbi_incoming[:, 1:]*(1-perc_dep), decimals=roundpar)
-        else:
-            # this contains the fraction of the incoming volume to be deposited
-            Qbi_incoming_dep = Qbi_incoming[:, 1:]*(1-perc_dep)
+#         if ~np.isnan(roundpar):
+#             Qbi_incoming_dep = np.around(Qbi_incoming[:, 1:]*(1-perc_dep), decimals=roundpar)
+#         else:
+#             # this contains the fraction of the incoming volume to be deposited
+#             Qbi_incoming_dep = Qbi_incoming[:, 1:]*(1-perc_dep)
 
-        V_inc2act = np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming[:, 1:] - Qbi_incoming_dep))
-        V_dep2act = np.append(V_dep_old[0, 0], np.zeros((1, Qbi_incoming.shape[1]-1)))
+#         V_inc2act = np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming[:, 1:] - Qbi_incoming_dep))
+#         V_dep2act = np.append(V_dep_old[0, 0], np.zeros((1, Qbi_incoming.shape[1]-1)))
         
-        if V_dep2act.ndim == 1: 
-            V_dep2act = V_dep2act[None, :]
+#         if V_dep2act.ndim == 1: 
+#             V_dep2act = V_dep2act[None, :]
 
-        # if, given the round, the deposited volume of the incoming cascades is not 0...
-        if any(np.sum(Qbi_incoming[:, 1:]*(1-perc_dep), axis = 0)):
-            V_dep = np.vstack((V_dep_old, np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming_dep))))
-        else:
-            V_dep = V_dep_old  # ... i leave the deposit as it was.
+#         # if, given the round, the deposited volume of the incoming cascades is not 0...
+#         if any(np.sum(Qbi_incoming[:, 1:]*(1-perc_dep), axis = 0)):
+#             V_dep = np.vstack((V_dep_old, np.hstack((Qbi_incoming[:, 0][:,None], Qbi_incoming_dep))))
+#         else:
+#             V_dep = V_dep_old  # ... i leave the deposit as it was.
 
-    # remove empty rows (if the matrix is not already empty)
-    if (np.sum(V_dep2act[:, 1:], axis = 1)!=0).any():       
-        V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis = 1) != 0, :]
+#     # remove empty rows (if the matrix is not already empty)
+#     if (np.sum(V_dep2act[:, 1:], axis = 1)!=0).any():       
+#         V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis = 1) != 0, :]
 
-    # find active layer GSD
+#     # find active layer GSD
 
-    # find the GSD of the active layer, for the transport capacity calculation
-    Fi_r_reach = (np.sum(V_dep2act[:, 1:], axis=0) + np.sum(V_inc2act[:, 1:], axis=0)) / (np.sum(V_dep2act[:, 1:]) + np.sum(V_inc2act[:, 1:]))
-    # if V_act is empty, i put Fi_r equal to 0 for all classes
-    Fi_r_reach[np.isinf(Fi_r_reach) | np.isnan(Fi_r_reach)] = 0
+#     # find the GSD of the active layer, for the transport capacity calculation
+#     Fi_r_reach = (np.sum(V_dep2act[:, 1:], axis=0) + np.sum(V_inc2act[:, 1:], axis=0)) / (np.sum(V_dep2act[:, 1:]) + np.sum(V_inc2act[:, 1:]))
+#     # if V_act is empty, i put Fi_r equal to 0 for all classes
+#     Fi_r_reach[np.isinf(Fi_r_reach) | np.isnan(Fi_r_reach)] = 0
     
 
-    return V_inc2act, V_dep2act, V_dep, Fi_r_reach
+#     return V_inc2act, V_dep2act, V_dep, Fi_r_reach
 
 
-def matrix_compact(V_layer):
-    '''
-    '''
+# def matrix_compact(V_layer):
+#     '''
+#     '''
     
-    ID = np.unique(V_layer[:,0]) #, return_inverse=True
-    V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
-    # sum elements with same ID 
-    for ind, i in enumerate(ID): 
-        vect = V_layer[V_layer[:,0] == i,:]
-        V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
+#     ID = np.unique(V_layer[:,0]) #, return_inverse=True
+#     V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
+#     # sum elements with same ID 
+#     for ind, i in enumerate(ID): 
+#         vect = V_layer[V_layer[:,0] == i,:]
+#         V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
     
-    if V_layer_cmpct.shape[0]>1: 
-        V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
+#     if V_layer_cmpct.shape[0]>1: 
+#         V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
 
 
-    if V_layer_cmpct.size == 0: 
-        V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
+#     if V_layer_cmpct.size == 0: 
+#         V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
     
-    return V_layer_cmpct
+#     return V_layer_cmpct
 
 
 def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
@@ -355,72 +355,72 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
 
 
 
-def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
-    ''' Fonction to decide if the traveling cascades in cascade list stop in 
-    the reach or not, due to the end of the time step.
-    Inputs:
-        cascade_list_old:    list of traveling cascades
-        reach_length:           reach physical length
-        ts_length:              time step length
+# def cascades_end_time_or_not(cascade_list_old, reach_length, ts_length):
+#     ''' Fonction to decide if the traveling cascades in cascade list stop in 
+#     the reach or not, due to the end of the time step.
+#     Inputs:
+#         cascade_list_old:    list of traveling cascades
+#         reach_length:           reach physical length
+#         ts_length:              time step length
         
-    Return:
-        cascade_list_new:       same cascade list updated. Stopping cascades or 
-                                partial volumes have been removed
+#     Return:
+#         cascade_list_new:       same cascade list updated. Stopping cascades or 
+#                                 partial volumes have been removed
                                                           
-        depositing_volume:      the volume to be deposited in this reach. 
-                                They are ordered according to their arrival time
-                                at the inlet, so that volume arriving first 
-                                deposit first.
-    '''   
-    # Order cascades according to their arrival time, so that first arriving 
-    # cascade are first in the loop and are deposited first 
-    # Note: in the deposit layer matrix, first rows are the bottom layers
-    cascade_list_old = sorted(cascade_list_old, key=lambda x: np.mean(x.elapsed_time))
+#         depositing_volume:      the volume to be deposited in this reach. 
+#                                 They are ordered according to their arrival time
+#                                 at the inlet, so that volume arriving first 
+#                                 deposit first.
+#     '''   
+#     # Order cascades according to their arrival time, so that first arriving 
+#     # cascade are first in the loop and are deposited first 
+#     # Note: in the deposit layer matrix, first rows are the bottom layers
+#     cascade_list_old = sorted(cascade_list_old, key=lambda x: np.mean(x.elapsed_time))
     
-    depositing_volume_list = []
-    cascades_to_be_completely_removed = []
+#     depositing_volume_list = []
+#     cascades_to_be_completely_removed = []
     
-    for cascade in cascade_list_old:
-        # Time in, time travel, and time out in time step unit (not seconds)
-        t_in = cascade.elapsed_time
-        t_travel_n = reach_length / (cascade.velocities * ts_length)
-        t_out = t_in + t_travel_n
-        # Vm_stop is the stopping part of the cascade volume
-        # Vm_continue is the continuing part
-        Vm_stop, Vm_continue = stop_or_not(t_out, cascade.volume)
+#     for cascade in cascade_list_old:
+#         # Time in, time travel, and time out in time step unit (not seconds)
+#         t_in = cascade.elapsed_time
+#         t_travel_n = reach_length / (cascade.velocities * ts_length)
+#         t_out = t_in + t_travel_n
+#         # Vm_stop is the stopping part of the cascade volume
+#         # Vm_continue is the continuing part
+#         Vm_stop, Vm_continue = stop_or_not(t_out, cascade.volume)
         
-        if Vm_stop is not None:
-            depositing_volume_list.append(Vm_stop)
+#         if Vm_stop is not None:
+#             depositing_volume_list.append(Vm_stop)
             
-            if Vm_continue is None: 
-                # no part of the volume continues, we remove the entire cascade
-                cascades_to_be_completely_removed.append(cascade)
-            else: 
-                # some part of the volume continues, we update the volume 
-                cascade.volume = Vm_continue
+#             if Vm_continue is None: 
+#                 # no part of the volume continues, we remove the entire cascade
+#                 cascades_to_be_completely_removed.append(cascade)
+#             else: 
+#                 # some part of the volume continues, we update the volume 
+#                 cascade.volume = Vm_continue
                                 
-        if Vm_continue is not None:
-            # update time for continuing cascades
-            cascade.elapsed_time = t_out 
-            # put to 0 the elapsed time of the empty sediment classes
-            # i.e. the classes that have deposited, while other did not
-            # (Necessary for the time lag calculation later in the code)
-            cond_0 = np.all(cascade.volume[:,1:] == 0, axis = 0)
-            cascade.elapsed_time[cond_0] = 0
+#         if Vm_continue is not None:
+#             # update time for continuing cascades
+#             cascade.elapsed_time = t_out 
+#             # put to 0 the elapsed time of the empty sediment classes
+#             # i.e. the classes that have deposited, while other did not
+#             # (Necessary for the time lag calculation later in the code)
+#             cond_0 = np.all(cascade.volume[:,1:] == 0, axis = 0)
+#             cascade.elapsed_time[cond_0] = 0
             
     
-    # If they are, remove complete cascades:
-    cascade_list_new = [casc for casc in cascade_list_old if casc not in cascades_to_be_completely_removed]   
+#     # If they are, remove complete cascades:
+#     cascade_list_new = [casc for casc in cascade_list_old if casc not in cascades_to_be_completely_removed]   
     
-    # If they are, concatenate the deposited volumes 
-    if depositing_volume_list != []:
-        depositing_volume = np.concatenate(depositing_volume_list, axis=0)
-        if np.all(depositing_volume[:,1:] == 0):
-            raise ValueError("DD check: we have an empty layer stopping ?")
-    else:
-        depositing_volume = None
+#     # If they are, concatenate the deposited volumes 
+#     if depositing_volume_list != []:
+#         depositing_volume = np.concatenate(depositing_volume_list, axis=0)
+#         if np.all(depositing_volume[:,1:] == 0):
+#             raise ValueError("DD check: we have an empty layer stopping ?")
+#     else:
+#         depositing_volume = None
     
-    return cascade_list_new, depositing_volume
+#     return cascade_list_new, depositing_volume
 
 
 
