@@ -41,22 +41,18 @@ np.seterr(divide='ignore', invalid='ignore')
 
 class DCASCADE:
     def __init__(self, timescale, ts_length, save_dep_layer, update_slope, 
-                 indx_flo_depth, indx_slope_red, indx_tr_cap, indx_tr_partition,
+                 indx_flo_depth, indx_slope_red, 
+                 indx_tr_cap, indx_tr_partition,
                  indx_velocity, indx_vel_partition,
-                 compare_with_tr_cap, 
-                 consider_overtaking_sed_in_outputs, time_lag_for_mobilised):
-        """
-        
-        Options for the dcascade algorithme (if all False, we reproduce the version 1)
-        consider_overtaking_sed_in_outputs = Bool to activate or not this option (default True)
-        compare_with_tr_cap                = Bool to activate or not this option (default True)
-        time_lag_for_mobilised             = Bool to activate or not this option (default True)
-        """
+                 passing_cascade_in_outputs,
+                 passing_cascade_in_trcap, 
+                 time_lag_for_mobilised):
+
         # Simulation attributes
-        self.timescale = timescale
-        self.ts_length = ts_length
-        self.save_dep_layer = save_dep_layer
-        self.update_slope = update_slope
+        self.timescale = timescale                  # time step number
+        self.ts_length = ts_length                  # time step length
+        self.save_dep_layer = save_dep_layer        # option for saving the deposition layer or not
+        self.update_slope = update_slope            # option for updating slope
         
         # Indexes
         self.indx_flo_depth = indx_flo_depth
@@ -67,8 +63,8 @@ class DCASCADE:
         self.indx_vel_partition = indx_vel_partition
         
         # Algorithm options
-        self.compare_with_tr_cap = compare_with_tr_cap
-        self.consider_overtaking_sed_in_outputs = consider_overtaking_sed_in_outputs
+        self.passing_cascade_in_outputs = passing_cascade_in_outputs
+        self.passing_cascade_in_trcap = passing_cascade_in_trcap        
         self.time_lag_for_mobilised = time_lag_for_mobilised
         self.check_algorithm_compatibility()
     
@@ -192,9 +188,9 @@ class DCASCADE:
         
     def check_algorithm_compatibility(self):
         # Constrain on the option of the algorithm:
-        if self.compare_with_tr_cap == True and self.consider_overtaking_sed_in_outputs == False:
+        if self.passing_cascade_in_trcap == True and self.passing_cascade_in_outputs == False:
             raise ValueError("You can not use this combination of algorithm options")
-        if self.time_lag_for_mobilised == True and (self.consider_overtaking_sed_in_outputs == False or self.compare_with_tr_cap == False):
+        if self.time_lag_for_mobilised == True and (self.passing_cascade_in_outputs == False or self.passing_cascade_in_trcap == False):
             raise ValueError("You can not use this combination of algorithm options")
         
     def run(self, reach_data, network, Q, roundpar):
@@ -229,7 +225,7 @@ class DCASCADE:
                 # This step make them pass to the outlet of the reach or stop there,
                 # depending if they reach the end of the time step or not.
                 
-                if self.consider_overtaking_sed_in_outputs == True:            
+                if self.passing_cascade_in_outputs == True:            
                     # Store the arriving cascades in the transported matrix (Qbi_tr)
                     # Note: we store the volume by original provenance
                     for cascade in Qbi_pass[n]:
@@ -268,7 +264,7 @@ class DCASCADE:
                 # In the case we don't consider overpassing sediments
                 # store cascade as transported there for the next time step,
                 # only if it has stopped there
-                if self.consider_overtaking_sed_in_outputs == False:    
+                if self.passing_cascade_in_outputs == False:    
                     if to_be_deposited is not None:
                         self.Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
                                                         
@@ -277,7 +273,7 @@ class DCASCADE:
                 # The parameter "time_lag" is the proportion of the time step where this
                 # mobilisation occurs, i.e. before the first possible cascade arrives 
                 # at the outlet.
-                time_lag = compute_time_lag(Qbi_pass[n], self.n_classes, self.compare_with_tr_cap, self.time_lag_for_mobilised)
+                time_lag = compute_time_lag(Qbi_pass[n], self.n_classes, self.passing_cascade_in_trcap, self.time_lag_for_mobilised)
                                     
                                
                 # In the case time_lag is not all zeros, we mobilise from the reach
@@ -321,7 +317,7 @@ class DCASCADE:
                         mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
                     
                         # Store this volume if we consider only this one
-                        if self.consider_overtaking_sed_in_outputs == False:
+                        if self.passing_cascade_in_outputs == False:
                             self.Qbi_mob[t][[V_mob[:,0].astype(int)], n, :] += V_mob[:, 1:]
     
                 
@@ -391,7 +387,7 @@ class DCASCADE:
                 if mobilized_cascades != []:
                     Qbi_pass[n].extend(mobilized_cascades) 
                 
-                if self.consider_overtaking_sed_in_outputs == True:
+                if self.passing_cascade_in_outputs == True:
                     # ..and store the total mobilised volumes (passing + mobilised from the reach)
                     for cascade in Qbi_pass[n]:
                         self.Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
@@ -651,21 +647,21 @@ class DCASCADE:
         
 
 
-def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partition,                   
-                  reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
-                  update_slope, eros_max, save_dep_layer, ts_length,                  
-                  indx_flo_depth = 1, indx_slope_red = 1,                  
-                  consider_overtaking_sed_in_outputs = True,
-                  compare_with_tr_cap = True, time_lag_for_mobilised = True):
+def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
+                  update_slope, eros_max, save_dep_layer, ts_length,
+                  indx_tr_cap, indx_tr_partition, indx_flo_depth,                 
+                  indx_velocity = 2, 
+                  indx_vel_partition = 1,                   
+                  indx_slope_red = 1,                  
+                  passing_cascade_in_outputs = True,
+                  passing_cascade_in_trcap = True, 
+                  time_lag_for_mobilised = True):
     
     """
     Main function of the D-CASCADE software.
     
     INPUT :
-    indx_tr_cap         = the index indicating the transport capacity formula
-    indx_tr_partition   = the index indicating the type of sediment flux partitioning
-    indx_velocity       = the index indicating the method for calculating velocity (see compute_cascades_velocities)
-    indx_vel_partition  = the index indicating the type of partitioning in the section used to compute velocity
+    
     reach_data          = nx1 Struct defining the features of the network reaches
     network             = 1x1 struct containing for each node info on upstream and downstream nodes
     Q                   = txn matrix reporting the discharge for each timestep
@@ -679,27 +675,37 @@ def DCASCADE_main(indx_tr_cap, indx_tr_partition, indx_velocity, indx_vel_partit
     update_slope        = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope changes according to sediment deposit.
     eros_max            = maximum erosion depth per time step [m]
     save_dep_layer      = saving option of the deposit layer for each time step
-    ts_length           = the length in seconds of the timestep (60*60*24 for daily timesteps)
+    ts_length           = the length in seconds of the timestep (60*60*24 for daily timesteps)    
+    
+    indx_tr_cap         = the index indicating the transport capacity formula
+    indx_tr_partition   = the index indicating the type of sediment flux partitioning
+    indx_flo_depth      = the index indicating the flow depth formula, default 1 is Manning
+    
+
     
     OPTIONAL:
-    indx_flo_depth      = the index indicating the flow depth formula, default 1 is Manning
+    indx_velocity       = the index indicating the method for calculating velocity (see compute_cascades_velocities)
+    indx_vel_partition  = the index indicating the type of partitioning in the section used to compute velocity
     indx_slope_red      = the index indicating the slope reduction formula, default 1 is no reduction
     
     Options for the dcascade algorithme (if all False, we reproduce the version 1)
-    consider_overtaking_sed_in_outputs = Bool to activate or not this option (default True)
-    compare_with_tr_cap                = Bool to activate or not this option (default True)
-    time_lag_for_mobilised             = Bool to activate or not this option (default True)
+    passing_cascade_in_outputs          = Bool to activate or not this option (default True)
+    passing_cascade_in_trcap            = Bool to activate or not this option (default True)
+    time_lag_for_mobilised              = Bool to activate or not this option (default True)
     
     OUTPUT: 
     data_output      = struct collecting the main aggregated output matrices 
     extended_output  = struct collecting the raw D-CASCADE output datasets
     """
     
-    dcascade = DCASCADE(timescale, ts_length, save_dep_layer, update_slope, 
-                       indx_flo_depth, indx_slope_red, indx_tr_cap, indx_tr_partition,
+    dcascade = DCASCADE(timescale, ts_length, save_dep_layer, update_slope,                     
+                       indx_flo_depth, indx_slope_red, 
+                       indx_tr_cap, indx_tr_partition,
                        indx_velocity, indx_vel_partition,
-                       compare_with_tr_cap, 
-                       consider_overtaking_sed_in_outputs, time_lag_for_mobilised)
+                       passing_cascade_in_outputs,
+                       passing_cascade_in_trcap, 
+                       time_lag_for_mobilised)
+    
     dcascade.initialize_sedim_system(phi=0.4, minvel=0.0000001, outlet=network['n_hier'][-1],
                                     n_reaches=reach_data.n_reaches, psi=psi)
     dcascade.initialize_slopes(reach_data)

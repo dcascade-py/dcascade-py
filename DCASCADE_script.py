@@ -140,15 +140,24 @@ Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
 for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
 
-# Formula selection:
-# indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
 
-# If you want to fix indexes, comment the line above and fix manually the indexes
+# Compulsory indexes to choose:
+# Indexes for the transport capacity:
 indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
 indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
+
+# Index for the flow calculation: 
+indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
+
+# If these variable are not chosen manually: 
+if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals() or 'indx_flo_depth' not in globals():
+    indx_tr_cap, indx_tr_partition, indx_flo_depth = read_user_input()
+    
+# Velocity indexes:
 indx_velocity = 2 # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
 indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
-indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
+
+# Slope index:
 indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
 
 # Options for the cascade algorithm (by default, they are all True):        
@@ -171,13 +180,14 @@ op2 = True
 op3 = True
 
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
-                                             reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                              roundpar, update_slope, eros_max, save_dep_layer, ts_length,
-                                             indx_flo_depth = indx_flo_depth, 
+                                             indx_tr_cap , indx_tr_partition, indx_flo_depth,
+                                             indx_velocity = indx_velocity, 
+                                             indx_vel_partition = indx_vel_partition,
                                              indx_slope_red = indx_slope_red,
-                                             consider_overtaking_sed_in_outputs = op1,
-                                             compare_with_tr_cap = op2,
+                                             passing_cascade_in_outputs = op1,
+                                             passing_cascade_in_trcap = op2,
                                              time_lag_for_mobilised = op3)
 
 
