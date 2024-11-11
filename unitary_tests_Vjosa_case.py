@@ -83,9 +83,7 @@ def test_Vjosa_Engelund_all_new_options_false():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_velocity = 2       # velocity is calculated on the active layer 
-                            # (= arriving cascade + possibly reach material)   
-    indx_vel_partition = 1  # same velocity for all classes
+    indx_flo_depth = 1      # Manning
     
     # options in v2                  
     op1 = False
@@ -93,11 +91,11 @@ def test_Vjosa_Engelund_all_new_options_false():
     op3 = False
       
     # Run definition
-    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
-                                                 reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                                  roundpar, update_slope, eros_max, save_dep_layer, ts_length,
-                                                 consider_overtaking_sed_in_outputs = op1,
-                                                 compare_with_tr_cap = op2,
+                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
     
         
@@ -132,9 +130,7 @@ def test_Vjosa_Wilcock_all_new_options_false():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p
-    indx_velocity = 2       # velocity is calculated on the active layer 
-                            # (= arriving cascade + possibly reach material)   
-    indx_vel_partition = 1  # same velocity for all classes
+    indx_flo_depth = 1      # Manning
     
     # options in v2                  
     op1 = False
@@ -142,11 +138,11 @@ def test_Vjosa_Wilcock_all_new_options_false():
     op3 = False
       
     # Run definition
-    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
-                                                 reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                                                  roundpar, update_slope, eros_max, save_dep_layer, ts_length,
-                                                 consider_overtaking_sed_in_outputs = op1,
-                                                 compare_with_tr_cap = op2,
+                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
         
     #----Test the total mobilised volume per reach
@@ -177,16 +173,12 @@ def test_Vjosa_Engelund_all_new_options_true():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_velocity = 2       # velocity is calculated on the active layer 
-                            # (= arriving cascade + possibly reach material)   
-    indx_vel_partition = 1  # same velocity for all classes
-    
-
+    indx_flo_depth = 1      # Manning
       
     # Run definition
-    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
-                                                 reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length)
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth)
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
@@ -220,16 +212,13 @@ def test_Vjosa_Wilcock_all_new_options_true():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p
-    indx_velocity = 2       # velocity is calculated on the active layer 
-                            # (= arriving cascade + possibly reach material)   
-    indx_vel_partition = 1  # same velocity for all classes
-
+    indx_flo_depth = 1      # Manning
       
     # Run definition
-    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_tr_partition, indx_velocity, indx_vel_partition,
-                                                 reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length)
-        
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth)
+    
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
     expected_result = np.array([2142257.,  501326.,  273758.,   69815.,  770800.,  113202.,  175644.])  
