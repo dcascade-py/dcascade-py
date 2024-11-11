@@ -12,7 +12,8 @@ This script was adapted from the Matlab version by Marco Tangi
 """ Libraries to import """
 
 
-from supporting_classes import ReachData, Cascade, DCASCADE
+from supporting_classes import ReachData, Cascade, SedimentarySystem
+from DCASCADE_class import DCASCADE
 
 import itertools
 
@@ -71,28 +72,27 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     extended_output  = struct collecting the raw D-CASCADE output datasets
     """
     
+    # Create sedimentary system 
+    sedimentary_system = SedimentarySystem(reach_data, network, timescale, ts_length, 
+                                           save_dep_layer, update_slope, psi)
+    sedimentary_system.initialize_slopes()
+    sedimentary_system.initialize_elevations()
+    sedimentary_system.initialize_storing_matrices()
+    sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
+    sedimentary_system.set_erosion_maximum(eros_max, roundpar)
+    sedimentary_system.set_active_layer()
+    
+    
     # Create DCASCADE solver 
-    dcascade = DCASCADE(timescale, ts_length, save_dep_layer, update_slope,                     
-                       indx_flo_depth, indx_slope_red, 
-                       indx_tr_cap, indx_tr_partition,
-                       indx_velocity, indx_vel_partition,
-                       passing_cascade_in_outputs,
-                       passing_cascade_in_trcap, 
-                       time_lag_for_mobilised)
+    dcascade = DCASCADE(sedimentary_system, indx_flo_depth, indx_slope_red)
     
-    # Initialisation
-    dcascade.initialize_sedim_system(phi=0.4, minvel=0.0000001, outlet=network['n_hier'][-1],
-                                    n_reaches=reach_data.n_reaches, psi=psi)
-    dcascade.initialize_slopes(reach_data)
-    dcascade.initialize_elevations(reach_data)
-    dcascade.initialize_sediment_variables()
-    
-    dcascade.set_sediment_deposit(network, Qbi_dep_in)
-    dcascade.set_erosion_maximum(eros_max, reach_data, roundpar)
-    dcascade.set_active_layer(reach_data, network)    
+    dcascade.set_transport_indexes(indx_tr_cap, indx_tr_partition)
+    dcascade.set_velocity_indexes(indx_velocity, indx_vel_partition)
+    dcascade.set_algorithm_options(passing_cascade_in_outputs, passing_cascade_in_trcap, 
+                                   time_lag_for_mobilised)
     
     # Run
-    dcascade.run(reach_data, network, Q, roundpar)
+    dcascade.run(Q, roundpar)
     
     # Post process
     data_output, extended_output = dcascade.output_processing(reach_data, Q)

@@ -17,6 +17,8 @@ from constants import (
     R_VAR,
 )
 
+
+
 class TransportCapacityCalculator:
     def __init__(self, fi_r_reach, D50, slope, Q, wac, v, h, psi, gamma=0.05):
         # Dictionary mapping indices to different formula
@@ -361,7 +363,11 @@ class TransportCapacityCalculator:
         tr_cap = Qb_Wac
     
         return {"tr_cap": tr_cap, "Qc": Qc}
+
     
+
+
+
 def GSD_std(Fi_r, dmi):
     """
     Calculates the geometric standard deviation of input X, using the formula
@@ -580,6 +586,27 @@ def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi
             velocities = np.zeros(len(tr_cap_per_s)) # if transport capacity is all 0, velocity is all 0
     return velocities
 
+
+
+def compute_transport_capacity(deposit_layer, active_layer_volume, roundpar, psi, 
+                               passing_cascade = None, per_second = True):
+    '''
+    '''
+    # Search for the layers in the active layer volume
+    _,_,_, fi_r_act = layer_search(deposit_layer, active_layer_volume, roundpar)
+    D50 = D_finder(fi_r_act, 50, psi) 
+    
+    # In case the active layer is empty, I use the GSD of the previous timestep
+    if np.sum(fi_r_act) == 0:
+       self.Fi_r_act[t,n,:] = self.Fi_r_act[t-1,n,:]
+    
+    
+    return tr_cap_per_s, fi_r_act, D50
+
+    
+    
+    
+    
 
 
 
