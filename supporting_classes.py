@@ -43,6 +43,7 @@ class Cascade:
         
 class ReachData:
     def __init__(self, geodataframe):
+        self.geodf = geodataframe
         self.n_reaches = len(geodataframe)
         
         # Mandatory attributes
@@ -57,7 +58,9 @@ class ReachData:
         self.length = geodataframe['Length'].astype(float).values
         self.el_fn = geodataframe['el_FN'].astype(float).values
         self.el_tn = geodataframe['el_TN'].astype(float).values
-
+        
+        self.rugosity = self.compute_rugosity()
+        
         # Optional attributes
         self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else np.nan
         self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else np.nan
@@ -75,6 +78,8 @@ class ReachData:
         self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else np.nan
         self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else np.nan
         self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else np.nan
+        
+
         
     def sort_values_by(self, sorting_array):
         """
@@ -96,8 +101,16 @@ class ReachData:
                 
         return sorted_indices
     
-
-
+    def compute_rugosity(self):
+        # DD: idea of function for the rugosity. 
+        # to test and see if it is what we want
+        if 'rugosity' in self.geodf:
+            rugosity = self.geodf['rugosity'].astype(float).values
+        elif 'D90' in self.geodf:
+            rugosity = self.geodf['D90'].astype(float).values
+        else:
+            rugosity = self.geodf['D84'].astype(float).values
+        return rugosity
 
 class SedimentarySystem:
     ''' Class for managing sediment exchanges, reassembling, and storing
