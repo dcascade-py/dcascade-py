@@ -182,7 +182,7 @@ class DCASCADE:
                 # (NB: it is a proportion of the time step)                 
                 if self.time_lag_for_mobilised == True and Qbi_pass[n] != []:  
                     time_lag = SedimSys.compute_time_lag(Qbi_pass[n]) 
-                    # Transport capacity is only calculated on Vdep
+                    # Transport capacity is only calculated on Vdep_init
                     tr_cap_per_s, Fi_al, D50_al = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                              self.indx_tr_cap, self.indx_tr_partition)
                     # Store values: 
@@ -197,14 +197,15 @@ class DCASCADE:
                                        
                     # Add the possible mobilised cascade to a temporary container
                     if Vmob is not None: 
-                        elapsed_time = np.zeros(self.n_classes) # it start its journey at the end of the time lag
+                        elapsed_time = np.zeros(self.n_classes) # it start its journey at the beginning of the time step
                         provenance = n
                         reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Vmob))
                         
-                    #remaining time
+                    # Remaining time after time lag
                     r_time_lag = 1 - time_lag 
                     
-                else:                  
+                else:   
+                    # If no time lag is used:
                     time_lag = None
                     r_time_lag = None 
                     Vdep = Vdep_init
@@ -217,7 +218,7 @@ class DCASCADE:
                     passing_cascades = None
                 
                 # Now compute transport capacity and mobilise  
-                # considering eventually the passing cascades during the remaining time
+                # considering eventually the passing cascades during the remaining time:
                 tr_cap_per_s, Fi_al, D50_al = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
                                                                                   passing_cascades = passing_cascades,
@@ -233,9 +234,9 @@ class DCASCADE:
                     # We sum the tr_caps from before and after the time lag
                     tr_cap_after_tlag = (tr_cap_per_s * r_time_lag * self.ts_length)
                     SedimSys.tr_cap[t, n, :] = SedimSys.tr_cap_before_tlag[t, n, :] + tr_cap_after_tlag
-                SedimSys.tr_cap_sum[t,n] = np.sum(SedimSys.tr_cap[t, n, :])    
-               
                 
+                SedimSys.tr_cap_sum[t,n] = np.sum(SedimSys.tr_cap[t, n, :])    
+                              
                 # Mobilise:
                 Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volume(Vdep, tr_cap_per_s, 
                                                                                 n, roundpar,
@@ -244,7 +245,7 @@ class DCASCADE:
                 if passing_cascades is not None:
                     Qbi_pass[n] = passing_cascades
                     
-                # Add the possible newly mobilised cascade to a temporary container
+                # Add the possible reach mobilised cascade to a temporary container
                 if Vmob is not None: 
                     if time_lag is None:
                         elapsed_time = np.zeros(self.n_classes) 
@@ -254,126 +255,7 @@ class DCASCADE:
                     reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Vmob))
                                         
 
-                
-                
-                # # In the case time_lag is not all zeros, we mobilise from the reach
-                # # before the cascades arrive, i.e. during this time_lag
-                # mobilized_cascades = []
-                # Vdep = Vdep_init
-                # if np.any(time_lag != 0):                                
-                #     tr_cap_per_s = SedimSys.compute_transport_capacity(Vdep, roundpar)
-                                       
-                #     # Mobilise during the time lag
-                #     Vmob, Vdep, _ = compute_mobilised_volume(Vdep, 
-                #                                              self.eros_max_vol[0,n], 
-                #                                              tr_cap_per_s, time_lag)
-                    
-                
-      
-                    
-                    
-                    # # Get the sediment fraction and D50 in the active layer. 
-                    # # DD: to be discussed if we keep the active layer (2D90) or a bigger active layer,
-                    # # since we don't consider any incoming sediment now                          
-                    # _,_,_, self.Fi_r_act[t,n,:] = layer_search(V_dep_init, self.al_vol_all[0,n], roundpar)
-                    # self.D50_AL[t,n] = D_finder(self.Fi_r_act[t,n,:], 50, self.psi)           
-                    # # In case the active layer is empty, I use the GSD of the previous timestep
-                    # if np.sum(self.Fi_r_act[t,n,:]) == 0:
-                    #    self.Fi_r_act[t,n,:] = self.Fi_r_act[t-1,n,:] 
-                    # # Transport capacity in m3/s 
-                    # tr_cap_per_s, Qc = tr_cap_function(self.Fi_r_act[t,n,:] , self.D50_AL[t,n], self.slope[t,n], 
-                    #                                    Q[t,n], reach_data.wac[n], v[n], 
-                    #                                    h[n], self.psi, self.indx_tr_cap, self.indx_tr_partition)                                   
-                    # # Store tr_cap (and Qc)
-                    # self.tr_cap_all[t,n,:] = tr_cap_per_s
-                    # self.tr_cap_sum[t,n] = np.sum(tr_cap_per_s)
-                    # if self.indx_tr_cap == 7:
-                    #     self.Qc_class_all[t,n,:] = Qc   
-                        
-                #     # Total volume possibly mobilised during the time lag (per class)
-                #     time_for_mobilising = time_lag * self.ts_length
-                #     volume_mobilisable = tr_cap_per_s * time_for_mobilising
-                    
-                #     # Erosion maximum during the time lag 
-                #     # (we take the mean time lag among the classes)
-                #     eros_max_vol_t = self.eros_max_vol[0,n] * np.mean(time_lag)
-                    
-                #     # Mobilise from the reach layers
-                #     V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_init, eros_max_vol_t, roundpar)
-                #     [V_mob, V_dep_init] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, volume_mobilisable, roundpar)
-                                    
-                #     if np.any(V_mob[:,1:] != 0): 
-                #         # The mobilised cascade is added to a temporary container
-                #         elapsed_time = np.zeros(self.n_classes) # its elapsed time is 0
-                #         provenance = n
-                #         mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
-                    
-                #         # Store this volume if we consider only this one
-                #         if self.passing_cascade_in_outputs == False:
-                #             self.Qbi_mob[t][[V_mob[:,0].astype(int)], n, :] += V_mob[:, 1:]
-    
-                
-                # # New deposit layer after this step 2.
-                # V_dep_after_tlag = V_dep_init
-                                                 
-                # ###-----Step 3 : Now mobilise material considering that cascades are passing
-                # # at the outlet. We recalculate the transport capacity by including 
-                # # now the passing cascades.  
-                # if np.any(time_lag != 1):
-                #     # Compute the transport capacity considering continuous arriving flux [m3/s]
-                #     Q_pass_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
-                #     Q_pass_volume = matrix_compact(Q_pass_volume)
-                #     Q_pass_volume_per_s = copy.deepcopy(Q_pass_volume)
-                #     # DD: should we put it in per second ? 
-                #     Q_pass_volume_per_s[:,1:] = Q_pass_volume_per_s[:,1:] / self.ts_length                                            
-                #     _,_,_, Fi_r = layer_search(V_dep_after_tlag, self.al_vol_all[0,n], roundpar, Qbi_incoming = Q_pass_volume_per_s) 
-                #     self.D50_AL2[t,n] = float(D_finder(Fi_r, 50, self.psi))   
-                #     tr_cap_per_s, Qc = tr_cap_function(Fi_r , self.D50_AL2[t,n], self.slope[t,n], 
-                #                                        Q[t,n], reach_data.wac[n], v[n], 
-                #                                        h[n], self.psi, self.indx_tr_cap, self.indx_tr_partition)                                   
-                #     # Total volume possibly mobilised during (1 - time_lag)
-                #     time_for_mobilising = (1-time_lag) * self.ts_length
-                #     volume_mobilisable = tr_cap_per_s * time_for_mobilising
-                    
-                #     # Total volume arriving
-                #     sum_pass = np.sum(Q_pass_volume[:,1:], axis=0)
-                                  
-                #     # Compare sum of passing cascade to the mobilisable volume (for each sediment class)               
-                #     diff_with_capacity = volume_mobilisable - sum_pass
-                                        
-                #     # Sediment classes with positive values in diff_with_capacity are mobilised from the reach n
-                #     diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)     
-                #     if np.any(diff_pos): 
-                #         # Erosion maximum during (1 - time_lag)
-                #         eros_max_vol_t = self.eros_max_vol[0,n] * (1 - np.mean(time_lag))  # erosion maximum
-                        
-                #         # Mobilise from the reach layers
-                #         V_inc_EL, V_dep_EL, V_dep_not_EL, _ = layer_search(V_dep_after_tlag, eros_max_vol_t, roundpar)
-                #         [V_mob, V_dep_after_tlag] = tr_cap_deposit(V_inc_EL, V_dep_EL, V_dep_not_EL, diff_pos, roundpar)
-                        
-                #         if np.any(V_mob[:,1:] != 0): 
-                #             # The Vmob is added to the temporary container 
-                #             elapsed_time = time_lag # it start its journey at the end of the time lag
-                #             provenance = n
-                #             mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
-                                            
-                #     # Sediment classes with negative values in diff_with_capacity
-                #     # are over capacity
-                #     # They are deposited, i.e. directly added to Vdep
-                #     diff_neg = -np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
-                #     if np.any(diff_neg):  
-                #         Vm_removed, Qbi_pass[n], residual = deposit_from_passing_sediments(np.copy(diff_neg), Qbi_pass[n], roundpar)
-                #         V_dep_after_tlag = np.concatenate([V_dep_after_tlag, Vm_removed], axis=0) 
-                        
-                                    
-                # # After this step, Qbi_pass[n] contains the traveling volumes that effectively 
-                # # reach and pass the outlet of the reach.
-                
-                # # Update the deposit layer
-                # V_dep_final = V_dep_after_tlag      
-                
-                
-                ###-----Step 4: Finalisation.
+                ###-----Step 3: Finalisation.
                 
                 # Add the cascades that were mobilised from this reach to Qbi_pass[n]:
                 if reach_mobilized_cascades != []:
@@ -386,6 +268,7 @@ class DCASCADE:
                         # DD: If we want to store instead the direct provenance
                         # Qbi_mob[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
                 else:
+                    # to reproduce v1, we only store the cascade mobilised from the reach
                     for cascade in reach_mobilized_cascades:
                         SedimSys.Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]     
                         
