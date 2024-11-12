@@ -95,7 +95,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     dcascade.run(Q, roundpar)
     
     # Post process
-    data_output, extended_output = dcascade.output_processing(reach_data, Q)
+    data_output, extended_output = dcascade.output_processing(Q)
     
     return data_output, extended_output
 

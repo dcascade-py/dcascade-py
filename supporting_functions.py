@@ -86,6 +86,7 @@ def sortdistance(Qbi, distancelist):
     return Qbi_sort
 
 
+
 # def layer_search(V_dep_old, V_lim_tot_n, roundpar, Qbi_incoming = None):
 #     """
 #     This function searches layers that are to be put in the maximum mobilisable  
@@ -194,25 +195,25 @@ def sortdistance(Qbi, distancelist):
 #     return V_inc2act, V_dep2act, V_dep, Fi_r_reach
 
 
-# def matrix_compact(V_layer):
-#     '''
-#     '''
+def matrix_compact(V_layer):
+    '''
+    '''
     
-#     ID = np.unique(V_layer[:,0]) #, return_inverse=True
-#     V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
-#     # sum elements with same ID 
-#     for ind, i in enumerate(ID): 
-#         vect = V_layer[V_layer[:,0] == i,:]
-#         V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
+    ID = np.unique(V_layer[:,0]) #, return_inverse=True
+    V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
+    # sum elements with same ID 
+    for ind, i in enumerate(ID): 
+        vect = V_layer[V_layer[:,0] == i,:]
+        V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
     
-#     if V_layer_cmpct.shape[0]>1: 
-#         V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
+    if V_layer_cmpct.shape[0]>1: 
+        V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
 
 
-#     if V_layer_cmpct.size == 0: 
-#         V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
+    if V_layer_cmpct.size == 0: 
+        V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
     
-#     return V_layer_cmpct
+    return V_layer_cmpct
 
 
 def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
@@ -424,28 +425,28 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
 
 
 
-def stop_or_not(t_new, Vm):
-    ''' 
-    Function that decides if a volume of sediments will stop in this 
-    reach or not, depending on time. Part of the volume can stop or continue. 
+# def stop_or_not(t_new, Vm):
+#     ''' 
+#     Function that decides if a volume of sediments will stop in this 
+#     reach or not, depending on time. Part of the volume can stop or continue. 
     
-    t_new: elapsed time since beginning of time step for Vm, for each sed class
-    Vm: traveling volume of sediments
-    '''
-    cond_stop = np.insert([t_new>1], 0, True)
-    Vm_stop = np.zeros_like(Vm)
-    Vm_stop[:, cond_stop] = Vm[:, cond_stop]
+#     t_new: elapsed time since beginning of time step for Vm, for each sed class
+#     Vm: traveling volume of sediments
+#     '''
+#     cond_stop = np.insert([t_new>1], 0, True)
+#     Vm_stop = np.zeros_like(Vm)
+#     Vm_stop[:, cond_stop] = Vm[:, cond_stop]
     
-    cond_continue = np.insert([t_new<=1], 0, True)
-    Vm_continue = np.zeros_like(Vm)
-    Vm_continue[:, cond_continue] = Vm[:, cond_continue]
+#     cond_continue = np.insert([t_new<=1], 0, True)
+#     Vm_continue = np.zeros_like(Vm)
+#     Vm_continue[:, cond_continue] = Vm[:, cond_continue]
     
-    if np.all(Vm_stop[:,1:] == 0) == True:
-        Vm_stop = None
-    if np.all(Vm_continue[:,1:] == 0) == True: 
-        Vm_continue = None
+#     if np.all(Vm_stop[:,1:] == 0) == True:
+#         Vm_stop = None
+#     if np.all(Vm_continue[:,1:] == 0) == True: 
+#         Vm_continue = None
         
-    return Vm_stop, Vm_continue
+#     return Vm_stop, Vm_continue
 
 
 def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
