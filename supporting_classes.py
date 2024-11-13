@@ -14,7 +14,7 @@ import sys
 import os
 np.seterr(divide='ignore', invalid='ignore')
 
-from transport_capacity_computation import tr_cap_function 
+from transport_capacity_computation import TransportCapacityCalculator 
 from supporting_functions import D_finder, tr_cap_deposit, deposit_from_passing_sediments
 
 # Supporting functions
@@ -358,9 +358,11 @@ class SedimentarySystem:
         D50 = float(D_finder(sed_class_fraction, 50, self.psi))
         
         # Compute the transport capacity
-        [ tr_cap_per_s, pci ] = tr_cap_function(sed_class_fraction, D50,  
-                                           self.slope[t, n], Q_reach, self.reach_data.wac[n],
-                                           v , h, self.psi, indx_tr_cap, indx_tr_partition)
+        calculator = TransportCapacityCalculator(sed_class_fraction, D50, 
+                                                 self.slope[t, n], Q_reach, 
+                                                 self.reach_data.wac[n],
+                                                 v, h, self.psi)
+        [ tr_cap_per_s, pci ] = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         
         
         Svel = self.vl_height[t, n] * self.reach_data.wac[n] * (1 - self.phi)  # the global section where all sediments pass through
@@ -518,10 +520,11 @@ class SedimentarySystem:
            Fi_al_ = self.Fi_al[t-1,n,:] 
         D50_al_ = float(D_finder(Fi_al_, 50, self.psi))
            
-        # Transport capacity in m3/s 
-        tr_cap_per_s, Qc = tr_cap_function(Fi_al_ , D50_al_, self.slope[t,n], 
-                                           Q[t,n], self.reach_data.wac[n], v[n],
-                                           h[n], self.psi, indx_tr_cap, indx_tr_partition)
+        # Transport capacity in m3/s
+        calculator = TransportCapacityCalculator(Fi_al_ , D50_al_, self.slope[t,n], 
+                                               Q[t,n], self.reach_data.wac[n], v[n],
+                                               h[n], self.psi)
+        tr_cap_per_s, Qc = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         
         return tr_cap_per_s, Fi_al_, D50_al_, Qc
     
