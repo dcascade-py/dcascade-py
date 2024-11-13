@@ -480,33 +480,34 @@ class DCASCADE:
         
         #--Output struct definition 
         #data_plot contains the most important D_CASCADE outputs 
-        data_output = {'Channel Width [m]': np.repeat(np.array(self.reach_data.wac).reshape(1,-1),len(SedimSys.Qbi_dep), axis = 0), 
-                       'Reach slope': SedimSys.slope,
-                       'Discharge [m^3/s]': Q[0:self.timescale,:],
-                       'Mobilized [m^3]': QB_mob_sum,
-                       'Transported [m^3]': tot_tranported,
-                       'Transported + deposited [m^3]': tot_sed,
-                       'D50 deposit layer [m]': D50_dep,
+        data_output = {'Channel Width [m]': np.repeat(np.array(self.reach_data.wac).reshape(1,-1),len(SedimSys.Qbi_dep), axis = 0), #
+                       'Reach slope': SedimSys.slope,   #
+                       'Discharge [m^3/s]': Q[0:self.timescale,:],  #
+                       'Mobilized [m^3]': QB_mob_sum, 
+                       'Transported [m^3]': tot_tranported, # DD: instead have what is deposited or stopping
+                       'Transported + deposited [m^3]': tot_sed,  #
+                       'D50 deposit layer [m]': D50_dep, #
                        'D50 mobilised layer [m]': D50_mob,
-                       'D50 active layer before time lag[m]': SedimSys.D50_al_before_tlag,
+                       'D50 active layer before time lag[m]': SedimSys.D50_al_before_tlag, # depending on the option
                        'D50 active layer [m]': SedimSys.D50_al,
-                       'Transport capacity [m^3]': SedimSys.tr_cap_sum,
-                       'Deposit layer [m^3]': V_dep_sum,
-                       # 'Delta deposit layer [m^3]': self.Delta_V_all,
-                       'Transported + deposited - per class [m^3]': tot_sed_class,
-                       'Deposited - per class [m^3]': deposited_class,
-                       'Mobilised - per class [m^3]': mobilised_class,
-                       'Transported- per class [m^3]': transported_class,
+                       'Transport capacity [m^3]': SedimSys.tr_cap_sum, #
+                       'Deposit layer [m^3]': V_dep_sum, #
+                       # 'Delta deposit layer [m^3]': self.Delta_V_all, # --> add the budget
+                       'Transported + deposited - per class [m^3]': tot_sed_class, #
+                       'Deposited - per class [m^3]': deposited_class, # flag per class ?
+                       'Mobilised - per class [m^3]': mobilised_class, #
+                       'Transported - per class [m^3]': transported_class, #
                        # 'Delta deposit layer - per class [m^3]': self.Delta_V_class,
-                       'Transport capacity - per class [m^3]': tr_cap_class,
-                       'Sed_velocity [m/day]': SedimSys.V_sed,
-                       'Sed_velocity - per class [m/day]': V_sed_class,
-                       'Flow depth': SedimSys.flow_depth,
-                       'Active layer [m]': SedimSys.al_depth,
-                       'Maximum erosion layer [m]': SedimSys.eros_max_depth,
-                       'Q_out [m^3]': SedimSys.Q_out,
-                       'Q_out_class [m^3]': Q_out_class,
-                       'Q_out_tot [m^3]': outcum_tot
+                       'Transport capacity - per class [m^3]': tr_cap_class, #
+                       'Sed_velocity [m/day]': SedimSys.V_sed, #
+                       'Sed_velocity - per class [m/day]': V_sed_class, #
+                       'Flow depth': SedimSys.flow_depth, #
+                       'Active layer [m]': SedimSys.al_depth, # rename
+                       'Maximum erosion layer [m]': SedimSys.eros_max_depth, #
+                       # output to say when we reach the maximum erosion layer
+                       'Q_out [m^3]': SedimSys.Q_out, # rename
+                       'Q_out_class [m^3]': Q_out_class, #
+                       'Q_out_tot [m^3]': outcum_tot #
                        }
     
         if self.indx_tr_cap == 7:
@@ -517,8 +518,9 @@ class DCASCADE:
                            'Qbi_mob': SedimSys.Qbi_mob,
                            'Q_out': SedimSys.Q_out,
                            'Qbi_dep': SedimSys.Qbi_dep,
-                           'Fi_r_ac': SedimSys.Fi_al,
-                           'node_el': SedimSys.node_el
+                           'Fi_r_ac': SedimSys.Fi_al,  #
+                           'node_el': SedimSys.node_el # return if the option update_slope is true
                            }
+        
         
         return data_output, extended_output
