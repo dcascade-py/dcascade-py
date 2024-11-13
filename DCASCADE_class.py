@@ -183,7 +183,7 @@ class DCASCADE:
                 if self.time_lag_for_mobilised == True and Qbi_pass[n] != []:  
                     time_lag = SedimSys.compute_time_lag(Qbi_pass[n]) 
                     # Transport capacity is only calculated on Vdep_init
-                    tr_cap_per_s, Fi_al, D50_al = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
+                    tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                              self.indx_tr_cap, self.indx_tr_partition)
                     # Store values: 
                     SedimSys.tr_cap_before_tlag[t, n, :] = tr_cap_per_s * time_lag * self.ts_length
@@ -219,14 +219,16 @@ class DCASCADE:
                 
                 # Now compute transport capacity and mobilise  
                 # considering eventually the passing cascades during the remaining time:
-                tr_cap_per_s, Fi_al, D50_al = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
+                tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
                                                                                   passing_cascades = passing_cascades,
                                                                                   per_second = True)                
                
                 # Store transport capacity and active layer informations: 
                 SedimSys.Fi_al[t, n, :] = Fi_al
-                SedimSys.D50_al[t, n] = D50_al                     
+                SedimSys.D50_al[t, n] = D50_al
+                SedimSys.Qc_class_all[t, n] = Qc
+
                 if r_time_lag is None:
                     # No time lag
                     SedimSys.tr_cap[t, n, :] = tr_cap_per_s * self.ts_length
@@ -447,7 +449,7 @@ class DCASCADE:
             Qc_class = [np.empty((self.timescale-1, self.n_reaches)) for _ in range(self.n_classes)]
             for c in range(self.n_classes): 
                 for t in range(self.timescale-1): 
-                    q_m = self.Qc_class_all[t,:,c]
+                    q_m = SedimSys.Qc_class_all[t,:,c]
                     Qc_class[c][t,:] = q_m  
                 
         Q_out_class = [np.empty((self.timescale-1, self.n_reaches)) for _ in range(self.n_classes)]

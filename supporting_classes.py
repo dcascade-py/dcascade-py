@@ -172,9 +172,7 @@ class SedimentarySystem:
         # temporary ?
         self.Qbi_dep_0 = None 
         
-                        
-
-        # self.Qc_class_all = None        # DD: can it be optional ?
+        self.Qc_class_all = None        # DD: can it be optional ?
         # self.Delta_V_class_all = None   # DD: To be removed        
         # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
 
@@ -237,7 +235,7 @@ class SedimentarySystem:
         self.Fi_al[:,0] = np.nan #DD: why ?        
         self.Fi_al_before_tlag = self.create_3d_zero_array()
         self.Fi_al_before_tlag[:,0] = np.nan #DD: why ?
-        # self.Qc_class_all = self.create_3d_zero_array()
+        self.Qc_class_all = self.create_3d_zero_array()
         # self.Delta_V_class_all = self.create_3d_zero_array()
         
         # 2D arrays
@@ -525,7 +523,7 @@ class SedimentarySystem:
                                            Q[t,n], self.reach_data.wac[n], v[n],
                                            h[n], self.psi, indx_tr_cap, indx_tr_partition)
         
-        return tr_cap_per_s, Fi_al_, D50_al_
+        return tr_cap_per_s, Fi_al_, D50_al_, Qc
     
     
     def compute_mobilised_volume(self, Vdep, tr_cap_per_s, n, roundpar,

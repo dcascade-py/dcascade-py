@@ -143,8 +143,8 @@ for n in range(reach_data.n_reaches):
 
 # Compulsory indexes to choose:
 # Indexes for the transport capacity:
-indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
-indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
+indx_tr_cap = 7 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
+indx_tr_partition = 2 # 2: BMF; 4: Shear stress correction
 
 # Index for the flow calculation: 
 indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
@@ -177,7 +177,7 @@ op2 = True
 # Option 3: If True, we consider a time lag between the beginning of the time step,
 # and the arrival of the first cascade to the ToN of the reach, 
 # during which we are able to mobilise from the reach itself
-op3 = True
+op3 = False
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
