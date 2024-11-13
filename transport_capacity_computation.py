@@ -161,9 +161,8 @@ class TransportCapacityCalculator:
     
         # Dimensionless shear stress (Eq. 3.2.3)
         tau_eh = (self.slope * self.h) / (R_VAR * self.D50)
-        # Dimensionless transport capacity (Eq. 4.3.5), although Engelund and Hansen
-        # find a factor of 0.1 and not 0.05.
-        q_eh = 0.05 / C * tau_eh**(5/2)
+        # Dimensionless transport capacity (Eq. 4.3.5)
+        q_eh = 0.1 / C * tau_eh**(5/2)
         # Dimensionful transport capacity per unit width [m3/(s*m)]
         # (page 56 of the monograph)
         q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * self.D50**3) # m3/s
