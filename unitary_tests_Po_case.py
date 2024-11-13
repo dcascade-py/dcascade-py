@@ -566,9 +566,155 @@ def test_Po_Wilcock_all_new_options_true():
     print('Tuto bene with Po case test using Wilcock formula, all new options true\n')
     
 
+def test_Po_Engelund_all_new_options_true_except_tlag():
+    '''150 days are simulated. 
+    We use Engelund. With the "Bed Material Fraction" partitioning. 
+    '''
+    
+    # User defined parameters:
+    deposit_layer = 100000
+    eros_max = 1
+    update_slope = False
+    timescale = 365 
+    ts_length = 60 * 60 * 24
+    sed_range = [-8, 3]  
+    n_classes = 6  
+    save_dep_layer = 'never'  
+    roundpar = 0    
+    
+    
+    # reach data
+    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    reach_data = ReachData(network)
+    reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
+    sorted_indices = reach_data.sort_values_by(reach_data.from_n)
+    Network = graph_preprocessing(reach_data)
+    
+    # Q file
+    Q = extract_Q(filename_q)
+    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    for i, idx in enumerate(sorted_indices): 
+        Q_new[:,i] = Q.iloc[:,idx]
+    Q = Q_new
+    
+    # Sediment classes 
+    psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
+    dmi = 2**(-psi).reshape(-1,1)
+    print(min(reach_data.D16) * 1000, ' must be greater than ', np.percentile(dmi, 10, method='midpoint'))
+    print(max(reach_data.D84) * 1000, ' must be lower than ',  np.percentile(dmi, 90, method='midpoint'))
+    Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
+    
+     # External sediment
+    Qbi_input = np.zeros((timescale, reach_data.n_reaches, n_classes))
+
+    # Input sediment load in deposit layer
+    deposit = reach_data.deposit * reach_data.length
+    Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
+    for n in range(reach_data.n_reaches):
+        Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
+        
+    # indexes
+    indx_tr_cap = 3         # Engelund and Hansen
+    indx_tr_partition = 2   # BMF
+    indx_flo_depth = 1      # Manning
+    
+    # Options for the cascade algorithm (by default, they are all True):        
+    # If all these options are False, we are reproducing the algorithme of 
+    # the old version. Which means that cascades are all passing if the time step 
+    # is not finished for them (= based on their velocities) + overpassing cascades are 
+    # not considered in the mobilised volume nor transported
+
+    # Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
+    # But this does not change the way sediment move.
+    op1 = True
+
+    # Option 2: If True, we now include present cascades from upstream + reach material
+    # in the transport capacity calculation, to check if they should pass or not. 
+    op2 = True
+
+    # Option 3: If True, we consider a time lag between the beginning of the time step,
+    # and the arrival of the first cascade to the ToN of the reach, 
+    # during which we are able to mobilise from the reach itself
+    op3 = False
+
+    # Run definition
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
+                                                 time_lag_for_mobilised = op3)
+    
+        
+    
+    # Test the total mobilised volume per reach
+    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    expected_result = np.array([4.14300e+03, 2.29430e+04, 3.12340e+04, 2.48830e+04, 2.35320e+04, 3.22990e+04,
+                                6.78200e+04, 1.43471e+05, 1.16242e+05, 1.20478e+05, 1.63291e+05, 9.06180e+04,
+                                5.04410e+04, 5.02020e+04, 1.38259e+05, 9.29290e+04, 8.20530e+04, 3.21620e+04,
+                                4.23471e+05, 2.87235e+05, 2.19836e+05, 1.46071e+05, 1.52965e+05, 1.34645e+05,
+                                7.35970e+04, 1.02069e+05, 1.41122e+05, 1.26504e+05, 1.63082e+05, 1.84718e+05,
+                                1.68956e+05, 2.52966e+05, 3.73264e+05, 3.66168e+05, 3.23256e+05, 4.31321e+05,
+                                3.76460e+05, 2.46454e+05, 3.24534e+05, 3.16762e+05, 3.15449e+05, 2.90980e+05,
+                                1.91149e+05, 6.82810e+04, 7.50000e+01, 1.41300e+03, 3.08100e+03, 2.77600e+03,
+                                2.56800e+03, 7.49000e+02, 9.92928e+05, 1.70585e+05, 3.34000e+02, 1.19500e+03,
+                                2.72492e+05, 2.53560e+04, 4.00960e+04, 1.10890e+04, 1.84937e+05, 1.01814e+05,
+                                2.64445e+05, 1.23760e+04, 2.83389e+05, 7.55810e+04])
+    
+
+    
+    np.testing.assert_array_equal(test_result, expected_result)
+   
+    # Test the total transported volume per reach
+    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    expected_result = np.array([      0.,    4053.,   21994.,   29674.,   23629.,   23642.,
+                                30924.,     68095.,  136433.,  110250.,  115517.,  155205.,
+                                88474.,     48056.,   50468.,  133154.,   89723.,   78395.,
+                                1015077.,  412251.,  277058.,  210785.,  303672.,  147533.,
+                                385398.,    67917.,  124560.,  138234.,  161802.,  159654.,
+                                191711.,    165453.,  425568.,  439913.,  357961.,  572729.,
+                                421573.,    138761.,  740441.,  318031.,  310350.,  379992.,
+                                284004.,    185390.,       0.,       0.,       0.,       0.,
+                                0.,       0.,       0.,       0.,       0.,       0.,
+                                0.,       0.,       0.,       0.,       0.,       0.,
+                                0.,       0.,       0.,       0.])  
+    
+    # the absolute tolerance is fixed to 1e6, because the expected results 
+    # were displayed by spyder, and have 6 significative numbers
+    np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
+    
+    # # D50 active layer: DD: TO DO
+    # test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
+    # expected_result = np.array([2.47770230e-02, 1.51755507e-02, 1.51655911e-02, 2.02552886e-02,
+    #        2.03466590e-02, 1.77876247e-02, 1.65305320e-02, 8.71357324e-03,
+    #        2.22509619e-02, 1.02616880e-02, 2.92620602e-02, 1.42418506e-02,
+    #        1.58089862e-02, 1.83735086e-02, 4.62385848e-03, 1.58265987e-02,
+    #        1.01485931e-02, 2.08804488e-03, 8.22115101e-05, 6.77232744e-04,
+    #        9.22278655e-04, 2.08774248e-03, 1.55653800e-03, 8.36720622e-04,
+    #        5.65198322e-05, 1.84719781e-03, 1.46731157e-03, 2.54021205e-03,
+    #        4.89826506e-04, 5.33831955e-04, 4.38677070e-04, 2.74783902e-04,
+    #        2.48700526e-04, 2.39310130e-04, 2.21651510e-04, 1.24331445e-04,
+    #        1.43998111e-04, 2.23117944e-04, 2.04964090e-04, 2.62114246e-04,
+    #        2.96271429e-04, 2.61212012e-04, 2.48002917e-04, 2.41762730e-04,
+    #        3.19105188e-02, 2.51241504e-02, 4.20755494e-02, 1.80465901e-02,
+    #        2.02931896e-02, 1.92805646e-02, 6.48783109e-05, 2.96288850e-05,
+    #        2.55396815e-02, 2.50317658e-02, 1.64401892e-04, 6.00410774e-03,
+    #        6.25982204e-04, 1.69362805e-04, 1.54117240e-04, 3.50491022e-04,
+    #        2.86550815e-05, 3.09206758e-04, 3.09270737e-04, 2.65200462e-04
+    # ])     
+    
+    # # the relative tolerance is fixed to 1e-05, because the expected results 
+    # # were displayed by spyder, and have 6 significative numbers
+    # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
+    
+    print('Tuto bene with Po case test using Engelund formula, all new options false \n')
+
+
+
 
 if __name__ == "__main__":
     test_Po_Engelund_all_new_options_false()
     test_Po_Wilcock_all_new_options_false()   
     test_Po_Engelund_all_new_options_true()
     test_Po_Wilcock_all_new_options_true()
+    # test_Po_Engelund_all_new_options_true_except_tlag() #to update with good values
