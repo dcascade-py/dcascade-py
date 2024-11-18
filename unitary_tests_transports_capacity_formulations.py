@@ -35,7 +35,8 @@ def test_engelund_hansen_formula():
     expected_tr_cap = 0.046356178
     
     # Computing the transport capacity with the D-CASCADE implementation
-    calculator = TransportCapacityCalculator(np.nan, D50, slope, np.nan, wac, v, h, np.nan)
+    calculator = TransportCapacityCalculator(np.nan, np.nan, slope, np.nan, wac, v, h, np.nan)
+    calculator.D50 = D50
     computed_tr_cap = calculator.Engelund_Hansen_formula()
     
     # Asserting the computed value is equal to manually calculated one, allowing
@@ -66,16 +67,57 @@ def test_wilcock_crowe_formula():
     expected_tr_cap = 0.0058621118228
     
     # Computing the transport capacity with the D-CASCADE implementation
-    calculator = TransportCapacityCalculator(Fi_r_reach, D50, slope, np.nan, wac, np.nan, h, psi)
+    calculator = TransportCapacityCalculator(Fi_r_reach, np.nan, slope, np.nan, wac, np.nan, h, psi)
+    calculator.D50 = D50
     computed_tr_cap = calculator.Wilcock_Crowe_formula()
     
     # Asserting the computed value is equal to manually calculated one, allowing
     # for with error tolerance EPSILON
     np.testing.assert_allclose(computed_tr_cap['tr_cap'][[0]], expected_tr_cap, atol=EPSILON)
+    
+
+def test_rickenmann_formula():
+    '''
+    Precision of calculations for transport capacity [m^3/s] with the input values:
+    
+    expected_tr_cap = 
+    computed_tr_cap = 0.04805394
+    
+    expected_qc = 
+    computed_qc = 0.01346169176826027 
+    
+    Relative difference = 
+    '''
+    
+    # Input parameters that are used to check if the formula in the function
+    # gives the same results as the original formula
+    D50 = 0.01
+    slope = 0.05
+    wac = np.array([10])
+    discharge = 3
+    
+    # Manually calculated transport capacity
+    expected_tr_cap = 0.0058621118228
+    expected_qc = 0.0058621118228
+    
+    # Computing the transport capacity with the D-CASCADE implementation
+    calculator = TransportCapacityCalculator(np.nan, np.nan, slope, discharge, wac, np.nan, np.nan, np.nan)
+    calculator.D50 = D50
+    computed_tr_cap = calculator.Rickenmann_formula()
+    
+    print("computed_tr_cap['tr_cap'][[0]]", computed_tr_cap['tr_cap'][[0]])
+    print("computed_tr_cap['Qc']", computed_tr_cap['Qc'])
+    
+    # Asserting the computed value is equal to manually calculated one, allowing
+    # for with error tolerance EPSILON
+    np.testing.assert_allclose(computed_tr_cap['tr_cap'][[0]], expected_tr_cap, atol=EPSILON)
+    np.testing.assert_allclose(computed_tr_cap['Qc'][[0]], expected_qc, atol=EPSILON)
+    
 
 if __name__ == "__main__":
     test_wilcock_crowe_formula()
     test_engelund_hansen_formula()
+    test_rickenmann_formula()
     print("All tests successfully run.")
     
     
