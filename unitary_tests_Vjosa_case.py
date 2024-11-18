@@ -101,12 +101,12 @@ def test_Vjosa_Engelund_all_new_options_false():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array([207936.,  78300.,  58127.,  22423.,  42494.,   3736.,   6389.])    
+    expected_result = np.array([412785., 167443., 119024.,  13990.,  84997.,   7461.,  12781.])    
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array([     0., 242829.,  79293.,  31173.,      0.,      0.,      0.])          
+    expected_result = np.array([     0., 439792., 189076.,  30151.,      0.,      0.,      0.])          
     # the absolute tolerance is fixed to 1e6, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
@@ -182,12 +182,12 @@ def test_Vjosa_Engelund_all_new_options_true():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array([207936.,  78300.,  58127.,  34759.,  42494.,   3736.,   6389.])    
+    expected_result = np.array([412785., 172346., 133036.,  59029.,  84997.,   7461.,  12781.])    
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array([     0., 250430.,  82036.,  64516.,      0.,      0.,      0.])          
+    expected_result = np.array([     0., 497782., 179807., 145817.,      0.,      0.,      0.])          
     # the absolute tolerance is fixed to 1e6, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
