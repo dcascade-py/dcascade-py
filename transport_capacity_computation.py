@@ -9,7 +9,7 @@ Different formula for the calculation of the tranport capacity and for the assig
 
 import numpy as np
 import numpy.matlib
-from supporting_functions import D_finder, matrix_compact
+from supporting_functions import D_finder
 from constants import (
     RHO_S,
     RHO_W,

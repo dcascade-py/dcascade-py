@@ -14,22 +14,11 @@ import sys
 import os
 np.seterr(divide='ignore', invalid='ignore')
 
-# Supporting functions
-
-# from supporting_functions import D_finder, sortdistance, matrix_compact, change_slope
-# from supporting_functions import layer_search, tr_cap_deposit
-# # from supporting_functions import cascades_end_time_or_not
-# from supporting_functions import deposit_from_passing_sediments
-# from supporting_functions import compute_time_lag
-
-# from transport_capacity_computation import compute_transport_capacity, compute_cascades_velocities
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
-
-from supporting_classes import Cascade
-
-from supporting_functions import sortdistance, change_slope, D_finder
+from supporting_classes import Cascade, SedimentarySystem
+from supporting_functions import sortdistance, D_finder
 
 
 
@@ -321,7 +310,7 @@ class DCASCADE:
             # in case of changing slope..
             if self.update_slope == True:
                 #..change the slope accordingly to the bed elevation
-                self.slope[t+1,:], self.node_el[t+1,:] = change_slope(self.node_el[t+1,:], self.reach_data.length, self.network, s = self.min_slope)
+                self.slope[t+1,:], self.node_el[t+1,:] = SedimSys.change_slope(self.node_el[t+1,:], self.reach_data.length, self.network, s = self.min_slope)
                     
         """end of the time loop"""    
     
