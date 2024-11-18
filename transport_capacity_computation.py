@@ -80,7 +80,7 @@ class TransportCapacityCalculator:
             Qtr_cap = self.fi_r_reach * Qtr_cap 
             
         elif indx_partition == 3: 
-            pci = Molinas_rates(self.class_D50*1000, self.total_D50*1000)
+            pci = self.Molinas_rates(self.class_D50*1000, self.total_D50*1000)
             Qtr_cap = pci * Qtr_cap
     
         return Qtr_cap, Qc
@@ -230,7 +230,7 @@ class TransportCapacityCalculator:
     
         nu = 1.003*1E-6        # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
         
-        GeoStd = GSD_std(self.class_D50);
+        GeoStd = self.GSD_std(self.class_D50);
         
         #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of Sediment Particles. (1933)
         #         
@@ -409,7 +409,7 @@ class TransportCapacityCalculator:
 
     
     
-    def Molinas_rates(dmi_finer, D50_finer):
+    def Molinas_rates(self, dmi_finer, D50_finer):
         """
         Returns the Molinas coefficient of fractional transport rates pci, to be
         multiplied by the total sediment load to split it into different classes.
@@ -424,7 +424,7 @@ class TransportCapacityCalculator:
         # Molinas requires D50 and dmi in mm
                       
         # Hydraulic parameters in each flow percentile for the current reach
-        Dn = (1 + (GSD_std(dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
+        Dn = (1 + (self.GSD_std(dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
         
         tau = 1000 * GRAV * self.h * self.slope
         vstar = np.sqrt(tau / 1000);
@@ -433,8 +433,8 @@ class TransportCapacityCalculator:
         # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
         # EQ 24 , 25 , 26 , Molinas and Wu (2000)
         alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / D50_finer)**(-2))
-        beta = 0.2 * GSD_std(dmi_finer)
-        zeta = 2.8 * froude**(-1.2) *  GSD_std(dmi_finer)**(-3) 
+        beta = 0.2 * self.GSD_std(dmi_finer)
+        zeta = 2.8 * froude**(-1.2) *  self.GSD_std(dmi_finer)**(-3) 
         zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size. 
         
         # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
@@ -451,7 +451,7 @@ class TransportCapacityCalculator:
         return pci
 
 
-    def GSD_std(dmi):
+    def GSD_std(self, dmi):
         """
         Calculates the geometric standard deviation of input X, using the formula
         std = sqrt(D84/D16).
