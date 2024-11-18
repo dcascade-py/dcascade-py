@@ -686,25 +686,31 @@ class SedimentarySystem:
         return V_inc2act, V_dep2act, V_dep, Fi_r_reach
     
     
-    def matrix_compact(self, V_layer):
-        # Function that groups layers (rows) in V_layers
+    def matrix_compact(self, volume):
+        # Function that groups layers (rows) in volume
         # according to the original provenance (first column)
         
-        ID = np.unique(V_layer[:,0]) #, return_inverse=True
-        V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
+        # INPUT:
+        # volume: sediment volume or cascade (n_layers x n_classe + 1). 
+        #           The first column is the original provenance.
+        # RETURN:
+        # volume_compacted: volume where layers have been summed by provenance
+        
+        
+        idx = np.unique(volume[:,0]) # Provenance reach indexes
+        volume_compacted = np.empty((len(idx), volume.shape[1]))
         # sum elements with same ID 
-        for ind, i in enumerate(ID): 
-            vect = V_layer[V_layer[:,0] == i,:]
-            V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
+        for ind, i in enumerate(idx): 
+            vect = volume[volume[:,0] == i,:]
+            volume_compacted[ind,:] = np.append(idx[ind], np.sum(vect[:,1:], axis = 0))
         
-        if V_layer_cmpct.shape[0]>1: 
-            V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
+        if volume_compacted.shape[0]>1: 
+            volume_compacted = volume_compacted[np.sum(volume_compacted[:,1:], axis = 1) != 0]
 
-
-        if V_layer_cmpct.size == 0: 
-            V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
+        if volume_compacted.size == 0: 
+            volume_compacted = (np.hstack((idx[0], np.zeros((volume[:,1:].shape[1]))))).reshape(1,-1)
         
-        return V_layer_cmpct
+        return volume_compacted
     
     
     
