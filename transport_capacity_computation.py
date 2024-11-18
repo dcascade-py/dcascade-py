@@ -190,7 +190,8 @@ class TransportCapacityCalculator:
         This function is for use in the D-CASCADE toolbox.
         
         WARNING: Engelund and Hansen use a factor of 0.1 and but this function uses
-        a factor of 0.05.
+        a factor of 0.05 (corrected).The factor 0.05 seems to appear because of the
+        division by 2 in the friction coefficient. 
         
         slope: All reaches' slopes
         h: All reaches' water heights
@@ -198,12 +199,14 @@ class TransportCapacityCalculator:
         References:
         Engelund, F., and E. Hansen (1967), A Monograph on Sediment Transport in 
         Alluvial Streams, Tekniskforlag, Copenhagen.
+        Naito, K., Ma, H., Nittrouer, J. A., Zhang, Y., Wu, B., Wang, Y., … Parker, G. (2019). 
+        Extended Engelund–Hansen type sediment transport relation for mixtures based on the sand-silt-bed Lower Yellow River, China. Journal of Hydraulic Research, 57(6), 770–785.
         """
         
         # Friction factor (Eq. 3.1.3 of the monograph)
         C = (2 * GRAV * self.slope * self.h) / self.v**2
     
-        # Dimensionless shear stress (Eq. 3.2.3)
+        # Dimensionless shear stress (Eq. 3.2.3) (Schield parameter)
         tau_eh = (self.slope * self.h) / (R_VAR * self.D50)
         # Dimensionless transport capacity (Eq. 4.3.5)
         q_eh = 0.1 / C * tau_eh**(5/2)
