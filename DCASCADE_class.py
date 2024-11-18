@@ -515,5 +515,4 @@ class DCASCADE:
                            'node_el': SedimSys.node_el # return if the option update_slope is true
                            }
         
-        
         return data_output, extended_output
