@@ -111,7 +111,7 @@ class DCASCADE:
                                    
                 # Extracts the deposit layer left in previous time step          
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
-                                           
+                
                 ###------Step 1 : Cascades generated from the reaches upstream during 
                 # the present time step, are passing the inlet of the reach
                 # (stored in Qbi_pass[n]).
@@ -165,6 +165,10 @@ class DCASCADE:
                 
                 # Temporary container to store the reach mobilised cascades:
                 reach_mobilized_cascades = [] 
+                
+                # Extract the layers in Vdep that can be eroded in this reach at this time step, 
+                # according to the erosion maximum volume               
+                Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
                 
                 # An optional time lag vector (x n_classes) is used to mobilise reach sediment  
                 # before the eventual first passing cascade arrives at the outlet. 
