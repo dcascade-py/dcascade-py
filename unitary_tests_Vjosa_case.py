@@ -191,12 +191,12 @@ def test_Vjosa_Engelund_all_true_no_tlag():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array([412785., 167443., 119024.,  13990.,  84997.,   7461.,  12781.])    
+    expected_result = np.array([412785., 168322., 127853.,  57406.,  84997.,   7461.,  12781.])    
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array([     0., 439792., 189076.,  30151.,      0.,      0.,      0.])          
+    expected_result = np.array([     0., 497782., 175783., 140634.,      0.,      0.,      0.])          
     # the absolute tolerance is fixed to 1e6, because the expected results 
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
@@ -209,7 +209,7 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     # # were displayed by spyder, and have 6 significative numbers
     # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
     
-    print('\n Tuto bene with Vjosa case test using Engelund formula, all option false \n')
+    print('\n Tuto bene with Vjosa case test using Engelund formula, all option true, no time lag \n')
 
 
 
@@ -238,13 +238,13 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
     # expected_result = np.array([2142257.,  497025.,  271124.,   68684.,  770800.,  113202.,  175644.])   
-    expected_result = np.array([    1042618.,  244452.,  133477.,   33493.,  375544.,   55323., 85767.])   
+    expected_result = np.array([2142257.,  501586.,  274134.,   68529.,  770800.,  113202., 175644.])   
         
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
-    expected_result = np.array([      0.,  104110., 3181869.,  309202.,       0.,       0.,      0.])                      
+    expected_result = np.array([ 0., 2913057.,  614788.,  449778., 0., 0., 0.])                      
     np.testing.assert_array_equal(test_result, expected_result)
     
     # #----Test D50 active layer
@@ -255,7 +255,7 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
     
-    print('\n Tuto bene with Vjosa case test using Wilcock formula, all option false  \n')
+    print('\n Tuto bene with Vjosa case test using Wilcock formula, all option true, no time lag  \n')
     
 
 
@@ -342,7 +342,7 @@ def test_Vjosa_Wilcock_all_new_options_true():
 if __name__ == "__main__":
     test_Vjosa_Engelund_all_new_options_false()
     test_Vjosa_Wilcock_all_new_options_false()
-    # test_Vjosa_Engelund_all_true_no_tlag()
+    test_Vjosa_Engelund_all_true_no_tlag()
     test_Vjosa_Wilcock_all_true_no_tlag()        
     test_Vjosa_Engelund_all_new_options_true()
     test_Vjosa_Wilcock_all_new_options_true()
