@@ -75,7 +75,7 @@ sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 6        # number of classes
 
 #---Timescale 
-timescale = 10 # days 
+timescale = 20 # days 
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not

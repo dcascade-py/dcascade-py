@@ -128,7 +128,7 @@ def Engelund_Hansen_formula(D50, slope, wac, v, h):
     tau_eh = (slope * h) / (R_VAR * D50)
     # Dimensionless transport capacity (Eq. 4.3.5), although Engelund and Hansen
     # find a factor of 0.1 and not 0.05.
-    q_eh = 0.05 / C * tau_eh**(5/2)
+    q_eh = 0.1 / C * tau_eh**(5/2)
     # Dimensionful transport capacity per unit width [m3/(s*m)]
     # (page 56 of the monograph)
     q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * D50**3) # m3/s
