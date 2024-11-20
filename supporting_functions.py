@@ -43,33 +43,99 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 
-def D_finder(fi_r, D_values, psi):
-    '''
-    '''
+def D_finder(fi_r, d_value, psi):
+    """
+    @brief Computes the grain size corresponding to a given cumulative percentage (DXX) 
+           for a reach with a specified grain size distribution.
 
+    @param fi_r Array of fractions of material in each grain size class. 
+                For example, [0.15, 0.50, 0.35] represents 15%, 50%, and 35% of material 
+                in three grain size classes.
+    @param d_value The target DXX value (e.g., 50 for D50, 90 for D90) representing the 
+                   grain size for which X% of the material is finer.
+    @param psi Array of grain sizes in negative log base-2 scale. For example, 
+               `-3` represents 2³ = 8 mm, `-4` represents 2⁴ = 16 mm.
+
+    @return Array of computed grain sizes (in meters) corresponding to the requested DXX 
+            for each input layer. If only one grain size class is present, the function 
+            returns that grain size. If `d_value` equals 100, it returns the smallest 
+            grain size.
+    
+    @details
+    - The function supports both single-layer (`fi_r` as a vector) and multi-layer (`fi_r` 
+      as a matrix) inputs. For multi-layer cases, it processes each layer independently.
+    - The function assumes that the provided grain sizes in `psi` are the maximum sizes 
+      of each class and not average sizes.
+
+    @note The grain size distribution is interpolated in logarithmic (base-2) space, 
+          as is standard in sedimentology, and converted back to linear scale in meters.
+
+    @example
+    ```
+    fi_r = [0.15, 0.50, 0.35]
+    d_value = 50
+    psi = [-3, -4, -5]
+    result = D_finder(fi_r, d_value, psi)
+    ```
+    """
+    
     dmi = np.power(2, -psi)/1000
+    nb_classes = len(psi)
+    
+    # Handles the case of single layers input as vector and 
+    # multiple layers input as matrices.
+    if fi_r.ndim == 1:
+        nb_layers = 1
+        fi_r = np.expand_dims(fi_r, axis=0)
+    else: # If multiple layers: AL: Do we need it? Neither Vjosa nor Po use it.
+        nb_layers = np.shape(fi_r)[0]
+    
+    # If one class only, the target DXX value is the grain size of the class.
     if dmi.size == 1:
-        return dmi[0]
+        return np.full(nb_layers, dmi[0])
+    
+    # The D100 is the grain size of the biggest class.
+    elif d_value == 100:
+        return np.full(nb_layers, dmi[0])
     
     else:
-        if fi_r.ndim == 1:
-            fi_r = fi_r[:, None] # EB: needs to be a column vector
-            
-        D_changes = np.zeros((1, np.shape(fi_r)[1]))
-        Perc_finer = np.empty((len(dmi),np.shape(fi_r)[1]))
-        Perc_finer[:] = np.nan
-        Perc_finer[0] = 100
-    
-        for i in range(1, len(Perc_finer)):
-            Perc_finer[i,:] = Perc_finer[i-1,:] - fi_r[i-1,:]*100
+        # Computes the inverse cumulative percentage of finer material, 
+        # class by class, for each layer.
+        # Assumes that the given grain size is the maximum grain size of each
+        # class, and not the average grain size, for example.
+        perc_finer = np.empty(np.shape(fi_r))
+        perc_finer[:] = np.nan
+        perc_finer[:,0] = 100
+        for i in range(1, nb_classes):
+            perc_finer[:,i] = perc_finer[:,i-1] - fi_r[:,i-1] * 100
         
-        for k in range(np.shape(Perc_finer)[1]):
-            a = np.minimum(np.where(Perc_finer[:,k] > D_values)[0].max(), len(psi)-2)
-            D_changes[0,k] = (D_values - Perc_finer[a+1,k])/(Perc_finer[a,k] -Perc_finer[a+1,k])*(-psi[a]+psi[a+1])-psi[a+1]
-            D_changes[0,k] = np.power(2, D_changes[0,k])/1000
-            D_changes[0,k] = D_changes[0,k]*(D_changes[0,k]>0) + dmi[-1]*(D_changes[0,k]<0)
+        # Computes the target DXX value.
+        d_changes = np.zeros(nb_layers)
+        for k in range(nb_layers):
+            # Finds the class index of the percentage just above the target DXX value.
+            class_index = np.where(perc_finer[k, :] > d_value)[0].max()
+            # Ensure within valid range, which means that the interpolation to determine
+            # the target DXX value, if below the smallest material fraction, will be
+            # based on the adjacent above interval.
+            class_index = np.minimum(class_index, nb_classes - 2)
             
-        return D_changes
+            # Interpolation
+            perc_diff = perc_finer[k, class_index] - perc_finer[k, class_index + 1]
+            psi_diff = -psi[class_index] + psi[class_index + 1]  # Because psi is negative...
+            # How much of the target cumulative percentage (d_value) lies above
+            # the percentage for class_index + 1, divided by the cumulative percentage
+            # difference to get a fraction.
+            interpolated_fraction = (d_value - perc_finer[k, class_index + 1]) / perc_diff
+            # Apply this fractional position to the grain size values and add the 
+            # grain size values for class index + 1.
+            d_changes[k] = interpolated_fraction * psi_diff - psi[class_index + 1]
+
+            # Converts back to meters
+            d_changes[k] = np.power(2, d_changes[k]) / 1000
+            # Ensures no negative sizes by replacing them with the smallest size in dmi
+            d_changes[k] = d_changes[k] * (d_changes[k] > 0) + dmi[-1] * (d_changes[k] < 0)
+            
+        return d_changes
 
 
 def sortdistance(Qbi, distancelist):

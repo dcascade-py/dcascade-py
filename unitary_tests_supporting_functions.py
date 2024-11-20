@@ -17,29 +17,62 @@ EPSILON = 1e-4
 
 def test_d_finder():
     '''
-    Precision of calculations for D_finder with the input values:
-    
-    
-    
-    Relative difference = 
+    Testing the D_finder function:
+    - with D100, several layers.
+    - with D50, several layers.
+    - with D50, single layer.
     '''
+    
+    # Input parameters that are used to check if the formula in the function
+    # gives the same results as the original formula
+    fi_r = np.array([[0.15, 0.25, 0.35, 0.25], [0.25, 0.25, 0.25, 0.25]])
+    psi = np.array([-4, -3, -2, -1])
+    d_value = 100
+    
+    # Manually calculated transport capacity
+    expected_d90_value = [0.016, 0.016]
+    
+    # Computing the transport capacity with the D-CASCADE implementation
+    d_calculated = D_finder(fi_r, d_value, psi)
+    print("d_calculated", d_calculated)
+    
+    # Asserting the computed value is equal to manually calculated one, allowing
+    # for with error tolerance EPSILON
+    np.testing.assert_allclose(d_calculated, expected_d90_value, atol=EPSILON)
+    
+    ###################
+    
+    # Input parameters that are used to check if the formula in the function
+    # gives the same results as the original formula
+    fi_r = np.array([[0.15, 0.25, 0.35, 0.25], [0.25, 0.25, 0.25, 0.25]])
+    psi = np.array([-4, -3, -2, -1])
+    d_value = 50
+    
+    # Manually calculated transport capacity
+    expected_d90_value = [0.00328134142, 0.004]
+    
+    # Computing the transport capacity with the D-CASCADE implementation
+    d_calculated = D_finder(fi_r, d_value, psi)
+    print("d_calculated", d_calculated)
+    
+    # Asserting the computed value is equal to manually calculated one, allowing
+    # for with error tolerance EPSILON
+    np.testing.assert_allclose(d_calculated, expected_d90_value, atol=EPSILON)
+    
+    ###################
     
     # Input parameters that are used to check if the formula in the function
     # gives the same results as the original formula
     fi_r = np.array([0.15, 0.25, 0.35, 0.25])
     psi = np.array([-4, -3, -2, -1])
-    dmi = np.power(2, -psi)/1000
-    print('dmi', dmi)
-    
-    D_values = 42.5
+    d_value = 50
     
     # Manually calculated transport capacity
-    expected_d90_value = 0.088  # D90 of Solda reach 4
+    expected_d90_value = [0.00328134142]
     
     # Computing the transport capacity with the D-CASCADE implementation
-    d_calculated = D_finder(fi_r, D_values, psi)
-    
-    print('d_calculated', d_calculated)
+    d_calculated = D_finder(fi_r, d_value, psi)
+    print("d_calculated", d_calculated)
     
     # Asserting the computed value is equal to manually calculated one, allowing
     # for with error tolerance EPSILON
