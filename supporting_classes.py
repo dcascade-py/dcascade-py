@@ -787,85 +787,104 @@ class SedimentarySystem:
             sum_classes = np.sum(V_inc2act[:, np.append(False, under_capacity_classes)], axis=0)
             # remaining active layer volume per class after considering V_inc2act
             # (for under capacity classes only)
-            tr_cap_remaining = tr_cap[under_capacity_classes] - sum_classes
-            
-            # Select columns in V_dep2act corresponding to under_capacity_classes
+            tr_cap_remaining = tr_cap[under_capacity_classes] - sum_classes           
+            # select columns in V_dep2act corresponding to under_capacity_classes
             V_dep2act_class = V_dep2act[:, np.append(False, under_capacity_classes)]
             # Cumulate volumes from last to first row
             # Reminder: Last row is the top layer
-            csum = np.cumsum(V_dep2act_class[::-1], axis = 0)[::-1]            
-            # Find the indexes of the first cascade above the tr_cap threshold, for each class
-            mapp = csum >= tr_cap_remaining            
-            mapp[0, np.any(~mapp,axis = 0)] = True # Force the first layer to be true   
+            csum = np.cumsum(V_dep2act_class[::-1], axis = 0)[::-1] 
+               
+            # Find the indexes of the lowermost layer falling within tr_cap_remaining, for each class.
+            # In case tr cap remaining is higher than the total volume in Vdep_2_act, for a given class, 
+            # we take the bottom class (first row):
+            mapp = csum >= tr_cap_remaining                 
+            mapp[0, np.any(~mapp, axis = 0)] = True # force bottom layer to be true (first row)    
             firstoverthresh = (mapp * 1).argmin(axis = 0)
             firstoverthresh = firstoverthresh - 1
             firstoverthresh[firstoverthresh == -1] = csum.shape[0] - 1
-            # DD: check if the above lines can be simplified
+            # Finally, we obtain a binary matrix indicating the threshold layers: 
+            # (DD: maybe there is a more elegant way to find this matrix ?)
             mapfirst = np.zeros((mapp.shape))
             mapfirst[firstoverthresh, np.arange(np.sum(under_capacity_classes*1))] = 1 
-    
-            perc_dep = np.minimum((tr_cap_remaining - np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0))/V_dep2act_class[firstoverthresh, np.arange(np.sum(under_capacity_classes*1))], 1)   # percentage to be lifted from the layer "on the threshold"
-    
-            map_perc = mapfirst*perc_dep + ~mapp*1 # # EB check again  EB: is it adding 1 when true ? 
-    
-            # the matrix V_dep2act_new contains the mobilized cascades from the deposit layer, now corrected according to the tr_cap
+            # Now compute the percentage to be lifted from the layer "on the threshold":
+            sum_layers_above_threshold = np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0)
+            remaining_for_split_threshold = tr_cap_remaining - sum_layers_above_threshold
+            perc_threshold = remaining_for_split_threshold/V_dep2act_class[firstoverthresh, np.arange(np.sum(under_capacity_classes*1))]
+            # limit to a maximum of 1, in case the tr_cap_remaining is higher than the total volume (see above),
+            # and we had taken the bottom layer:
+            perc_dep = np.minimum(perc_threshold, 1) 
+            
+            # Final matrix indicating the percentage we take from V_dep2act_class: 
+            # (To multiply to V_dep2act_class)
+            map_perc = mapfirst*perc_dep + ~mapp*1   
+            
+            # The matrix V_dep2act_new contains the mobilized cascades from 
+            # the deposit layer, now corrected according to the tr_cap:
             V_dep2act_new = np.zeros((V_dep2act.shape))
             V_dep2act_new[: , 0] = V_dep2act[: ,0]
-            V_dep2act_new[:,np.append(False, under_capacity_classes)== True] = map_perc* V_dep2act_class
-    
+            V_dep2act_new[:,np.append(False, under_capacity_classes)== True] = map_perc * V_dep2act_class            
+            # Round the volume:
             if ~np.isnan(roundpar): 
                 V_dep2act_new[: , 1:]  = np.around(V_dep2act_new[: , 1:] , decimals = roundpar )
     
-            # the matrix V_2dep contains the cascades that will be deposited into the deposit layer.
+            # The matrix V_2dep contains the cascades that will be deposited into the deposit layer.
             # (the new volumes for the classes in under_capacity_classes and all the volumes in the remaining classes)
             V_2dep = np.zeros((V_dep2act.shape))
             V_2dep[: , np.append(True, ~under_capacity_classes) == True] = V_dep2act[: , np.append(True, ~under_capacity_classes) == True]
             V_2dep[: , np.append(False, under_capacity_classes) == True] = (1 - map_perc)* V_dep2act_class
-    
+            # Round the volume:
             if ~np.isnan(roundpar): 
                 V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
-    
+        
+        # If they are no sediment to be mobilised from V_dep2act,
+        # I re-deposit all the matrix V_dep2act into the deposit layer:
         else:
+            V_2dep = V_dep2act
+            # V_dep2act_new is empty:
             V_dep2act_new = np.zeros((V_dep2act.shape))
             V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
-            V_2dep = V_dep2act
-            # I re-deposit all the matrix V_dep2act into the deposit layer
     
-        # for the classes where V_inc2act is enough, I deposit the cascades
-        # proportionally
-    
-        perc_inc = tr_cap[~under_capacity_classes] / np.sum(V_inc2act[: , np.append(False, ~under_capacity_classes) == True], axis = 0)
-        perc_inc[np.isnan(perc_inc)] = 0 #change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
+        # For the classes where V_inc2act is enough, I deposit the cascades
+        # proportionally  
+        sum_classes_above_capacity = np.sum(V_inc2act[: , np.append(False, ~under_capacity_classes) == True], axis = 0)
+        # percentage to mobilise from the above_capacity classes:
+        perc_inc = tr_cap[~under_capacity_classes] / sum_classes_above_capacity
+        perc_inc[np.isnan(perc_inc)] = 0 # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
         class_perc_inc = np.zeros((under_capacity_classes.shape))
         class_perc_inc[under_capacity_classes == False] = perc_inc
-    
-        V_mob = self.matrix_compact(np.vstack((V_dep2act_new, V_inc2act*(np.append(True,under_capacity_classes)) + V_inc2act*np.append(False, class_perc_inc))))
+        # Incomimg volume that is effectively mobilised, according to tr_cap:
+        V_inc2act_new = V_inc2act*(np.append(True,under_capacity_classes)) + V_inc2act*np.append(False, class_perc_inc)
         
-        if ~np.isnan( roundpar ):
-            V_mob[:,1:] = np.around( V_mob[:,1:] , decimals =roundpar )
-    
+        # Mobilised volume : 
+        V_mob = np.vstack((V_dep2act_new, V_inc2act_new))
+        V_mob = self.matrix_compact(V_mob)
+        # Round:
+        if ~np.isnan(roundpar):
+            V_mob[:,1:] = np.around(V_mob[:,1:], decimals = roundpar)
+        
+        # Compute what is to be added to V_dep from Q_incomimg:
         class_residual = np.zeros((under_capacity_classes.shape));
         class_residual[under_capacity_classes==False] = 1 - perc_inc
-    
-        V_2dep = np.vstack((V_2dep, V_inc2act*np.hstack((1, class_residual)))) ## EB check again EB: here the 1 instead of the 0 should be correct + 
-       
+        V_inc2dep = V_inc2act*np.hstack((1, class_residual))
+        
+        # Final volume from active layer to be put in Vdep:
+        V_2dep = np.vstack((V_2dep, V_inc2dep)) 
+        # Round:
         if ~np.isnan( roundpar ):
             V_2dep[:,1:]  = np.around( V_2dep[:,1:] , decimals = roundpar) 
     
-        # Put the volume exceeding the transport capacity back in the deposit
-    
-        #If the upper layer in the deposit and the lower layer in the volume to be
-        #deposited are from the same reach, i sum them
+        # Put the volume exceeding the transport capacity (V_2dep) back in the deposit:   
+        # (If the upper layer in the deposit and the lower layer in the volume to be
+        #deposited are from the same reach, i sum them)
         if (V_dep[-1,0] == V_2dep[0,0]):
-            V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:] 
+            V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:]
             V_dep = np.vstack((V_dep, V_2dep[1:,:]))
         else:
             V_dep = np.vstack((V_dep, V_2dep))
-    
-        
-        #remove empty rows
-        if not np.sum(V_dep2act[:,1:])==0:
-            V_dep = V_dep[np.sum(V_dep[:,1:],axis = 1)!=0]  
+           
+        # Remove empty rows:
+        if not np.sum(V_dep2act[:,1:]) == 0:
+            V_dep = V_dep[np.sum(V_dep[:,1:], axis = 1) != 0]  
         
         return V_mob, V_dep
 
