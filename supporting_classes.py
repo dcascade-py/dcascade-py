@@ -360,7 +360,7 @@ class SedimentarySystem:
         # Compute the transport capacity
         [ tr_cap_per_s, pci ] = tr_cap_function(sed_class_fraction, D50,  
                                            self.slope[t, n], Q_reach, self.reach_data.wac[n],
-                                           v , h, self.psi, indx_tr_cap, indx_tr_partition)
+                                           v , h, self.psi, self.reach_data.rugosity[n], indx_tr_cap, indx_tr_partition)
         
         
         Svel = self.vl_height[t, n] * self.reach_data.wac[n] * (1 - self.phi)  # the global section where all sediments pass through
@@ -519,9 +519,12 @@ class SedimentarySystem:
         D50_al_ = float(D_finder(Fi_al_, 50, self.psi))
            
         # Transport capacity in m3/s 
+        #tr_cap_per_s, Qc = tr_cap_function(Fi_al_ , D50_al_, self.slope[t,n], 
+        #                                   Q[t,n], self.reach_data.wac[n], v[n],
+        #                                   h[n], self.psi, indx_tr_cap, indx_tr_partition)
         tr_cap_per_s, Qc = tr_cap_function(Fi_al_ , D50_al_, self.slope[t,n], 
                                            Q[t,n], self.reach_data.wac[n], v[n],
-                                           h[n], self.psi, indx_tr_cap, indx_tr_partition)
+                                           h[n], self.psi, self.reach_data.rugosity[n], indx_tr_cap, indx_tr_partition)
         
         return tr_cap_per_s, Fi_al_, D50_al_, Qc
     

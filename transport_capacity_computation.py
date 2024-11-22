@@ -20,7 +20,8 @@ from constants import (
 
 
 class TransportCapacityCalculator:
-    def __init__(self, fi_r_reach, D50, slope, Q, wac, v, h, psi, gamma=0.05):
+    def __init__(self, fi_r_reach, D50, slope, Q, wac, v, h, psi, rugosity, gamma=0.05):
+    #def __init__(self, fi_r_reach, D50, slope, Q, wac, v, h, psi, gamma=0.05):
         # Dictionary mapping indices to different formula
         self.index_to_formula = {
             1: self.Parker_Klingeman_formula,
@@ -41,6 +42,7 @@ class TransportCapacityCalculator:
         self.psi = psi
         self.dmi = 2**(-self.psi) / 1000 # sediment classes diameter [m]
         self.gamma = gamma # hiding factor
+        self.rugosity = rugosity
         
     def choose_formula(self, indx_tr_cap):
         """
@@ -349,8 +351,10 @@ class TransportCapacityCalculator:
         
         exponent_e = 1.5
         # critical unit discharge
-        Qc = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (self.D50 ** exponent_e) * (self.slope ** (-1.12))
-    
+        Qc_Rickenmann = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (self.D50 ** exponent_e) * (self.slope ** (-1.12))
+        Qc_Lenzi = (GRAV ** 0.5) * (self.D50 ** exponent_e) * (0.745 * (self.D50 / self.rugosity) ** (-0.859))
+        Qc = Qc_Lenzi
+        
         #Check if Q is smaller than Qc
         Qarr = np.full_like(Qc, Qunit)
         
@@ -438,7 +442,9 @@ def Molinas_rates(fi_r, h, v, slope, dmi_finer, D50_finer):
     return pci
 
 
-def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx_partition):
+def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, rugosity, indx_tr_cap, indx_partition):
+#def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx_partition):
+
     """
     Refers to the transport capacity equation and partitioning 
     formula chosen by the  user and return the value of the transport capacity 
@@ -464,7 +470,8 @@ def tr_cap_function(Fi_r_reach, D50, slope, Q, wac, v, h, psi, indx_tr_cap, indx
         pci = Fi_r_reach
         
     elif indx_partition == 2: # The BMF approach (Bed Material Fraction)
-        calculator = TransportCapacityCalculator(Fi_r_reach, dmi, slope, Q, wac, v, h, psi)
+        calculator = TransportCapacityCalculator(Fi_r_reach, dmi, slope, Q, wac, v, h, psi, rugosity)
+        #calculator = TransportCapacityCalculator(Fi_r_reach, dmi, slope, Q, wac, v, h, psi)
         tr_cap, Qc = calculator.choose_formula(indx_tr_cap)
         Qtr_cap = Fi_r_reach*tr_cap
         pci = Fi_r_reach 
