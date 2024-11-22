@@ -567,65 +567,6 @@ class SedimentarySystem:
         return V_mob, passing_cascades, Vdep_new
     
     
-    # def search_reach_erodible_layers(self, Vdep, n, roundpar):
-    #     '''
-    #     '''
-    #     volume_limit = self.eros_max_vol[n]
-        
-    #     # Cumulative sum of Vdep:
-    #     Vdep_csum = np.cumsum(V_dep_old[:, 1:])
-        
-        
-    #     return Vdep_eros, Vdep_remain 
-        
-    #         csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis = 0))  # Cumulative sum of V_dep_old
-            
-    #         # If the volume available in V_dep_old is less than V_lim_dep:
-    #         #  (i've reached the bottom)
-    #         # and I put all the deposit into the active layer           
-    #         if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty 
-    #             print(' reach the bottom ....')
-
-    #             V_dep2act = V_dep_old  
-    #             V_dep = np.c_[V_dep_old[0,0], np.zeros((1, Qpass_volume.shape[1]-1))]
-            
-    #         # Otherwise I must select the uppermost layers from V_dep_old to be 
-    #         # put in the active layer
-    #         else:               
-    #             index = np.max(np.argwhere(csum >= V_lim_dep)) # index (x nclasses) to shows the lowermost layer to be put in the active layer
-
-    #             # if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
-    #             # The layer on the threshold (defined by position index) gets divided according to perc_layer
-    #             perc_layer = (V_lim_dep - np.sum(V_dep_old[csum < V_lim_dep, 1:]))/sum(V_dep_old[index, 1:])  # EB check again  # percentage to be lifted from the layer on the threshold 
-
-    #             # remove small negative values that can arise from the difference being very close to 0
-    #             perc_layer = np.maximum(0, perc_layer)
-
-    #             if ~np.isnan(roundpar):
-    #                 V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer, decimals=roundpar))).reshape(1, -1), V_dep_old[csum<V_lim_dep,:]))
-    #                 V_dep = np.vstack((V_dep_old[0:index,:], np.hstack((V_dep_old[index,0], np.around(V_dep_old[index,1:]* (1-perc_layer), decimals=roundpar)))))
-    #             else: 
-    #                 V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around( V_dep_old[index, 1:]*perc_layer))).reshape(1, -1), V_dep_old[csum < V_lim_dep, :]))
-    #                 V_dep = np.vstack((V_dep_old[0:index, :], np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:] * (1-perc_layer))))))
-        
-
-
-        
-    # def search_active_layers(self, Vdep, n, roundpar, passing_cascades, per_second = True):
-    #     '''
-    #     '''
-        
-    # def mobilise_from_reach(self, Vdep, vol_to_mobilise, roundpar):
-    #     '''
-    #     '''
-        
-    # def compute_mobilised_cascades(self, Vdep, vol_to_mobilise, roundpar, passing_cascades):
-    #     '''
-    #     '''
-    
-
-        
-        
     
     def layer_search(self, V_dep_old, V_lim, roundpar, Qpass_volume = None):
         # This function searches uppermost layers from a volume of layers, 
