@@ -43,33 +43,99 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 
-def D_finder(fi_r, D_values, psi):
-    '''
-    '''
+def D_finder(fi_r, d_value, psi):
+    """
+    @brief Computes the grain size corresponding to a given cumulative percentage (DXX) 
+           for a reach with a specified grain size distribution.
 
+    @param fi_r Array of fractions of material in each grain size class. 
+                For example, [0.15, 0.50, 0.35] represents 15%, 50%, and 35% of material 
+                in three grain size classes.
+    @param d_value The target DXX value (e.g., 50 for D50, 90 for D90) representing the 
+                   grain size for which X% of the material is finer.
+    @param psi Array of grain sizes in negative log base-2 scale. For example, 
+               `-3` represents 2³ = 8 mm, `-4` represents 2⁴ = 16 mm.
+
+    @return Array of computed grain sizes (in meters) corresponding to the requested DXX 
+            for each input layer. If only one grain size class is present, the function 
+            returns that grain size. If `d_value` equals 100, it returns the smallest 
+            grain size.
+    
+    @details
+    - The function supports both single-layer (`fi_r` as a vector) and multi-layer (`fi_r` 
+      as a matrix) inputs. For multi-layer cases, it processes each layer independently.
+    - The function assumes that the provided grain sizes in `psi` are the maximum sizes 
+      of each class and not average sizes.
+
+    @note The grain size distribution is interpolated in logarithmic (base-2) space, 
+          as is standard in sedimentology, and converted back to linear scale in meters.
+
+    @example
+    ```
+    fi_r = [0.15, 0.50, 0.35]
+    d_value = 50
+    psi = [-3, -4, -5]
+    result = D_finder(fi_r, d_value, psi)
+    ```
+    """
+    
     dmi = np.power(2, -psi)/1000
+    nb_classes = len(psi)
+    
+    # Handles the case of single layers input as vector and 
+    # multiple layers input as matrices.
+    if fi_r.ndim == 1:
+        nb_layers = 1
+        fi_r = np.expand_dims(fi_r, axis=0)
+    else: # If multiple layers: AL: Do we need it? Neither Vjosa nor Po use it.
+        nb_layers = np.shape(fi_r)[0]
+    
+    # If one class only, the target DXX value is the grain size of the class.
     if dmi.size == 1:
-        return dmi[0]
+        return np.full(nb_layers, dmi[0])
+    
+    # The D100 is the grain size of the biggest class.
+    elif d_value == 100:
+        return np.full(nb_layers, dmi[0])
     
     else:
-        if fi_r.ndim == 1:
-            fi_r = fi_r[:, None] # EB: needs to be a column vector
-            
-        D_changes = np.zeros((1, np.shape(fi_r)[1]))
-        Perc_finer = np.empty((len(dmi),np.shape(fi_r)[1]))
-        Perc_finer[:] = np.nan
-        Perc_finer[0] = 100
-    
-        for i in range(1, len(Perc_finer)):
-            Perc_finer[i,:] = Perc_finer[i-1,:] - fi_r[i-1,:]*100
+        # Computes the inverse cumulative percentage of finer material, 
+        # class by class, for each layer.
+        # Assumes that the given grain size is the maximum grain size of each
+        # class, and not the average grain size, for example.
+        perc_finer = np.empty(np.shape(fi_r))
+        perc_finer[:] = np.nan
+        perc_finer[:,0] = 100
+        for i in range(1, nb_classes):
+            perc_finer[:,i] = perc_finer[:,i-1] - fi_r[:,i-1] * 100
         
-        for k in range(np.shape(Perc_finer)[1]):
-            a = np.minimum(np.where(Perc_finer[:,k] > D_values)[0].max(), len(psi)-2)
-            D_changes[0,k] = (D_values - Perc_finer[a+1,k])/(Perc_finer[a,k] -Perc_finer[a+1,k])*(-psi[a]+psi[a+1])-psi[a+1]
-            D_changes[0,k] = np.power(2, D_changes[0,k])/1000
-            D_changes[0,k] = D_changes[0,k]*(D_changes[0,k]>0) + dmi[-1]*(D_changes[0,k]<0)
+        # Computes the target DXX value.
+        d_changes = np.zeros(nb_layers)
+        for k in range(nb_layers):
+            # Finds the class index of the percentage just above the target DXX value.
+            class_index = np.where(perc_finer[k, :] > d_value)[0].max()
+            # Ensure within valid range, which means that the interpolation to determine
+            # the target DXX value, if below the smallest material fraction, will be
+            # based on the adjacent above interval.
+            class_index = np.minimum(class_index, nb_classes - 2)
             
-        return D_changes
+            # Interpolation
+            perc_diff = perc_finer[k, class_index] - perc_finer[k, class_index + 1]
+            psi_diff = -psi[class_index] + psi[class_index + 1]  # Because psi is negative...
+            # How much of the target cumulative percentage (d_value) lies above
+            # the percentage for class_index + 1, divided by the cumulative percentage
+            # difference to get a fraction.
+            interpolated_fraction = (d_value - perc_finer[k, class_index + 1]) / perc_diff
+            # Apply this fractional position to the grain size values and add the 
+            # grain size values for class index + 1.
+            d_changes[k] = interpolated_fraction * psi_diff - psi[class_index + 1]
+
+            # Converts back to meters
+            d_changes[k] = np.power(2, d_changes[k]) / 1000
+            # Ensures no negative sizes by replacing them with the smallest size in dmi
+            d_changes[k] = d_changes[k] * (d_changes[k] > 0) + dmi[-1] * (d_changes[k] < 0)
+            
+        return d_changes
 
 
 def sortdistance(Qbi, distancelist):
@@ -195,161 +261,161 @@ def sortdistance(Qbi, distancelist):
 #     return V_inc2act, V_dep2act, V_dep, Fi_r_reach
 
 
-def matrix_compact(V_layer):
-    '''
-    '''
+# def matrix_compact(V_layer):
+#     '''
+#     '''
     
-    ID = np.unique(V_layer[:,0]) #, return_inverse=True
-    V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
-    # sum elements with same ID 
-    for ind, i in enumerate(ID): 
-        vect = V_layer[V_layer[:,0] == i,:]
-        V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
+#     ID = np.unique(V_layer[:,0]) #, return_inverse=True
+#     V_layer_cmpct = np.empty((len(ID), V_layer.shape[1]))
+#     # sum elements with same ID 
+#     for ind, i in enumerate(ID): 
+#         vect = V_layer[V_layer[:,0] == i,:]
+#         V_layer_cmpct[ind,:] = np.append(ID[ind], np.sum(vect[:,1:],axis = 0))
     
-    if V_layer_cmpct.shape[0]>1: 
-        V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
+#     if V_layer_cmpct.shape[0]>1: 
+#         V_layer_cmpct = V_layer_cmpct[np.sum(V_layer_cmpct[:,1:], axis = 1)!=0]
 
 
-    if V_layer_cmpct.size == 0: 
-        V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
+#     if V_layer_cmpct.size == 0: 
+#         V_layer_cmpct = (np.hstack((ID[0], np.zeros((V_layer[:,1:].shape[1]))))).reshape(1,-1)
     
-    return V_layer_cmpct
+#     return V_layer_cmpct
 
 
-def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
-    '''
-    '''
-    # V_dep and V_act identification
-    # classes for which the tr_cap is more than the incoming volumes in the active layer
-    class_sup_dep = tr_cap > np.sum(V_inc2act[:, 1:], axis=0)
+# def tr_cap_deposit(V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
+#     '''
+#     '''
+#     # V_dep and V_act identification
+#     # classes for which the tr_cap is more than the incoming volumes in the active layer
+#     class_sup_dep = tr_cap > np.sum(V_inc2act[:, 1:], axis=0)
     
 
-    # if there are sed classes for which the tr cap is more than the volume in V_inc2act...
-    if np.any(class_sup_dep):
-        # ...  sediment from V_dep2act will have to be mobilized, taking into consideration
-        # the sediment stratigraphy (upper layers get mobilized first)
+#     # if there are sed classes for which the tr cap is more than the volume in V_inc2act...
+#     if np.any(class_sup_dep):
+#         # ...  sediment from V_dep2act will have to be mobilized, taking into consideration
+#         # the sediment stratigraphy (upper layers get mobilized first)
 
-        # remaining active layer volume per class after considering V_inc2act
-        tr_cap_remaining = tr_cap[class_sup_dep] - np.sum(V_inc2act[:, np.append(False, class_sup_dep)], axis=0)
-        # take only the columns with the cascades of the classes class_sup_dep
-        V_dep2act_class = V_dep2act[:, np.append(False, class_sup_dep)]
+#         # remaining active layer volume per class after considering V_inc2act
+#         tr_cap_remaining = tr_cap[class_sup_dep] - np.sum(V_inc2act[:, np.append(False, class_sup_dep)], axis=0)
+#         # take only the columns with the cascades of the classes class_sup_dep
+#         V_dep2act_class = V_dep2act[:, np.append(False, class_sup_dep)]
 
-        csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis = 0)) 
+#         csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis = 0)) 
 
-        # find the indexes of the first cascade above the tr_cap threshold, for each class
-        mapp =csum >= tr_cap_remaining
+#         # find the indexes of the first cascade above the tr_cap threshold, for each class
+#         mapp =csum >= tr_cap_remaining
 
-        mapp[0, np.any(~mapp,axis = 0)] = True   # EB: force the first deposit layer to be true 
+#         mapp[0, np.any(~mapp,axis = 0)] = True   # EB: force the first deposit layer to be true 
 
-        # find position of the layer to be splitted between deposit and erosion
-        firstoverthresh = (mapp*1).argmin(axis=0)
-        firstoverthresh = firstoverthresh - 1
-        firstoverthresh[firstoverthresh == -1] = csum.shape[0]-1
+#         # find position of the layer to be splitted between deposit and erosion
+#         firstoverthresh = (mapp*1).argmin(axis=0)
+#         firstoverthresh = firstoverthresh - 1
+#         firstoverthresh[firstoverthresh == -1] = csum.shape[0]-1
 
-        mapfirst = np.zeros((mapp.shape))
-        mapfirst[firstoverthresh, np.arange(np.sum(class_sup_dep*1))] = 1 
+#         mapfirst = np.zeros((mapp.shape))
+#         mapfirst[firstoverthresh, np.arange(np.sum(class_sup_dep*1))] = 1 
 
-        perc_dep = np.minimum((tr_cap_remaining - np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0))/V_dep2act_class[firstoverthresh, np.arange(np.sum(class_sup_dep*1))], 1)   # percentage to be lifted from the layer "on the threshold"
+#         perc_dep = np.minimum((tr_cap_remaining - np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0))/V_dep2act_class[firstoverthresh, np.arange(np.sum(class_sup_dep*1))], 1)   # percentage to be lifted from the layer "on the threshold"
 
-        map_perc = mapfirst*perc_dep + ~mapp*1 # # EB check again  EB: is it adding 1 when true ? 
+#         map_perc = mapfirst*perc_dep + ~mapp*1 # # EB check again  EB: is it adding 1 when true ? 
 
-        # the matrix V_dep2act_new contains the mobilized cascades from the deposit layer, now corrected according to the tr_cap
-        V_dep2act_new = np.zeros((V_dep2act.shape))
-        V_dep2act_new[: , 0] = V_dep2act[: ,0]
-        V_dep2act_new[:,np.append(False, class_sup_dep)== True] = map_perc* V_dep2act_class
+#         # the matrix V_dep2act_new contains the mobilized cascades from the deposit layer, now corrected according to the tr_cap
+#         V_dep2act_new = np.zeros((V_dep2act.shape))
+#         V_dep2act_new[: , 0] = V_dep2act[: ,0]
+#         V_dep2act_new[:,np.append(False, class_sup_dep)== True] = map_perc* V_dep2act_class
 
-        if ~np.isnan(roundpar): 
-            V_dep2act_new[: , 1:]  = np.around(V_dep2act_new[: , 1:] , decimals = roundpar )
+#         if ~np.isnan(roundpar): 
+#             V_dep2act_new[: , 1:]  = np.around(V_dep2act_new[: , 1:] , decimals = roundpar )
 
-        # the matrix V_2dep contains the cascades that will be deposited into the deposit layer.
-        # (the new volumes for the classes in class_sup_dep and all the volumes in the remaining classes)
-        V_2dep = np.zeros((V_dep2act.shape))
-        V_2dep[: , np.append(True, ~class_sup_dep) == True] = V_dep2act[: , np.append(True, ~class_sup_dep) == True]
-        V_2dep[: , np.append(False, class_sup_dep) == True] = (1 - map_perc)* V_dep2act_class
+#         # the matrix V_2dep contains the cascades that will be deposited into the deposit layer.
+#         # (the new volumes for the classes in class_sup_dep and all the volumes in the remaining classes)
+#         V_2dep = np.zeros((V_dep2act.shape))
+#         V_2dep[: , np.append(True, ~class_sup_dep) == True] = V_dep2act[: , np.append(True, ~class_sup_dep) == True]
+#         V_2dep[: , np.append(False, class_sup_dep) == True] = (1 - map_perc)* V_dep2act_class
 
-        if ~np.isnan(roundpar): 
-            V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
+#         if ~np.isnan(roundpar): 
+#             V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
 
-    else:
-        V_dep2act_new = np.zeros((V_dep2act.shape))
-        V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
-        V_2dep = V_dep2act
-        # I re-deposit all the matrix V_dep2act into the deposit layer
+#     else:
+#         V_dep2act_new = np.zeros((V_dep2act.shape))
+#         V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
+#         V_2dep = V_dep2act
+#         # I re-deposit all the matrix V_dep2act into the deposit layer
 
-    # for the classes where V_inc2act is enough, I deposit the cascades
-    # proportionally
+#     # for the classes where V_inc2act is enough, I deposit the cascades
+#     # proportionally
 
-    perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[: , np.append(False, ~class_sup_dep) == True], axis = 0)
-    perc_inc[np.isnan(perc_inc)] = 0 #change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
-    class_perc_inc = np.zeros((class_sup_dep.shape))
-    class_perc_inc[class_sup_dep == False] = perc_inc
+#     perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[: , np.append(False, ~class_sup_dep) == True], axis = 0)
+#     perc_inc[np.isnan(perc_inc)] = 0 #change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
+#     class_perc_inc = np.zeros((class_sup_dep.shape))
+#     class_perc_inc[class_sup_dep == False] = perc_inc
 
-    V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act*(np.append(True,class_sup_dep)) + V_inc2act*np.append(False, class_perc_inc))))
+#     V_mob = matrix_compact(np.vstack((V_dep2act_new, V_inc2act*(np.append(True,class_sup_dep)) + V_inc2act*np.append(False, class_perc_inc))))
     
-    if ~np.isnan( roundpar ):
-        V_mob[:,1:] = np.around( V_mob[:,1:] , decimals =roundpar )
+#     if ~np.isnan( roundpar ):
+#         V_mob[:,1:] = np.around( V_mob[:,1:] , decimals =roundpar )
 
-    class_residual = np.zeros((class_sup_dep.shape));
-    class_residual[class_sup_dep==False] = 1 - perc_inc
+#     class_residual = np.zeros((class_sup_dep.shape));
+#     class_residual[class_sup_dep==False] = 1 - perc_inc
 
-    V_2dep = np.vstack((V_2dep, V_inc2act*np.hstack((1, class_residual)))) ## EB check again EB: here the 1 instead of the 0 should be correct + 
+#     V_2dep = np.vstack((V_2dep, V_inc2act*np.hstack((1, class_residual)))) ## EB check again EB: here the 1 instead of the 0 should be correct + 
    
-    if ~np.isnan( roundpar ):
-        V_2dep[:,1:]  = np.around( V_2dep[:,1:] , decimals = roundpar) 
+#     if ~np.isnan( roundpar ):
+#         V_2dep[:,1:]  = np.around( V_2dep[:,1:] , decimals = roundpar) 
 
-    # Put the volume exceeding the transport capacity back in the deposit
+#     # Put the volume exceeding the transport capacity back in the deposit
 
-    #If the upper layer in the deposit and the lower layer in the volume to be
-    #deposited are from the same reach, i sum them
-    if (V_dep[-1,0] == V_2dep[0,0]):
-        V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:] 
-        V_dep = np.vstack((V_dep, V_2dep[1:,:]))
-    else:
-        V_dep = np.vstack((V_dep, V_2dep))
+#     #If the upper layer in the deposit and the lower layer in the volume to be
+#     #deposited are from the same reach, i sum them
+#     if (V_dep[-1,0] == V_2dep[0,0]):
+#         V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:] 
+#         V_dep = np.vstack((V_dep, V_2dep[1:,:]))
+#     else:
+#         V_dep = np.vstack((V_dep, V_2dep))
 
     
-    #remove empty rows
-    if not np.sum(V_dep2act[:,1:])==0:
-        V_dep = V_dep[np.sum(V_dep[:,1:],axis = 1)!=0]  
+#     #remove empty rows
+#     if not np.sum(V_dep2act[:,1:])==0:
+#         V_dep = V_dep[np.sum(V_dep[:,1:],axis = 1)!=0]  
     
-    return V_mob, V_dep
+#     return V_mob, V_dep
 
 
 
-def change_slope(Node_el_t, Lngt, Network , **kwargs):
-    """"CHANGE_SLOPE modify the Slope vector according to the changing elevation of
-    the nodes: It also guarantees that the slope is not negative or lower then
-    the min_slope value by changing the node elevation bofore findin the SLlpe""" 
+# def change_slope(Node_el_t, Lngt, Network , **kwargs):
+#     """"CHANGE_SLOPE modify the Slope vector according to the changing elevation of
+#     the nodes: It also guarantees that the slope is not negative or lower then
+#     the min_slope value by changing the node elevation bofore findin the SLlpe""" 
     
-    #define minimum reach slope 
+#     #define minimum reach slope 
        
         
-    #initialization
-    if len(kwargs) != 0: 
-        min_slope = kwargs['s'] 
-    else: 
-        min_slope = 0
+#     #initialization
+#     if len(kwargs) != 0: 
+#         min_slope = kwargs['s'] 
+#     else: 
+#         min_slope = 0
      
-    outlet = Network['n_hier'][-1]
-    down_node = Network['downstream_node']    
-    down_node = np.array([int(n) for n in down_node])
-    down_node[int(outlet)] = (len(Node_el_t)-1)
+#     outlet = Network['n_hier'][-1]
+#     down_node = Network['downstream_node']    
+#     down_node = np.array([int(n) for n in down_node])
+#     down_node[int(outlet)] = (len(Node_el_t)-1)
     
-    Slope_t = np.zeros(Lngt.shape)
+#     Slope_t = np.zeros(Lngt.shape)
     
-    #loop for all reaches
-    for n in range(len(Lngt)): 
-        #find the minimum node elevation to guarantee Slope > min_slope
-        min_node_el = min_slope * Lngt[n] + Node_el_t[down_node[n]]
+#     #loop for all reaches
+#     for n in range(len(Lngt)): 
+#         #find the minimum node elevation to guarantee Slope > min_slope
+#         min_node_el = min_slope * Lngt[n] + Node_el_t[down_node[n]]
 
-        #change the noide elevation if lower to min_node_el
-        Node_el_t[n] = np.maximum(min_node_el, Node_el_t[n] ) 
+#         #change the noide elevation if lower to min_node_el
+#         Node_el_t[n] = np.maximum(min_node_el, Node_el_t[n] ) 
         
-        #find the new slope
-        Slope_t[n] = (Node_el_t[n] - Node_el_t[down_node[n]]) / Lngt[n]
+#         #find the new slope
+#         Slope_t[n] = (Node_el_t[n] - Node_el_t[down_node[n]]) / Lngt[n]
     
     
-    return Slope_t, Node_el_t
+#     return Slope_t, Node_el_t
 
 
 
@@ -449,75 +515,75 @@ def change_slope(Node_el_t, Lngt, Network , **kwargs):
 #     return Vm_stop, Vm_continue
 
 
-def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
-    ''' This function remove the quantity V_remove from the list of cascades. 
-    The order in which we take the cascade is from largest times (arriving later) 
-    to shortest times (arriving first). Hypotheticaly, cascade arriving first 
-    are passing in priority, in turn, cascades arriving later are deposited in priority.
-    If two cascades have the same time, they are processed as one same cascade.
+# def deposit_from_passing_sediments(V_remove, cascade_list, roundpar):
+#     ''' This function remove the quantity V_remove from the list of cascades. 
+#     The order in which we take the cascade is from largest times (arriving later) 
+#     to shortest times (arriving first). Hypotheticaly, cascade arriving first 
+#     are passing in priority, in turn, cascades arriving later are deposited in priority.
+#     If two cascades have the same time, they are processed as one same cascade.
     
-    INPUTS:
-    V_remove : quantity to remove, per sediment class (array of size number of sediment classes).
-    cascade_list : list of cascades. Reminder, a cascade is a Cascade class with attributes: 
-                    direct provenance, elapsed time, and the volume
-    roundpar : number of decimals to round the cascade volumes (Vm)
-    RETURN:
-    r_Vmob : removed volume from cascade list
-    cascade_list : the new cascade list, after removing the volumes
-    V_remove : residual volume to remove 
-    '''
-    removed_Vm_all = []    
+#     INPUTS:
+#     V_remove : quantity to remove, per sediment class (array of size number of sediment classes).
+#     cascade_list : list of cascades. Reminder, a cascade is a Cascade class with attributes: 
+#                     direct provenance, elapsed time, and the volume
+#     roundpar : number of decimals to round the cascade volumes (Vm)
+#     RETURN:
+#     r_Vmob : removed volume from cascade list
+#     cascade_list : the new cascade list, after removing the volumes
+#     V_remove : residual volume to remove 
+#     '''
+#     removed_Vm_all = []    
     
-    # Order cascades according to the inverse of their elapsed time 
-    # and put cascade with same time in a sublist, in order to treat them together
-    sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x.elapsed_time), reverse=True)
-    sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x.elapsed_time))]
+#     # Order cascades according to the inverse of their elapsed time 
+#     # and put cascade with same time in a sublist, in order to treat them together
+#     sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x.elapsed_time), reverse=True)
+#     sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x.elapsed_time))]
     
-    # Loop over the sorted and grouped cascades
-    for cascades in sorted_and_grouped_cascade_list:        
-        Vm_same_time = np.concatenate([casc.volume for casc in cascades], axis=0)
-        if np.any(Vm_same_time[:,1:]) == False: #In case Vm_same_time is full of 0
-            del cascades
-            continue 
-        # Storing matrix for removed volumes
-        removed_Vm = np.zeros_like(Vm_same_time)
-        removed_Vm[:,0] = Vm_same_time[:,0] # same first col with initial provenance
-        for col_idx in range(Vm_same_time[:,1:].shape[1]):  # Loop over sediment classes
-            if V_remove[col_idx] > 0:
-                col_sum = np.sum(Vm_same_time[:, col_idx+1])        
-                if col_sum > 0:
-                    fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
-                    # Subtract the fraction_to_remove from the input cascades objects (to modify them directly)
-                    for casc in cascades:   
-                        Vm = casc.volume                        
-                        removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
-                        Vm[:, col_idx+1] -= removed_quantities 
-                        # Round Vm
-                        Vm[:, col_idx+1] = np.round(Vm[:, col_idx+1], decimals = roundpar)
-                        # Ensure no negative values 
-                        if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) == True:
-                            raise ValueError("Negative value in VM is strange")
+#     # Loop over the sorted and grouped cascades
+#     for cascades in sorted_and_grouped_cascade_list:        
+#         Vm_same_time = np.concatenate([casc.volume for casc in cascades], axis=0)
+#         if np.any(Vm_same_time[:,1:]) == False: #In case Vm_same_time is full of 0
+#             del cascades
+#             continue 
+#         # Storing matrix for removed volumes
+#         removed_Vm = np.zeros_like(Vm_same_time)
+#         removed_Vm[:,0] = Vm_same_time[:,0] # same first col with initial provenance
+#         for col_idx in range(Vm_same_time[:,1:].shape[1]):  # Loop over sediment classes
+#             if V_remove[col_idx] > 0:
+#                 col_sum = np.sum(Vm_same_time[:, col_idx+1])        
+#                 if col_sum > 0:
+#                     fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
+#                     # Subtract the fraction_to_remove from the input cascades objects (to modify them directly)
+#                     for casc in cascades:   
+#                         Vm = casc.volume                        
+#                         removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
+#                         Vm[:, col_idx+1] -= removed_quantities 
+#                         # Round Vm
+#                         Vm[:, col_idx+1] = np.round(Vm[:, col_idx+1], decimals = roundpar)
+#                         # Ensure no negative values 
+#                         if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) == True:
+#                             raise ValueError("Negative value in VM is strange")
                     
-                    # Store the removed quantities in the removed volumes matrix
-                    removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove               
-                    # Update V_remove by subtracting the total removed quantity
-                    V_remove[col_idx] -= col_sum * fraction_to_remove                                
-                    # Ensure V_remove doesn't go under the number fixed by roundpar 
-                    if np.any(V_remove[col_idx] < -10**(-roundpar)) == True:
-                        raise ValueError("Negative value in V_remove is strange")
-        # Round and store removed volumes
-        removed_Vm[:, 1:] = np.round(removed_Vm[:, 1:], decimals = roundpar)                                                  
-        removed_Vm_all.append(removed_Vm)
-    # Concatenate all removed quantities into a single matrix
-    r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
-    # Gather layers of same original provenance in r_Vmob 
-    r_Vmob = matrix_compact(r_Vmob)
+#                     # Store the removed quantities in the removed volumes matrix
+#                     removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove               
+#                     # Update V_remove by subtracting the total removed quantity
+#                     V_remove[col_idx] -= col_sum * fraction_to_remove                                
+#                     # Ensure V_remove doesn't go under the number fixed by roundpar 
+#                     if np.any(V_remove[col_idx] < -10**(-roundpar)) == True:
+#                         raise ValueError("Negative value in V_remove is strange")
+#         # Round and store removed volumes
+#         removed_Vm[:, 1:] = np.round(removed_Vm[:, 1:], decimals = roundpar)                                                  
+#         removed_Vm_all.append(removed_Vm)
+#     # Concatenate all removed quantities into a single matrix
+#     r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
+#     # Gather layers of same original provenance in r_Vmob 
+#     r_Vmob = matrix_compact(r_Vmob)
     
-    # Delete cascades that are now only 0 in input cascade list  
-    cascade_list = [cascade for cascade in cascade_list if not np.all(cascade.volume[:, 1:] == 0)]
+#     # Delete cascades that are now only 0 in input cascade list  
+#     cascade_list = [cascade for cascade in cascade_list if not np.all(cascade.volume[:, 1:] == 0)]
            
-    # The returned cascade_list is directly modified by the operations on Vm
-    return r_Vmob, cascade_list, V_remove
+#     # The returned cascade_list is directly modified by the operations on Vm
+#     return r_Vmob, cascade_list, V_remove
 
 
 
