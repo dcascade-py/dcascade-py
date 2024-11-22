@@ -348,7 +348,8 @@ class SedimentarySystem:
         calculator = TransportCapacityCalculator(sed_class_fraction, D50, 
                                                  self.slope[t, n], Q_reach, 
                                                  self.reach_data.wac[n],
-                                                 v, h, self.psi)
+                                                 v, h, self.psi, self.reach_data.rugosity[n])
+        
         [ tr_cap_per_s, pci ] = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         
         
@@ -505,13 +506,13 @@ class SedimentarySystem:
         _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], roundpar, Qpass_volume = passing_volume)                   
         # In case the active layer is empty, I use the GSD of the previous timestep
         if np.sum(Fi_al_) == 0:
-           Fi_al_ = self.Fi_al[t-1,n,:] 
+           Fi_al_ = self.Fi_al[t-1, n, :] 
         D50_al_ = float(D_finder(Fi_al_, 50, self.psi))
            
         # Transport capacity in m3/s
         calculator = TransportCapacityCalculator(Fi_al_ , D50_al_, self.slope[t,n], 
                                                Q[t,n], self.reach_data.wac[n], v[n],
-                                               h[n], self.psi)
+                                               h[n], self.psi, self.reach_data.rugosity[n])
         
         tr_cap_per_s, Qc = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         

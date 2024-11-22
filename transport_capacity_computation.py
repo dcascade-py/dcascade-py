@@ -20,7 +20,7 @@ from constants import (
 
 
 class TransportCapacityCalculator:
-    def __init__(self, fi_r_reach, total_D50, slope, Q, wac, v, h, psi, gamma=0.05):
+    def __init__(self, fi_r_reach, total_D50, slope, Q, wac, v, h, psi, rugosity, gamma=0.05):
         # Dictionaries mapping indices to different formula
         self.index_to_formula = {
             1: self.Parker_Klingeman_formula,
@@ -41,7 +41,7 @@ class TransportCapacityCalculator:
         self.psi = psi
         self.class_D50 = 2**(-self.psi) / 1000 # sediment classes diameter [m]
         self.gamma = gamma # hiding factor
-        self.rugosity = rugosity
+        self.rugosity = rugosity # D90, D84 or rugosity from input reachdata class
         
         self.input = np.nan # D50 or dmi depending on the partitioning
         

@@ -74,10 +74,7 @@ class DCASCADE:
             raise ValueError("You can not use this combination of algorithm options")
      
 
-      
-    
-
-        
+              
     
     def run(self, Q, roundpar):
         # DD: Should we create a subclass in SedimentarySystem to handle the temporary parameters for one time step
