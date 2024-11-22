@@ -168,7 +168,7 @@ class DCASCADE:
                 
                 # Extract the layers in Vdep that can be eroded in this reach at this time step, 
                 # according to the erosion maximum volume               
-                Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
+                # Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
                 
                 # An optional time lag vector (x n_classes) is used to mobilise reach sediment  
                 # before the eventual first passing cascade arrives at the outlet. 

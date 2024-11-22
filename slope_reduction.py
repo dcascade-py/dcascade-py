@@ -29,6 +29,7 @@ The formula by Nitsche et al. (2011) is based on the flow depth and the D84
 '''
 
 from constants import GRAV
+import numpy as np
 exponent_a = 1.5 # exponent a between 1-2, typically 1.5
 
 def slopeRed_Rickenmann(slope, h, reach_data, t):  

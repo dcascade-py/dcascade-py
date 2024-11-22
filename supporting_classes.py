@@ -52,22 +52,22 @@ class ReachData:
         self.rugosity = self.compute_rugosity()
         
         # Optional attributes
-        self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else np.nan
-        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else np.nan
-        self.q = geodataframe['Q'].values if 'Q' in geodataframe.columns else np.nan
-        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else np.nan
-        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else np.nan
-        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else np.nan
-        self.tr_limit = geodataframe['tr_limit'].values if 'tr_limit' in geodataframe.columns else np.nan
-        self.x_fn = geodataframe['x_FN'].values if 'x_FN' in geodataframe.columns else np.nan
-        self.y_fn = geodataframe['y_FN'].values if 'y_FN' in geodataframe.columns else np.nan
-        self.x_tn = geodataframe['x_TN'].values if 'x_TN' in geodataframe.columns else np.nan
-        self.y_tn = geodataframe['y_TN'].values if 'y_TN' in geodataframe.columns else np.nan
-        self.ad = geodataframe['Ad'].values if 'Ad' in geodataframe.columns else np.nan
-        self.direct_ad = geodataframe['directAd'].values if 'directAd' in geodataframe.columns else np.nan
-        self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else np.nan
-        self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else np.nan
-        self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else np.nan
+        self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else None
+        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else None
+        self.q = geodataframe['Q'].values if 'Q' in geodataframe.columns else None
+        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else None
+        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else None
+        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else None
+        self.tr_limit = geodataframe['tr_limit'].values if 'tr_limit' in geodataframe.columns else None
+        self.x_fn = geodataframe['x_FN'].values if 'x_FN' in geodataframe.columns else None
+        self.y_fn = geodataframe['y_FN'].values if 'y_FN' in geodataframe.columns else None
+        self.x_tn = geodataframe['x_TN'].values if 'x_TN' in geodataframe.columns else None
+        self.y_tn = geodataframe['y_TN'].values if 'y_TN' in geodataframe.columns else None
+        self.ad = geodataframe['Ad'].values if 'Ad' in geodataframe.columns else None
+        self.direct_ad = geodataframe['directAd'].values if 'directAd' in geodataframe.columns else None
+        self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else None
+        self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else None
+        self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else None
         
 
         
@@ -261,7 +261,7 @@ class SedimentarySystem:
         self.al_depth = self.create_2d_zero_array()  
         
         # We take the input D90, or if not provided, the D84:
-        if ~np.isnan(self.reach_data.D90):
+        if self.reach_data.D90 is not None:
             reference_d = self.reach_data.D90
         else:
             reference_d = self.reach_data.D84
@@ -501,6 +501,7 @@ class SedimentarySystem:
             
                 
         # Compute fraction and D50 in the active layer
+        # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
         _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], roundpar, Qpass_volume = passing_volume)                   
         # In case the active layer is empty, I use the GSD of the previous timestep
         if np.sum(Fi_al_) == 0:
