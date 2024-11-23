@@ -41,6 +41,7 @@ class ReachData:
         self.to_n = geodataframe['ToN'].astype(int).values
         self.slope = geodataframe['Slope'].astype(float).values
         self.wac = geodataframe['Wac'].astype(float).values
+        #self.maxwac = geodataframe['maxWac'].astype(float).values
         self.n = geodataframe['n'].astype(float).values
         self.D16 = geodataframe['D16'].astype(float).values
         self.D50 = geodataframe['D50'].astype(float).values
@@ -52,23 +53,25 @@ class ReachData:
         self.rugosity = self.compute_rugosity()
         
         # Optional attributes
-        self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else None
-        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else None
-        self.q = geodataframe['Q'].values if 'Q' in geodataframe.columns else None
-        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else None
-        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else None
-        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else None
-        self.tr_limit = geodataframe['tr_limit'].values if 'tr_limit' in geodataframe.columns else None
-        self.x_fn = geodataframe['x_FN'].values if 'x_FN' in geodataframe.columns else None
-        self.y_fn = geodataframe['y_FN'].values if 'y_FN' in geodataframe.columns else None
-        self.x_tn = geodataframe['x_TN'].values if 'x_TN' in geodataframe.columns else None
-        self.y_tn = geodataframe['y_TN'].values if 'y_TN' in geodataframe.columns else None
-        self.ad = geodataframe['Ad'].values if 'Ad' in geodataframe.columns else None
-        self.direct_ad = geodataframe['directAd'].values if 'directAd' in geodataframe.columns else None
-        self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else None
-        self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else None
-        self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else None
-        
+        self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else np.nan
+        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else np.nan
+        self.q = geodataframe['Q'].values if 'Q' in geodataframe.columns else np.nan
+        #ccJR fix my shapefile ... self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else np.nan
+        self.wac_bf = geodataframe['maxWac'].values if 'maxWac' in geodataframe.columns else np.nan
+        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else np.nan
+        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else np.nan
+        self.tr_limit = geodataframe['tr_limit'].values if 'tr_limit' in geodataframe.columns else np.nan
+        self.x_fn = geodataframe['x_FN'].values if 'x_FN' in geodataframe.columns else np.nan
+        self.y_fn = geodataframe['y_FN'].values if 'y_FN' in geodataframe.columns else np.nan
+        self.x_tn = geodataframe['x_TN'].values if 'x_TN' in geodataframe.columns else np.nan
+        self.y_tn = geodataframe['y_TN'].values if 'y_TN' in geodataframe.columns else np.nan
+        self.ad = geodataframe['Ad'].values if 'Ad' in geodataframe.columns else np.nan
+        self.direct_ad = geodataframe['directAd'].values if 'directAd' in geodataframe.columns else np.nan
+        self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else np.nan
+        self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else np.nan
+        self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else np.nan
+        self.width_a = geodataframe['a'].astype(float).values if 'width_a' in geodataframe.columns else np.nan
+        self.width_b = geodataframe['b'].astype(float).values if 'width_b' in geodataframe.columns else np.nan
 
         
     def sort_values_by(self, sorting_array):
@@ -130,6 +133,7 @@ class SedimentarySystem:
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
         
+        self.sand_indices = np.where(self.psi > -1)[0]
         # Setted variables      
   
         
@@ -201,8 +205,12 @@ class SedimentarySystem:
             dep_save_number = 1
         if self.save_dep_layer=='yearly':
             dep_save_number = int(self.timescale / 365) + 1  # +1 because we also keep t0.
+        if self.save_dep_layer=='monthhour':
+            dep_save_number = int(self.timescale/720)+1 #+1 because we also keep t0.              
         if self.save_dep_layer=='always':
             dep_save_number = self.timescale
+        self.dep_save_number = dep_save_number    
+                
         self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_classes + 1, dtype=np.float32), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
         
         self.Qbi_tr = [np.zeros((self.n_reaches, self.n_reaches, self.n_classes), dtype=np.float32) for _ in range(self.timescale)] # sediment within the reach AFTER transfer, which also gives the provenance 
@@ -234,22 +242,51 @@ class SedimentarySystem:
  
     def set_sediment_initial_deposit(self, Qbi_dep_in):
         #TODO: (DD) better way to store Qbi_dep, Qbi_dep_0 etc ? 
-        for n in self.network['n_hier']:  
-            # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
-            q_bin = np.array(Qbi_dep_in[n])
-            if not q_bin.any(): #if all zeros 
-                self.Qbi_dep_0[n] = np.hstack((n, np.zeros(self.n_classes))).reshape(1,-1)
-            else:           
-                self.Qbi_dep_0[n] = np.float32(np.hstack((np.ones(q_bin.shape[0]) * n, Qbi_dep_in[n, 0]))).reshape(1,-1)
-                self.Fi_al[0,n,:] = np.sum(q_bin, axis=0) / np.sum(q_bin)
-                self.D50_al[0,n] = D_finder(self.Fi_al[0,n,:], 50, self.psi)
-    
+        #ccJR - had do this here as i need nlayers and dep_save_number defined before
+        self.n_layers = Qbi_dep_in.shape[1]  
+        self.Qbi_FiLayers = np.zeros((self.dep_save_number,self.n_reaches,self.n_layers,self.n_classes)) 
+        
+        if self.n_layers == 1:
+            for n in self.network['n_hier']:  
+                # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
+                q_bin = np.array(Qbi_dep_in[n])
+                if not q_bin.any(): #if all zeros 
+                    self.Qbi_dep_0[n] = np.hstack((n, np.zeros(self.n_classes))).reshape(1,-1)
+                else:           
+                    self.Qbi_dep_0[n] = np.float32(np.hstack((np.ones(q_bin.shape[0]) * n, Qbi_dep_in[n, 0]))).reshape(1,-1)
+                    self.Fi_al[0,n,:] = np.sum(q_bin, axis=0) / np.sum(q_bin)
+                    self.D50_al[0,n] = D_finder(self.Fi_al[0,n,:], 50, self.psi)
+        else: #JR - multiple layers to initialize
+            #re-initialize Qbi_dep_0
+            self.Qbi_dep_0 = [
+                 np.zeros((self.n_layers, self.n_classes + 1), dtype=np.float32)
+                 for _ in range(self.n_reaches)
+            ]
+            for n in self.network['n_hier']:  
+                # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
+                q_bin = np.array(Qbi_dep_in[n])
+                if not q_bin.any(): #if all zeros 
+                    self.Qbi_dep_0[n] = np.hstack((n, np.zeros(self.n_classes))).reshape(1,-1)
+                else:         
+                    for nl in range(self.n_layers):
+                        self.Qbi_dep_0[n][nl] = np.float32(np.hstack((n, Qbi_dep_in[n, nl])))
+                        
+                         
+                     
+
+                
         self.Qbi_dep[0] = copy.deepcopy(self.Qbi_dep_0)  # store init condition of dep layer
         
     def set_erosion_maximum(self, eros_max_depth_, roundpar):
         # Set maximum volume in meters that can be eroded for each reach, for each time step.
-        self.eros_max_depth = np.ones((self.n_reaches)) * eros_max_depth_
+        self.eros_max_depth = np.ones((1, self.n_reaches)) * eros_max_depth_
         self.eros_max_vol = np.round(self.eros_max_depth * self.reach_data.wac * self.reach_data.length, roundpar)
+
+    def set_Qbi_input(self, Qbi_input, roundpar):
+        # define Qbi_input in this sed_system
+        self.Qbi_input = Qbi_input
+        
+        
         
     def set_active_layer(self):       
         # Set active layer volume, i.e. the one used for calculating the tranport 
@@ -261,7 +298,7 @@ class SedimentarySystem:
         self.al_depth = self.create_2d_zero_array()  
         
         # We take the input D90, or if not provided, the D84:
-        if self.reach_data.D90 is not None:
+        if ~np.isnan(self.reach_data.D90):
             reference_d = self.reach_data.D90
         else:
             reference_d = self.reach_data.D84
@@ -501,7 +538,6 @@ class SedimentarySystem:
             
                 
         # Compute fraction and D50 in the active layer
-        # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
         _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], roundpar, Qpass_volume = passing_volume)                   
         # In case the active layer is empty, I use the GSD of the previous timestep
         if np.sum(Fi_al_) == 0:
@@ -531,7 +567,7 @@ class SedimentarySystem:
         volume_mobilisable = tr_cap_per_s * time_to_mobilise        
         # Erosion maximum during the time lag 
         # (we take the mean time lag among the classes)
-        e_max_vol_ = self.eros_max_vol[n] * np.mean(time_fraction)       
+        e_max_vol_ = self.eros_max_vol[0,n] * np.mean(time_fraction)       
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0
@@ -566,7 +602,7 @@ class SedimentarySystem:
             
         return V_mob, passing_cascades, Vdep_new
     
-    
+        
     
     def layer_search(self, V_dep_old, V_lim, roundpar, Qpass_volume = None):
         # This function searches uppermost layers from a volume of layers, 
@@ -578,14 +614,14 @@ class SedimentarySystem:
     
         # INPUTS:    
         # V_dep_old :             the reach deposit layer
-        # V_lim  :            is the total maximum volume to be selected
-        # Qpass_volume :      is the traveling volume to be added at the top of the layers
+        # V_lim  :            is the total maximum volume to be mobilised
+        # Qpass_volume :      is the traveling volume to be added in the layers
         
         # RETURN:
-        # V_inc2act    :      Layers of the incoming volume to be put in the maximum volume
-        # V_dep2act    :      layers of the deposit volume to be put in the maximum volume
-        # V_dep_new    :      remaining deposit layer
-        # Fi_r_reach   :      fraction of sediment in the maximum volume
+        # V_inc2act    :      Layers of the incoming volume to be put in the active layer
+        # V_dep2act    :      layers of the deposit volume to be put in the active layer
+        # V_dep_new        :      remaining deposit layer
+        # Fi_r_reach   :      fraction of sediment in the active layer
         
         if Qpass_volume is None:
             # Put an empty layer (for computation)
@@ -593,240 +629,183 @@ class SedimentarySystem:
             empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0) 
             Qpass_volume = empty_incoming_volume
 
-        # 1) If, considering the incoming volume, I am still under the threshold of the maximum volume,
-        # I put sediment from the deposit layer into the maximum volume.
+        # If, considering the incoming volume, I am still under the threshold of the active layer volume,
+        # I put sediment from the deposit layer into the active layer.
         if (V_lim - np.sum(Qpass_volume[:, 1:])) > 0:
                         
-            V_inc2act = Qpass_volume # All the passing volume is in the active layer (maximum volume)
+            V_inc2act = Qpass_volume # All the passing volume is in the active layer
 
             # Find what needs to be added from V_dep_old in the active layer :            
             V_lim_dep = V_lim - np.sum(Qpass_volume[:, 1:]) # Remaining active layer volume after considering incoming sediment cascades
             
-            # Sum classes in V_dep_old
-            sum_class = np.sum(V_dep_old[:, 1:], axis=1)
-            # Cumulate volumes from last to first row
-            # Reminder: Last row is the top layer
-            csum_Vdep = np.cumsum(sum_class[::-1])[::-1]
-                        
+            csum = np.flipud(np.cumsum(np.flipud(np.sum(V_dep_old[:, 1:], axis=1)), axis = 0))  # Cumulative sum of V_dep_old
+            
             # If the volume available in V_dep_old is less than V_lim_dep:
             #  (i've reached the bottom)
             # and I put all the deposit into the active layer           
-            if (np.argwhere(csum_Vdep > V_lim_dep)).size == 0 :  # the vector is empty 
+            if (np.argwhere(csum > V_lim_dep)).size == 0 :  # the vector is empty 
                 print(' reach the bottom ....')
+
                 V_dep2act = V_dep_old  
-                # Leave an empty layer in Vdep
-                reach_idx = V_dep_old[0,0]
-                V_dep = np.c_[reach_idx, np.zeros((1, self.n_classes))]
+                V_dep = np.c_[V_dep_old[0,0], np.zeros((1, Qpass_volume.shape[1]-1))]
             
             # Otherwise I must select the uppermost layers from V_dep_old to be 
             # put in the active layer
-            else:   
-                # Index (x nclasses) to shows the lowermost layer to be put in the active layer:
-                index = np.max(np.argwhere(csum_Vdep >= V_lim_dep)) 
-                # Layers above the targeted layer
-                Vdep_above_index = V_dep_old[csum_Vdep < V_lim_dep, :]
-                # Layers under the targeted layer
-                Vdep_under_index = V_dep_old[0:index, :]
-                # Targeted layer
-                threshold_layer = V_dep_old[index, :]
-                
-                # (DD ?) if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
-                
-                # The layer on the threshold (defined by index) gets divided according to perc_layer:
-                sum_above_threshold_layer = np.sum(Vdep_above_index[:, 1:])
-                threshold_layer_residual = V_lim_dep - sum_above_threshold_layer
-                threshold_layer_sum = sum(threshold_layer[1:])
-                perc_layer = threshold_layer_residual/threshold_layer_sum  
+            else:               
+                index = np.max(np.argwhere(csum >= V_lim_dep)) # index (x nclasses) to shows the lowermost layer to be put in the active layer
+
+                # if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
+                # The layer on the threshold (defined by position index) gets divided according to perc_layer
+                perc_layer = (V_lim_dep - np.sum(V_dep_old[csum < V_lim_dep, 1:]))/sum(V_dep_old[index, 1:])  # EB check again  # percentage to be lifted from the layer on the threshold 
 
                 # remove small negative values that can arise from the difference being very close to 0
                 perc_layer = np.maximum(0, perc_layer)
-                
-                # Multiply the threshold layer by perc_layer
-                if ~np.isnan(roundpar): # round
-                    threshold_layer_included = np.around(threshold_layer[1:] * perc_layer, decimals = roundpar)
-                    threshold_layer_excluded = np.around(threshold_layer[1:] * (1-perc_layer), decimals=roundpar)
-                else:
-                    threshold_layer_included = np.around(threshold_layer[1:] * perc_layer)
-                    threshold_layer_excluded = np.around(threshold_layer[1:] * (1-perc_layer))                    
-                # Re-add the provenance column:
-                threshold_layer_included = np.hstack((threshold_layer[0], threshold_layer_included)).reshape(1, -1)
-                threshold_layer_excluded = np.hstack((threshold_layer[0], threshold_layer_excluded)).reshape(1, -1)
-                # Stack vertically the threshold layer included to the above layers (V_dep2act):
-                V_dep2act = np.vstack((threshold_layer_included, Vdep_above_index))
-                # Stack vertically the threshold layer excluded to the below layers (V_dep):                
-                V_dep = np.vstack((Vdep_under_index, threshold_layer_excluded))
-                
-                
-        # 2) If the incoming sediment volume is enough to completely fill the active layer,
-        # deposit part of the incoming cascades and put the rest into the active layer
-        # NB: we deposit a same percentage of all cascades
-        else:    
-            # Percentage of the volume to put in the active layer for all the cascades
+
+                if ~np.isnan(roundpar):
+                    V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:]*perc_layer, decimals=roundpar))).reshape(1, -1), V_dep_old[csum<V_lim_dep,:]))
+                    V_dep = np.vstack((V_dep_old[0:index,:], np.hstack((V_dep_old[index,0], np.around(V_dep_old[index,1:]* (1-perc_layer), decimals=roundpar)))))
+                else: 
+                    V_dep2act = np.vstack((np.hstack((V_dep_old[index, 0], np.around( V_dep_old[index, 1:]*perc_layer))).reshape(1, -1), V_dep_old[csum < V_lim_dep, :]))
+                    V_dep = np.vstack((V_dep_old[0:index, :], np.hstack((V_dep_old[index, 0], np.around(V_dep_old[index, 1:] * (1-perc_layer))))))
+        
+
+        else:  # if the incoming sediment volume is enough to completely fill the active layer...
+
+            # ... deposit part of the incoming cascades
+            #    proportionally to their volume and the volume of the active layer,
+            #    and put the rest into the active layer
+
+            # percentage of the volume to put in the active layer for all the cascades
             perc_dep = V_lim / np.sum(Qpass_volume[:, 1:])
-            
-            # Volume from the incoming volume to be deposited:
+
             if ~np.isnan(roundpar):
-                Qpass_dep = np.around(Qpass_volume[:, 1:] * (1 - perc_dep), decimals = roundpar)
+                Qpass_dep = np.around(Qpass_volume[:, 1:]*(1-perc_dep), decimals=roundpar)
             else:
-                Qpass_dep = Qpass_volume[:, 1:] * (1 - perc_dep)
-                
-            # Volume from the incoming volume to be kept in the active layer:
-            Qpass_act = Qpass_volume[:, 1:] - Qpass_dep
-            # Re add the provenance column: 
-            V_inc2act = np.hstack((Qpass_volume[:, 0][:,None], Qpass_act))
-            V_inc2dep = np.hstack((Qpass_volume[:, 0][:,None], Qpass_dep))
+                # this contains the fraction of the incoming volume to be deposited
+                Qpass_dep = Qpass_volume[:, 1:]*(1-perc_dep)
+
+            V_inc2act = np.hstack((Qpass_volume[:, 0][:,None], Qpass_volume[:, 1:] - Qpass_dep))
+            V_dep2act = np.append(V_dep_old[0, 0], np.zeros((1, Qpass_volume.shape[1]-1)))
             
-            # Add V_inc2dep to Vdep:
-            # If, given the round, the deposited volume of the incoming cascades is not 0:
-            if any(np.sum(Qpass_volume[:, 1:] * (1 - perc_dep), axis = 0)):
-                V_dep = np.vstack((V_dep_old, V_inc2dep))
-            else:
-                # Otherwise, I leave the deposit volume as it was.
-                V_dep = V_dep_old  
-            
-            # Create an empty layer for the deposit volume to be put in the active layer:
-            V_dep2act = np.append(V_dep_old[0, 0], np.zeros((1, self.n_classes)))            
             if V_dep2act.ndim == 1: 
                 V_dep2act = V_dep2act[None, :]
 
-        # Remove empty rows (if the matrix is not already empty)
-        if (np.sum(V_dep2act[:, 1:], axis = 1) != 0).any():       
+            # if, given the round, the deposited volume of the incoming cascades is not 0...
+            if any(np.sum(Qpass_volume[:, 1:]*(1-perc_dep), axis = 0)):
+                V_dep = np.vstack((V_dep_old, np.hstack((Qpass_volume[:, 0][:,None], Qpass_dep))))
+            else:
+                V_dep = V_dep_old  # ... i leave the deposit as it was.
+
+        # remove empty rows (if the matrix is not already empty)
+        if (np.sum(V_dep2act[:, 1:], axis = 1)!=0).any():       
             V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis = 1) != 0, :]
 
-        # Find the GSD of the active layer, for the transport capacity calculation:
-        total_sum = np.sum(V_dep2act[:, 1:]) + np.sum(V_inc2act[:, 1:])
-        sum_per_class = np.sum(V_dep2act[:, 1:], axis=0) + np.sum(V_inc2act[:, 1:], axis=0)
-        Fi_r_reach = sum_per_class / total_sum
-        # If V_act is empty, I put Fi_r equal to 0 for all classes
+        # find active layer GSD
+
+        # find the GSD of the active layer, for the transport capacity calculation
+        Fi_r_reach = (np.sum(V_dep2act[:, 1:], axis=0) + np.sum(V_inc2act[:, 1:], axis=0)) / (np.sum(V_dep2act[:, 1:]) + np.sum(V_inc2act[:, 1:]))
+        # if V_act is empty, i put Fi_r equal to 0 for all classes
         Fi_r_reach[np.isinf(Fi_r_reach) | np.isnan(Fi_r_reach)] = 0
         
+
         return V_inc2act, V_dep2act, V_dep, Fi_r_reach
 
 
     def tr_cap_deposit(self, V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
-        ''' 
-        INPUTS:
-        V_inc2act :  incoming volume that is in the maximum mobilisable volume (active layer)
-                    (n_layers x n_classes + 1) 
-        V_dep2act :  deposit volume that is in the maximum mobilisable volume (active layer)
-                    (n_layers x n_classes + 1) 
-        V_dep     :  remaining deposit volume
-                    (n_layers x n_classes + 1)
-        tr_cap    :  volume that can be mobilised during the time step according to transport capacity
-                    (x n_classes) 
-        roundpar  : number of decimals to round the volumes
         '''
+        '''
+        # V_dep and V_act identification
+        # classes for which the tr_cap is more than the incoming volumes in the active layer
+        class_sup_dep = tr_cap > np.sum(V_inc2act[:, 1:], axis=0)
         
-        # Identify classes for which the incoming volume in the active layer 
-        # is under the transport capacity:
-        under_capacity_classes = tr_cap > np.sum(V_inc2act[:, 1:], axis=0)
-        
-        # If they are any, sediment will have to be mobilised from V_dep2act,
-        # taking into consideration the sediment stratigraphy 
-        # (upper layers get mobilized first)
-        if np.any(under_capacity_classes):
-            # sum of under capacity classes in the incoming volume:
-            sum_classes = np.sum(V_inc2act[:, np.append(False, under_capacity_classes)], axis=0)
+    
+        # if there are sed classes for which the tr cap is more than the volume in V_inc2act...
+        if np.any(class_sup_dep):
+            # ...  sediment from V_dep2act will have to be mobilized, taking into consideration
+            # the sediment stratigraphy (upper layers get mobilized first)
+    
             # remaining active layer volume per class after considering V_inc2act
-            # (for under capacity classes only)
-            tr_cap_remaining = tr_cap[under_capacity_classes] - sum_classes           
-            # select columns in V_dep2act corresponding to under_capacity_classes
-            V_dep2act_class = V_dep2act[:, np.append(False, under_capacity_classes)]
-            # Cumulate volumes from last to first row
-            # Reminder: Last row is the top layer
-            csum = np.cumsum(V_dep2act_class[::-1], axis = 0)[::-1] 
-               
-            # Find the indexes of the lowermost layer falling within tr_cap_remaining, for each class.
-            # In case tr cap remaining is higher than the total volume in Vdep_2_act, for a given class, 
-            # we take the bottom class (first row):
-            mapp = csum >= tr_cap_remaining                 
-            mapp[0, np.any(~mapp, axis = 0)] = True # force bottom layer to be true (first row)    
-            firstoverthresh = (mapp * 1).argmin(axis = 0)
+            tr_cap_remaining = tr_cap[class_sup_dep] - np.sum(V_inc2act[:, np.append(False, class_sup_dep)], axis=0)
+            # take only the columns with the cascades of the classes class_sup_dep
+            V_dep2act_class = V_dep2act[:, np.append(False, class_sup_dep)]
+    
+            csum = np.flipud(np.cumsum(np.flipud(V_dep2act_class), axis = 0)) 
+    
+            # find the indexes of the first cascade above the tr_cap threshold, for each class
+            mapp =csum >= tr_cap_remaining
+    
+            mapp[0, np.any(~mapp,axis = 0)] = True   # EB: force the first deposit layer to be true 
+    
+            # find position of the layer to be splitted between deposit and erosion
+            firstoverthresh = (mapp*1).argmin(axis=0)
             firstoverthresh = firstoverthresh - 1
-            firstoverthresh[firstoverthresh == -1] = csum.shape[0] - 1
-            # Finally, we obtain a binary matrix indicating the threshold layers: 
-            # (DD: maybe there is a more elegant way to find this matrix ?)
+            firstoverthresh[firstoverthresh == -1] = csum.shape[0]-1
+    
             mapfirst = np.zeros((mapp.shape))
-            mapfirst[firstoverthresh, np.arange(np.sum(under_capacity_classes*1))] = 1 
-            # Now compute the percentage to be lifted from the layer "on the threshold":
-            sum_layers_above_threshold = np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0)
-            remaining_for_split_threshold = tr_cap_remaining - sum_layers_above_threshold
-            perc_threshold = remaining_for_split_threshold/V_dep2act_class[firstoverthresh, np.arange(np.sum(under_capacity_classes*1))]
-            # limit to a maximum of 1, in case the tr_cap_remaining is higher than the total volume (see above),
-            # and we had taken the bottom layer:
-            perc_dep = np.minimum(perc_threshold, 1) 
-            
-            # Final matrix indicating the percentage we take from V_dep2act_class: 
-            # (To multiply to V_dep2act_class)
-            map_perc = mapfirst*perc_dep + ~mapp*1   
-            
-            # The matrix V_dep2act_new contains the mobilized cascades from 
-            # the deposit layer, now corrected according to the tr_cap:
+            mapfirst[firstoverthresh, np.arange(np.sum(class_sup_dep*1))] = 1 
+    
+            perc_dep = np.minimum((tr_cap_remaining - np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0))/V_dep2act_class[firstoverthresh, np.arange(np.sum(class_sup_dep*1))], 1)   # percentage to be lifted from the layer "on the threshold"
+    
+            map_perc = mapfirst*perc_dep + ~mapp*1 # # EB check again  EB: is it adding 1 when true ? 
+    
+            # the matrix V_dep2act_new contains the mobilized cascades from the deposit layer, now corrected according to the tr_cap
             V_dep2act_new = np.zeros((V_dep2act.shape))
             V_dep2act_new[: , 0] = V_dep2act[: ,0]
-            V_dep2act_new[:,np.append(False, under_capacity_classes)== True] = map_perc * V_dep2act_class            
-            # Round the volume:
+            V_dep2act_new[:,np.append(False, class_sup_dep)== True] = map_perc* V_dep2act_class
+    
             if ~np.isnan(roundpar): 
                 V_dep2act_new[: , 1:]  = np.around(V_dep2act_new[: , 1:] , decimals = roundpar )
     
-            # The matrix V_2dep contains the cascades that will be deposited into the deposit layer.
-            # (the new volumes for the classes in under_capacity_classes and all the volumes in the remaining classes)
+            # the matrix V_2dep contains the cascades that will be deposited into the deposit layer.
+            # (the new volumes for the classes in class_sup_dep and all the volumes in the remaining classes)
             V_2dep = np.zeros((V_dep2act.shape))
-            V_2dep[: , np.append(True, ~under_capacity_classes) == True] = V_dep2act[: , np.append(True, ~under_capacity_classes) == True]
-            V_2dep[: , np.append(False, under_capacity_classes) == True] = (1 - map_perc)* V_dep2act_class
-            # Round the volume:
+            V_2dep[: , np.append(True, ~class_sup_dep) == True] = V_dep2act[: , np.append(True, ~class_sup_dep) == True]
+            V_2dep[: , np.append(False, class_sup_dep) == True] = (1 - map_perc)* V_dep2act_class
+    
             if ~np.isnan(roundpar): 
                 V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
-        
-        # If they are no sediment to be mobilised from V_dep2act,
-        # I re-deposit all the matrix V_dep2act into the deposit layer:
+    
         else:
-            V_2dep = V_dep2act
-            # V_dep2act_new is empty:
             V_dep2act_new = np.zeros((V_dep2act.shape))
             V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
+            V_2dep = V_dep2act
+            # I re-deposit all the matrix V_dep2act into the deposit layer
     
-        # For the classes where V_inc2act is enough, I deposit the cascades
-        # proportionally  
-        sum_classes_above_capacity = np.sum(V_inc2act[: , np.append(False, ~under_capacity_classes) == True], axis = 0)
-        # percentage to mobilise from the above_capacity classes:
-        perc_inc = tr_cap[~under_capacity_classes] / sum_classes_above_capacity
-        perc_inc[np.isnan(perc_inc)] = 0 # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
-        class_perc_inc = np.zeros((under_capacity_classes.shape))
-        class_perc_inc[under_capacity_classes == False] = perc_inc
-        # Incomimg volume that is effectively mobilised, according to tr_cap:
-        V_inc2act_new = V_inc2act*(np.append(True,under_capacity_classes)) + V_inc2act*np.append(False, class_perc_inc)
+        # for the classes where V_inc2act is enough, I deposit the cascades
+        # proportionally
+    
+        perc_inc = tr_cap[~class_sup_dep] / np.sum(V_inc2act[: , np.append(False, ~class_sup_dep) == True], axis = 0)
+        perc_inc[np.isnan(perc_inc)] = 0 #change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
+        class_perc_inc = np.zeros((class_sup_dep.shape))
+        class_perc_inc[class_sup_dep == False] = perc_inc
+    
+        V_mob = self.matrix_compact(np.vstack((V_dep2act_new, V_inc2act*(np.append(True,class_sup_dep)) + V_inc2act*np.append(False, class_perc_inc))))
         
-        # Mobilised volume : 
-        V_mob = np.vstack((V_dep2act_new, V_inc2act_new))
-        V_mob = self.matrix_compact(V_mob)
-        # Round:
-        if ~np.isnan(roundpar):
-            V_mob[:,1:] = np.around(V_mob[:,1:], decimals = roundpar)
-        
-        # Compute what is to be added to V_dep from Q_incomimg:
-        class_residual = np.zeros((under_capacity_classes.shape));
-        class_residual[under_capacity_classes==False] = 1 - perc_inc
-        V_inc2dep = V_inc2act*np.hstack((1, class_residual))
-        
-        # Final volume from active layer to be put in Vdep:
-        V_2dep = np.vstack((V_2dep, V_inc2dep)) 
-        # Round:
+        if ~np.isnan( roundpar ):
+            V_mob[:,1:] = np.around( V_mob[:,1:] , decimals =roundpar )
+    
+        class_residual = np.zeros((class_sup_dep.shape));
+        class_residual[class_sup_dep==False] = 1 - perc_inc
+    
+        V_2dep = np.vstack((V_2dep, V_inc2act*np.hstack((1, class_residual)))) ## EB check again EB: here the 1 instead of the 0 should be correct + 
+       
         if ~np.isnan( roundpar ):
             V_2dep[:,1:]  = np.around( V_2dep[:,1:] , decimals = roundpar) 
     
-        # Put the volume exceeding the transport capacity (V_2dep) back in the deposit:   
-        # (If the upper layer in the deposit and the lower layer in the volume to be
-        #deposited are from the same reach, i sum them)
+        # Put the volume exceeding the transport capacity back in the deposit
+    
+        #If the upper layer in the deposit and the lower layer in the volume to be
+        #deposited are from the same reach, i sum them
         if (V_dep[-1,0] == V_2dep[0,0]):
-            V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:]
+            V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:] 
             V_dep = np.vstack((V_dep, V_2dep[1:,:]))
         else:
             V_dep = np.vstack((V_dep, V_2dep))
-           
-        # Remove empty rows:
-        if not np.sum(V_dep2act[:,1:]) == 0:
-            V_dep = V_dep[np.sum(V_dep[:,1:], axis = 1) != 0]  
+    
+        
+        #remove empty rows
+        if not np.sum(V_dep2act[:,1:])==0:
+            V_dep = V_dep[np.sum(V_dep[:,1:],axis = 1)!=0]  
         
         return V_mob, V_dep
 
