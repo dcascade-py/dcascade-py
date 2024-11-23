@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+19 Nov 2024
+JR brought in changes from C:\bin\cascade\dcascade_py-JR_oct29_dWac_dVactive\Rangitata_script_vWac_upper_dVactHypso_02.py
+
 Created on Mon Oct 10 15:21:34 2022
 
 Input that are required in the ReachData class which define your river network:
@@ -33,6 +36,7 @@ import numpy as np
 import geopandas as gpd
 import pandas as pd
 from plot_function import dynamic_plot
+import scipy.io
 import copy
 from numpy import random
 
@@ -45,25 +49,30 @@ from widget import read_user_input
 import profile
 import os
 from pathlib import Path
-
+from scipy.interpolate import interp1d
+from scipy.optimize import fsolve
 
 
 '''user defined input data'''
 
 
 #-------River shape files 
-path_river_network = Path('Input/input_trial/')
-name_river_network = 'River_Network.shp'
+path_river_network = Path('../RangitataFC_dH/')
+name_river_network = 'River_Network5.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
 filename_river_network = path_river_network / name_river_network
 
 #--------Discharge files
-path_q = Path('Input/input_trial/')
+path_q = Path('../RangitataFC_dH/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Q_Vjosa.csv'
+name_q = 'q_2024.csv'
 filename_q = path_q / name_q
 
+#csv file with the size of q timeseries. could simplify to just specific reaches, but let's keep full structure for now. 
+name_qs = 'qsand_40pct_gravUpper68_2024.csv'
+filename_qs = path_q / name_qs
+
 #--------Path to the output folder
-path_results = Path("../cascade_results/")
+path_results = Path("./Results/Rev3_HypsoSolv/ActHyps_Q220_2024_icFs02/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -71,25 +80,28 @@ name_file = path_results / 'save_all.p'
 #---Sediment classes definition 
 # defines the sediment sizes considered in the simulation
 #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
-n_classes = 6        # number of classes
+sed_range = [-9, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+n_classes = 7        # number of classes
 
 #---Timescale 
-timescale = 20 # days 
-ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
+timescale =  2882 # hours   #420
+ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
-update_slope = False # if False: slope is constant, if True, slope changes according to sediment deposit
+update_slope = True # if False: slope is constant, if True, slope changes according to sediment deposit
 
-#---Initial layer sizes
-deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
-eros_max = 1             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+#---Initial layer sizes #ccJR chaged this to a nominal width * depth. which is why 1000 didn't work, too wide for that!
+#what are the units now?
+deposit_layer = .5   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
+nlayers_init = 8 #ccJR split up deposit layers
+eros_max = .01             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
-save_dep_layer = 'always' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
+save_dep_layer = 'monthhour' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
+
 
 #---Others
-roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+roundpar = 1 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 
 
@@ -124,27 +136,57 @@ dmi = 2**(-psi).reshape(-1,1)
 # Check requirements. Classes must be compatible with D16, D50, D84 defined for the reaches - i.e. max sed class cannot be lower than D16
 print(min(reach_data.D16) * 1000, ' must be greater than ', np.percentile(dmi, 10, method='midpoint'))
 print(max(reach_data.D84) * 1000, ' must be lower than ',  np.percentile(dmi, 90, method='midpoint'))
-   
 
 # External sediment for all reaches, all classes and all timesteps 
+# Read/define the sediment discharge  
+Qs_dframe = extract_Q(filename_qs)
+print('Applying Qs to Reach 2, input shape', Qs_dframe.shape)
+Qs = Qs_dframe.to_numpy()   
+
 Qbi_input = np.zeros((timescale, reach_data.n_reaches, n_classes))
+#ccJR - put in a constant source of fine sediment in specific reaches
 
-# Define input sediment load in the deposit layer
-deposit = reach_data.deposit * reach_data.length
+#ccJR UNITS are [m3/timestep] of 'pure sediment.' We here throw out any Qs we read that is AFTER 'timescale' timesteps. 
+add_Qbi=True #switch to turn on or off Qbi_input code
+if add_Qbi:
+    #Qbi_input[:,1,5:7] = Qs[0:timescale,5:7] * .25 #ccJR HARDCODED aha - adding much more as it is going straight to the bed. 
+    Qbi_input[:,2,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED bin 6 125 micron for now. added bin 5. 
+    Qbi_input[:,3,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED 100% of half is 50% of the natural sand load.
+    Qbi_input[:,4,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
+    #Qbi_input[:,10,5:7] = Qs[0:timescale,5:7] * 25 #ccJR HARDCODED test below gorge
 
+# Define input sediment load in the deposit layer. JR making width explicit.
+deposit = reach_data.deposit * reach_data.length * reach_data.wac_bf
 # Define initial sediment fractions per class in each reaches, using a Rosin distribution
 Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi) 
 
+#cJR I want NO sand coming in the source reaches, so I can specify it myself, distributed safely where I want it. 
+Fi_r[0,5:7] = 0
+Fi_r[1,5:7] = 0
+
 # Initialise deposit layer 
-Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
-for n in range(reach_data.n_reaches):
-    Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
+hypsolayers = True
+
+if hypsolayers == True:
+    Qbi_dep_in = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
+    for n in range(reach_data.n_reaches):
+        for nl in range(nlayers_init):
+            Fi_r[n,5:7] = 0.02 #low sand IC : layer. initial condition testing. 0 is the bottom, nlayers_init-1 is the top (thalweg)
+            Fi_r[n] /= Fi_r[n].sum()  # Renormalize  
+            Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:]
+        
+else:
+    nlayers_init = 1
+    Qbi_dep_in = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
+    for n in range(reach_data.n_reaches):
+        for nl in range(nlayers_init):
+            Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:]
 
 
 # Compulsory indexes to choose:
 # Indexes for the transport capacity:
-indx_tr_cap = 7 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
-indx_tr_partition = 2 # 2: BMF; 4: Shear stress correction
+indx_tr_cap = 28 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
+indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
 
 # Index for the flow calculation: 
 indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
@@ -155,7 +197,7 @@ if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals() or 'in
     
 # Velocity indexes:
 indx_velocity = 2 # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
-indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
+indx_vel_partition = 2 # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
 
 # Slope index:
 indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
@@ -179,8 +221,55 @@ op2 = True
 # during which we are able to mobilise from the reach itself
 op3 = False
 
+#JR addition - variable Wac. Currently with easy to set up hydraulic geometry a,b stored in ReachData
+#width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
+vary_width = True
+
+#JR addition - recalculate roughness from changing GSD. Question - do this annually, or per timestep?
+vary_roughness = True
+
+if vary_width:
+    Bcheck = reach_data.width_a * Q.max()**reach_data.width_b
+    
+    if any(reach_data.wac_bf - Bcheck < 0):
+        print('Wac_BF too low')
+        Bcheck / reach_data.wac_bf
+        raise SystemExit()
+
+        
+#------ reach hypsometry tables
+reach_hypsometry = np.zeros(reach_data.wac.shape,dtype = bool)
+#hard code which ones exist. could read from dir..
+reach_hypsometry[6:13] = True
+
+reach_hypsometry_data = {}
+# Loop through each reach
+for i in range(len(reach_hypsometry)):
+    if reach_hypsometry[i]:
+        # file name from reach index
+        #filename = f"../RangitataFC_dH/Reach_Hypsometry_{i}.csv"
+        filename = f"../RangitataFC_dH/Active_Hypsometry_{i}.csv"
+        
+    
+        df = pd.read_csv(filename, header=0)  # assuming no header in the CSV files
+        #tried to put this in reach_data but didn't get it right
+        Zvec = df.iloc[:, 0].astype(float).values  # Convert to float if necessary
+        Wvec = df.iloc[:, 1].astype(float).values
+    
+        # Store in the dictionary
+        reach_hypsometry_data[i] = {
+            'Zvec': Zvec,
+            'Wvec': Wvec,
+            'Hvec': Zvec-Zvec.min(),
+        }
+
+reach_data_original = copy.deepcopy(reach_data)  
+
+
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                             reach_hypsometry, reach_hypsometry_data,
+                                             vary_width,vary_roughness,hypsolayers,
                                              roundpar, update_slope, eros_max, save_dep_layer, ts_length,
                                              indx_tr_cap , indx_tr_partition, indx_flo_depth,
                                              indx_velocity = indx_velocity, 
@@ -206,6 +295,11 @@ if not os.path.exists(path_results):   #does the output folder exist ?
 
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
+name_file = path_results / 'save_all_0.mat'
+# Save using scipy.io (MATLAB-style)
+scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': extended_output})
+
+
 #name_file_ext = path_results + 'save_all_ext.p'
 #pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
@@ -213,3 +307,4 @@ pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named sa
 # ## Plot results 
 # keep_slider = dynamic_plot(data_output_t, reach_data, psi)
 
+# yet to add: annual repeats from line 300 in C:\bin\cascade\dcascade_py-JR_oct29_dWac_dVactive\Rangitata_script_vWac_upper_dVactHypso_02.py
