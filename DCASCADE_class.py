@@ -19,8 +19,9 @@ from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
-
-
+from flow_depth_calc import hypso_manning_Q
+from scipy.interpolate import interp1d
+from scipy.optimize import fsolve
 
 class DCASCADE:
     def __init__(self, sedim_sys, indx_flo_depth, indx_slope_red):
@@ -49,7 +50,13 @@ class DCASCADE:
         self.passing_cascade_in_outputs = None
         self.passing_cascade_in_trcap = None        
         self.time_lag_for_mobilised = None
-    
+        
+        #JR extra saving storage
+        self.T_record_days = np.zeros(self.timescale) #time storage, days #ccJR
+        self.h_save = np.zeros((self.timescale, self.n_reaches)) #hydraulics storage,  #ccJR
+        self.v_save = np.zeros((self.timescale, self.n_reaches)) #hydraulics storage,  #ccJR
+        self.Vfracsave = np.zeros((self.timescale, self.n_reaches)) #hypso slicing storage,  #ccJR
+        
     def set_transport_indexes(self, indx_tr_cap, indx_tr_partition):
         self.indx_tr_cap = indx_tr_cap 
         self.indx_tr_partition = indx_tr_partition
@@ -65,6 +72,11 @@ class DCASCADE:
         self.time_lag_for_mobilised = time_lag_for_mobilised
         
         self.check_algorithm_compatibility()
+
+    def set_JR_indexes(self, vary_width,vary_roughness,hypsolayers):
+        self.vary_width = vary_width
+        self.vary_roughness = vary_roughness        
+        self.hypsolayers = hypsolayers                              
     
     def check_algorithm_compatibility(self):
         # Constrain on the option of the algorithm:
@@ -74,7 +86,7 @@ class DCASCADE:
             raise ValueError("You can not use this combination of algorithm options")
      
 
-      
+      #ccJR have not transferred:  Qbi_dep_0 = [np.zeros((n_layers, n_classes + 1), dtype=np.float32) for _ in range(n_reaches)]  # Assuming 4 layers
     
 
         
@@ -107,11 +119,51 @@ class DCASCADE:
             # loop for all reaches:
             for n in self.network['n_hier']:  
                 
-                # TODO : How to include the lateral input ?
-                                   
-                # Extracts the deposit layer left in previous time step          
-                Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
+                # TODO : How to include the lateral input ? JR attempting this here:
                 
+            #ccJR - add our inputs to the bed, for the next timestep to deal with. it will at least be available and mass conserving..
+            #V_dep_init[0, 1:] += Qbi_input[t,n,:] #didn't work
+                if t>1 and SedimSys.Qbi_input[t,n,:].sum()>0:
+                    # The mobilised cascade is added to a temporary container
+                    et0 = np.ones(self.n_classes) # its elapsed time is 0
+                    #how it's done:                 mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
+                    arrgh = SedimSys.Qbi_input[t, n, :] #the first dim is the source reach.  
+                    Qtoadd =  np.insert(arrgh, 0, 0)
+                    Qtoadd = Qtoadd.reshape(1, -1)
+                    Qbi_pass[n].append(Cascade(n, et0, Qtoadd)) #ccJR adding source volume here.     
+                     
+                #TODO: bring in       reach_hypsometry[n] choice in               C:\bin\cascade\dcascade_py-JR_oct29_dWac_dVactive\DCASCADE_loop_vWac_dVact.py
+                
+                
+                #ccJR hypso - REMOVE 'overburden' which is volume of (wacmax - wac) for now. the 2.0 or 1.5 changes the range. adding 1 slicevol keeps it away from the edge.
+                if self.hypsolayers:
+                    #volume we want to use this timestep
+                    slicevol = Qbi_dep_old[n].sum() *(self.reach_data.wac[n] / self.reach_data.wac_bf[n])
+                    
+                    hypso_V_above = slicevol #from one direction
+                    #hypso_V_above = Qbi_dep_0[n].sum()- slicevol # test, from the other direction
+                    
+                    
+                    self.Vfracsave[t,n] = hypso_V_above / Qbi_dep_old[n].sum() #fraction of total volume we are removing, to save.
+                    
+                    #ccJR thjs definitely needs checking with my understanding of where cascades deposit to 
+                    #and erode from. I am trying to set a datum near the 'middle' and let widths alter
+                    #where we access teh bed volume.
+                    #strip off overburden here:
+                    _,Vdep_init,Vdep_overburden, Fi_slice = SedimSys.layer_search(Qbi_dep_old[n], hypso_V_above, roundpar)
+                    
+                    if np.isnan(self.Vfracsave[t,n]):
+                        print(t,n,self.Vfracsave[t,n])
+                        
+                else:
+                # Extracts the deposit layer left in previous time step          
+                    Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
+                
+
+                if self.vary_width:
+                    
+                    #wac has changed, reset erosmax
+                    SedimSys.set_erosion_maximum(SedimSys.eros_max_depth[0,n], roundpar)                           
                 ###------Step 1 : Cascades generated from the reaches upstream during 
                 # the present time step, are passing the inlet of the reach
                 # (stored in Qbi_pass[n]).
@@ -136,6 +188,8 @@ class DCASCADE:
                     # SedimSys.vl_height[t,n] = coef_AL_vel * h[n]                 
                     SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    #the velocity height is the same as the active layer depth
                     
+                    #ccJR - we need to dynamically calculate AL volume.
+                    SedimSys.al_vol[t, n] = self.reach_data.wac[n] * self.reach_data.length[n] * np.maximum(2*self.reach_data.D84[n], 0.01) 
                     SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_init,
                                                Q[t,n], v[n], h[n], roundpar, t, n,                           
                                                self.indx_velocity, self.indx_vel_partition, 
@@ -165,10 +219,6 @@ class DCASCADE:
                 
                 # Temporary container to store the reach mobilised cascades:
                 reach_mobilized_cascades = [] 
-                
-                # Extract the layers in Vdep that can be eroded in this reach at this time step, 
-                # according to the erosion maximum volume               
-                # Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
                 
                 # An optional time lag vector (x n_classes) is used to mobilise reach sediment  
                 # before the eventual first passing cascade arrives at the outlet. 
@@ -273,7 +323,11 @@ class DCASCADE:
                     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
                     
                 # ..and store Vdep for next time step
-                SedimSys.Qbi_dep_0[n] = np.float32(Vdep_end)
+                #put 'overburden' back
+                if self.hypsolayers:
+                    SedimSys.Qbi_dep_0[n] = np.concatenate([np.float32(Vdep_end), Vdep_overburden], axis=0)
+                else:
+                    SedimSys.Qbi_dep_0[n] = np.float32(Vdep_end)
     
                 # Finally, pass these cascades to the next reach (if we are not at the outlet)  
                 if n != SedimSys.outlet:
@@ -298,9 +352,12 @@ class DCASCADE:
                 
                 # Update slope, if required.
                 if self.update_slope == True:
-                    self.node_el[t+1][n]= self.node_el[t,n] + Delta_V/( np.sum(self.reach_data.Wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
+                    self.sedim_sys.node_el[t+1][n]= self.sedim_sys.node_el[t,n] + Delta_V/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['upstream_node'][n])]) * (1-self.sedim_sys.phi) )
                 
             """End of the reach loop"""
+            
+
+            
             
             # Save Qbi_dep according to saving frequency
             if self.save_dep_layer == 'always':
@@ -314,7 +371,7 @@ class DCASCADE:
             # in case of changing slope..
             if self.update_slope == True:
                 #..change the slope accordingly to the bed elevation
-                self.slope[t+1,:], self.node_el[t+1,:] = SedimSys.change_slope(self.node_el[t+1,:], self.reach_data.length, self.network, s = self.min_slope)
+                self.sedim_sys.slope[t+1,:], self.sedim_sys.node_el[t+1,:] = SedimSys.change_slope(self.sedim_sys.node_el[t+1,:], self.reach_data.length, self.network, s = self.sedim_sys.min_slope)
                     
         """end of the time loop"""    
     
@@ -514,5 +571,6 @@ class DCASCADE:
                            'Fi_r_ac': SedimSys.Fi_al,  #
                            'node_el': SedimSys.node_el # return if the option update_slope is true
                            }
+        
         
         return data_output, extended_output
