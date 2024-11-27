@@ -72,7 +72,7 @@ name_qs = 'qsand_40pct_gravUpper68_2024.csv'
 filename_qs = path_q / name_qs
 
 #--------Path to the output folder
-path_results = Path("./Results/Rev3_HypsoSolv/ActHyps_Q220_2024_icFs02/")
+path_results = Path("./Results/Rev3_HypsoSolv/ActHyps_Q220_2024_slicevol/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -86,15 +86,15 @@ n_classes = 7        # number of classes
 #---Timescale 
 timescale =  2882 # hours   #420
 ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
-
+nrepeats = 4 # number of times to repeat the hydrograph. think 'years' ?
 #---Change slope or not
 update_slope = True # if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes #ccJR chaged this to a nominal width * depth. which is why 1000 didn't work, too wide for that!
 #what are the units now?
-deposit_layer = .5   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
+deposit_layer = 1   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
 nlayers_init = 8 #ccJR split up deposit layers
-eros_max = .01             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+eros_max = .01             # Maximum depth (threshold) that can be eroded in one time step  in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'monthhour' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
@@ -174,6 +174,8 @@ if hypsolayers == True:
             Fi_r[n,5:7] = 0.02 #low sand IC : layer. initial condition testing. 0 is the bottom, nlayers_init-1 is the top (thalweg)
             Fi_r[n] /= Fi_r[n].sum()  # Renormalize  
             Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:]
+            #diagnostic code. using coarse material to just do some orienting of myself. 
+           # Qbi_dep_in[n,nl,0] = 111 * nl 
         
 else:
     nlayers_init = 1
@@ -307,4 +309,72 @@ scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': exte
 # ## Plot results 
 # keep_slider = dynamic_plot(data_output_t, reach_data, psi)
 
-# yet to add: annual repeats from line 300 in C:\bin\cascade\dcascade_py-JR_oct29_dWac_dVactive\Rangitata_script_vWac_upper_dVactHypso_02.py
+#
+##
+
+from supporting_functions import D_finder
+
+for NR in range(nrepeats):    
+    tot_m = 0
+    # Initialise new deposit layer. make sure to update call to main below. 
+    
+    #write a Fs change matrix before the next loop. how many to equilibrate?
+    np.set_printoptions(precision=3,suppress=True)
+    print(100*(extended_output['Fi_r_ac'][timescale-2] - extended_output['Fi_r_ac'][1]))
+    #go and figure out how to save a stratigraphic Fi? for now, just use ac. 
+    
+     
+    Qbi_dep_in2 = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
+     
+    nsave_dep_time = data_output['V_dep_sum'].shape[0]-1 #last deposit save index
+    FiFinal_Layers = extended_output['Qbi_FiLayers'][-1] # final time index
+   
+    for n in range(reach_data.n_reaches):
+        #Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]    #template from above    
+        #reassign new volumes to every reach from final timestep:
+            #                this is like original var 'deposit'      * writes as if active Fi everywhere. 
+        #Qbi_dep_in2[n,0,:] = data_output['V_dep_sum'][nsave_dep_layer][n] * extended_output['Fi_r_ac'][timescale-2][n]
+        for nl in range(nlayers_init):
+            FiLayer = FiFinal_Layers[n,nl,:]
+            #Qbi_dep_in2[n,nl,:] = data_output['V_dep_sum'][nsave_dep_layer][n] * extended_output['Fi_r_ac'][timescale-2][n]
+            Qbi_dep_in2[n,nl,:] = data_output['V_dep_sum'][nsave_dep_time][n] * FiLayer * (1/nlayers_init)
+
+        # reach_data.D16[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 16, psi)
+        # reach_data.D50[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 50, psi)
+        # reach_data.D84[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 84, psi)
+        reach_data.D16[n] = D_finder(FiFinal_Layers[n,nl,:], 16, psi)
+        reach_data.D50[n] = D_finder(FiFinal_Layers[n,nl,:], 50, psi)
+        reach_data.D84[n] = D_finder(FiFinal_Layers[n,nl,:], 84, psi)
+        
+    #update roughness. each vector is length n_reaches
+    if vary_roughness:
+        Hbar = (data_output['flow_depth'][0:-1]).mean(0) 
+        s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (3*reach_data.D84))
+        C_keul = s8f_keul * np.sqrt(9.81)
+        n_keul = Hbar**(1/6) / C_keul
+        reach_data.n = n_keul
+    # new el_fn and el_tn. Consider keeping the top reaches, and perhaps our gorge, from moving?
+    reach_data.el_fn = extended_output['Node_el'][-1][0:reach_data.n_reaches]
+    reach_data.el_tn = extended_output['Node_el'][-1][1:reach_data.n_reaches+1]
+    
+    reach_data.slope = data_output['slope'][-1]
+    slope_length_delta = reach_data.length * (data_output['slope'][-1] - data_output['slope'][1]) #meters of increase this run
+    
+    
+    # Call dcascade main
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in2, timescale, psi,
+                                                 reach_hypsometry, reach_hypsometry_data,
+                                                 vary_width,vary_roughness,hypsolayers,
+                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 indx_tr_cap , indx_tr_partition, indx_flo_depth,
+                                                 indx_velocity = indx_velocity, 
+                                                 indx_vel_partition = indx_vel_partition,
+                                                 indx_slope_red = indx_slope_red,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
+                                                 time_lag_for_mobilised = op3)
+
+
+    name_file = f"{path_results}/save_all_{NR+1}.mat"
+    # Save using scipy.io (MATLAB-style)
+    scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': extended_output})
