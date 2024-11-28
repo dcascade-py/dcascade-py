@@ -35,7 +35,7 @@ This script was adapted from the Matlab version by Marco Tangi
 import numpy as np
 import geopandas as gpd
 import pandas as pd
-from plot_function import dynamic_plot
+#from plot_function import dynamic_plot
 import scipy.io
 import copy
 from numpy import random
@@ -72,7 +72,7 @@ name_qs = 'qsand_40pct_gravUpper68_2024.csv'
 filename_qs = path_q / name_qs
 
 #--------Path to the output folder
-path_results = Path("./Results/Rev3_HypsoSolv/ActHyps_Q220_2024_slicevol/")
+path_results = Path("./Results/Rev4_HypsoSolv/reachhypssolv_mean/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -86,15 +86,15 @@ n_classes = 7        # number of classes
 #---Timescale 
 timescale =  2882 # hours   #420
 ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
-nrepeats = 4 # number of times to repeat the hydrograph. think 'years' ?
+nrepeats = 100 # number of times to repeat the hydrograph. think 'years' ?
 #---Change slope or not
 update_slope = True # if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes #ccJR chaged this to a nominal width * depth. which is why 1000 didn't work, too wide for that!
 #what are the units now?
 deposit_layer = 1   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
-nlayers_init = 8 #ccJR split up deposit layers
-eros_max = .01             # Maximum depth (threshold) that can be eroded in one time step  in meters. 
+nlayers_init = 9 #ccJR split up deposit layers. best to have these a different number than n_classes
+eros_max = .05             # Maximum depth (threshold) that can be eroded in one time step  in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'monthhour' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
@@ -175,7 +175,7 @@ if hypsolayers == True:
             Fi_r[n] /= Fi_r[n].sum()  # Renormalize  
             Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:]
             #diagnostic code. using coarse material to just do some orienting of myself. 
-           # Qbi_dep_in[n,nl,0] = 111 * nl 
+            #Qbi_dep_in[n,nl,0] = 111 * nl 
         
 else:
     nlayers_init = 1
@@ -242,6 +242,7 @@ if vary_width:
 #------ reach hypsometry tables
 reach_hypsometry = np.zeros(reach_data.wac.shape,dtype = bool)
 #hard code which ones exist. could read from dir..
+ 
 reach_hypsometry[6:13] = True
 
 reach_hypsometry_data = {}
@@ -327,7 +328,7 @@ for NR in range(nrepeats):
     Qbi_dep_in2 = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
      
     nsave_dep_time = data_output['V_dep_sum'].shape[0]-1 #last deposit save index
-    FiFinal_Layers = extended_output['Qbi_FiLayers'][-1] # final time index
+    FiFinal_Layers = extended_output['Qbi_FiLayers'][-2] # final time index
    
     for n in range(reach_data.n_reaches):
         #Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]    #template from above    
