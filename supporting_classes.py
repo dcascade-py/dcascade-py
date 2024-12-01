@@ -564,6 +564,11 @@ class SedimentarySystem:
             Vm_removed, passing_cascades, residual = self.deposit_from_passing_sediments(np.copy(diff_neg), passing_cascades, roundpar)
             # Deposit the Vm_removed:
             Vdep_new = np.concatenate([Vdep_new, Vm_removed], axis=0)
+        
+        # If the new vdep is empty, put an empty layer for next steps
+        if Vdep_new.size == 0:
+            Vdep_new = np.hstack((n, np.zeros(self.n_classes)))
+            Vdep_new = np.expand_dims(Vdep_new, axis = 0) 
             
         return V_mob, passing_cascades, Vdep_new
     
@@ -593,7 +598,7 @@ class SedimentarySystem:
             empty_incoming_volume = np.hstack((0, np.zeros(self.n_classes))) 
             empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0) 
             Qpass_volume = empty_incoming_volume
-
+            
         # 1) If, considering the incoming volume, I am still under the threshold of the maximum volume,
         # I put sediment from the deposit layer into the maximum volume.
         if (V_lim - np.sum(Qpass_volume[:, 1:])) > 0:
