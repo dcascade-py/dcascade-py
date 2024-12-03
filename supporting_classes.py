@@ -26,7 +26,7 @@ class Cascade:
         self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
         self.volume = volume
         # To be filled during the time step
-        self.velocities = np.nan
+        self.velocities = np.nan # in m/s
 
 
            
@@ -325,10 +325,10 @@ class SedimentarySystem:
                                                 indx_vel_partition,  
                                                 indx_tr_cap, indx_tr_partition)
             
-            for cascade in cascades_list:
+            for cascade in cascades_list: 
                 cascade.velocities = velocities
                 
-        # Store velocities
+        # Store velocities in m/ts_length
         self.V_sed[t, n, :] = velocities * self.ts_length
 
 
@@ -336,8 +336,9 @@ class SedimentarySystem:
                           indx_vel_partition,
                           indx_tr_cap, indx_tr_partition):
         
-        ''' Compute the velocity of the volume of sediments. The transport capacity [m3/s]
-        is calculated on this volume, and the velocity is calculated by dividing the 
+        ''' Compute the velocity of the volume of sediments in m/s. 
+        The transport capacity [m3/s] is calculated on this volume, 
+        and the velocity is calculated by dividing the 
         transport capacity by a section (hVel x width x (1 - porosity)). 
         For partionning the section among the different sediment class in the volume, 
         two methods are proposed. 
@@ -471,7 +472,7 @@ class SedimentarySystem:
         return Vm_stop, Vm_continue
     
 
-    def compute_time_lag(self, cascade_list):#, passing_cascade_in_trcap, time_lag_for_mobilised):
+    def compute_time_lag(self, cascade_list):
         
         # The time lag is the time we use to mobilise from the reach, 
         # before cascades from upstream reaches arrive at the outlet of the present reach.

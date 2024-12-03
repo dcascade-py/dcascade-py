@@ -97,11 +97,12 @@ class DCASCADE:
             # Slope reduction functions
             SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys.slope, Q, t, h, self.indx_slope_red)
            
-            # deposit layer from previous timestep
+            # Deposit layer from previous timestep
             Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
             
-            # volumes of sediment passing through a reach in this timestep,
-            # ready to go to the next reach in the same time step.
+            # Matrix to store volumes of sediment passing through a reach 
+            # in this timestep, ready to go to the next reach in the same time step.
+            # For each reach, stores list of Cascade objects.
             Qbi_pass = [[] for n in range(self.n_reaches)]
                     
             # loop for all reaches:
@@ -134,7 +135,7 @@ class DCASCADE:
                     # Define the velocity section height:
                     # coef_AL_vel = 0.1
                     # SedimSys.vl_height[t,n] = coef_AL_vel * h[n]                 
-                    SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    #the velocity height is the same as the active layer depth
+                    SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    # the velocity height is the same as the active layer depth
                     
                     SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_init,
                                                Q[t,n], v[n], h[n], roundpar, t, n,                           
@@ -145,7 +146,7 @@ class DCASCADE:
                 # Decides weather cascades, or parts of cascades, 
                 # finish the time step here or not.
                 # After this step, Qbi_pass[n] contains volume that do not finish
-                # the time step in this reach
+                # the time step in this reach.                
                 if Qbi_pass[n] != []:
                     Qbi_pass[n], to_be_deposited = SedimSys.cascades_end_time_or_not(Qbi_pass[n], n)                    
                 else:
@@ -163,10 +164,10 @@ class DCASCADE:
                 ###------Step 2 : Mobilise volumes from the reach considering the 
                 # eventual passing cascades.
                 
-                # Temporary container to store the reach mobilised cascades:
+                # Temporary container to store the mobilised cascades from the reach itself:
                 reach_mobilized_cascades = [] 
                 
-                # Extract the layers in Vdep that can be eroded in this reach at this time step, 
+                # Temp DD: Extract the layers in Vdep that can be eroded in this reach at this time step, 
                 # according to the erosion maximum volume               
                 # Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
                 
@@ -234,10 +235,12 @@ class DCASCADE:
                               
                 # Mobilise:
                 Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volume(Vdep, tr_cap_per_s, 
-                                                                                n, roundpar,
-                                                                                passing_cascades = passing_cascades,
-                                                                                time_fraction = r_time_lag)
-                if passing_cascades is not None:
+                                                                                     n, roundpar,
+                                                                                     passing_cascades = passing_cascades,
+                                                                                     time_fraction = r_time_lag)
+                # Update Qbi_pass[n] in case passing cascades were considered
+                # in the transport capacity calculation:                                                             
+                if self.passing_cascade_in_trcap == True:
                     Qbi_pass[n] = passing_cascades
                     
                 # Add the possible reach mobilised cascade to a temporary container
