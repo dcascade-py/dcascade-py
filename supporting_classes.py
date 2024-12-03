@@ -23,7 +23,7 @@ from supporting_functions import D_finder
 class Cascade:
     def __init__(self, provenance, elapsed_time, volume):
         self.provenance = provenance
-        self.elapsed_time = elapsed_time
+        self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
         self.volume = volume
         # To be filled during the time step
         self.velocities = np.nan
@@ -400,7 +400,7 @@ class SedimentarySystem:
         # Order cascades according to their arrival time, so that first arriving 
         # cascade are first in the loop and are deposited first 
         # Note: in the deposit layer matrix, first rows are the bottom layers
-        cascade_list = sorted(cascade_list, key=lambda x: np.mean(x.elapsed_time))
+        cascade_list = sorted(cascade_list, key=lambda x: np.nanmean(x.elapsed_time))
         
         depositing_volume_list = []
         cascades_to_be_completely_removed = []
@@ -427,11 +427,10 @@ class SedimentarySystem:
             if Vm_continue is not None:
                 # update time for continuing cascades
                 cascade.elapsed_time = t_out 
-                # put to 0 the elapsed time of the empty sediment classes
-                # i.e. the classes that have deposited, while other did not
+                # put to np.nan the elapsed time of the empty sediment classes
                 # (Necessary for the time lag calculation later in the code)
                 cond_0 = np.all(cascade.volume[:,1:] == 0, axis = 0)
-                cascade.elapsed_time[cond_0] = 0
+                cascade.elapsed_time[cond_0] = np.nan
                 
         
         # If they are, remove complete cascades:
@@ -483,8 +482,10 @@ class SedimentarySystem:
         if cascade_list == []:
             time_lag = np.ones(self.n_classes) # the time lag is the entire time step as no other cascade reach the outlet
         else:
-            time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
-            time_lag = np.min(time_arrays, axis=0)                   
+            casc_mean_elaps_time = np.array([np.nanmean(cascade.elapsed_time) for cascade in cascade_list])
+            if np.isnan(casc_mean_elaps_time).any() == True:
+                raise ValueError("Strange case, one passing cascades has only nan in her elapsed times")
+            time_lag = np.min(casc_mean_elaps_time)                   
         
         return time_lag     
     
@@ -866,8 +867,8 @@ class SedimentarySystem:
         
         # Order cascades according to the inverse of their elapsed time 
         # and put cascade with same time in a sublist, in order to treat them together
-        sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x.elapsed_time), reverse=True)
-        sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x.elapsed_time))]
+        sorted_cascade_list = sorted(cascade_list, key=lambda x: np.nanmean(x.elapsed_time), reverse=True)
+        sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.nanmean(x.elapsed_time))]
         
         # Loop over the sorted and grouped cascades
         for cascades in sorted_and_grouped_cascade_list:        

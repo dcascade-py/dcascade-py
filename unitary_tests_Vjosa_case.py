@@ -192,7 +192,7 @@ def test_Vjosa_Engelund_all_true_no_tlag():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array([412785., 168322., 127853.,  57406.,  84997.,   7461.,  12781.])    
+    expected_result = np.array([412785., 168322., 127853.,  57361.,  84997.,   7461.,  12781.])    
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
@@ -277,7 +277,7 @@ def test_Vjosa_Engelund_all_new_options_true():
         
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
-    expected_result = np.array([412785., 172346., 133036.,  59029.,  84997.,   7461.,  12781.])    
+    expected_result = np.array([412785., 172431., 133387.,  59797.,  84997.,   7461.,  12781.])    
     np.testing.assert_array_equal(test_result, expected_result)
    
     #----Test the total transported volume per reach
