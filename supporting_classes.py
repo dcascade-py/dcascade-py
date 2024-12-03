@@ -251,26 +251,34 @@ class SedimentarySystem:
         self.eros_max_depth = np.ones((self.n_reaches)) * eros_max_depth_
         self.eros_max_vol = np.round(self.eros_max_depth * self.reach_data.wac * self.reach_data.length, roundpar)
         
-    def set_active_layer(self):       
+    def set_active_layer(self, input_AL_depth = None):       
         # Set active layer volume, i.e. the one used for calculating the tranport 
         # capacity in [m3/s]. Corresponds to the depth that the river can see 
-        # every second (more like a continuum carpet ...) defined here as 2.D90 
-        # [Parker 2008].
+        # every second (more like a continuum carpet ...) 
+        # By default it is defined as 2.D90 [Parker 2008]
+        # But this is maybe not adapted for sandy rivers.
         
         self.al_vol = self.create_2d_zero_array()  
         self.al_depth = self.create_2d_zero_array()  
         
-        # We take the input D90, or if not provided, the D84:
-        if self.reach_data.D90 is not None:
-            reference_d = self.reach_data.D90
+        if input_AL_depth == None:
+            # We take the input D90, or if not provided, the D84:
+            if self.reach_data.D90 is not None:
+                reference_d = self.reach_data.D90
+            else:
+                reference_d = self.reach_data.D84
+            # Multiply by two, + apply a minimum threshold
+            al_depth_t = np.maximum(2 * reference_d, 0.01)
+            
         else:
-            reference_d = self.reach_data.D84
-        for n in self.network['n_hier']:
-            al_depth_t = np.maximum(2 * reference_d[n], 0.01)
-            al_vol_t = al_depth_t * self.reach_data.wac[n] * self.reach_data.length[n]
-            self.al_vol[:,n] = np.repeat(al_vol_t, self.timescale, axis=0)
-            self.al_depth[:,n] = np.repeat(al_depth_t, self.timescale, axis=0)        
-        
+            # Apply the input AL depth
+            al_depth_t = input_AL_depth
+        # Compute the AL volumes (all reaches)
+        al_vol_t = al_depth_t * self.reach_data.wac * self.reach_data.length
+        # Store it for all time steps:
+        self.al_vol = np.tile(al_vol_t, (self.timescale, 1))
+        self.al_depth = np.tile(al_depth_t, (self.timescale, 1))
+
     
     def compute_cascades_velocities(self, cascades_list, Vdep, 
                                     Q_reach, v, h, roundpar, t, n, 

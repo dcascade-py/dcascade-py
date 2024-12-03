@@ -48,6 +48,7 @@ def test_Po_Engelund_all_new_options_false():
     # User defined parameters:
     deposit_layer = 100000
     eros_max = 1
+    al_depth = None
     update_slope = False
     timescale = 150 
     ts_length = 60 * 60 * 24
@@ -113,7 +114,7 @@ def test_Po_Engelund_all_new_options_false():
 
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
                                                  indx_tr_cap, indx_tr_partition, indx_flo_depth,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -197,6 +198,7 @@ def test_Po_Wilcock_all_new_options_false():
     # User defined parameters:
     deposit_layer = 100000
     eros_max = 1
+    al_depth = None
     update_slope = False
     timescale = 150 
     ts_length = 60 * 60 * 24
@@ -262,7 +264,7 @@ def test_Po_Wilcock_all_new_options_false():
 
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
                                                  indx_tr_cap, indx_tr_partition, indx_flo_depth,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -342,6 +344,7 @@ def test_Po_Engelund_all_true_no_tlag():
     # User defined parameters:
     deposit_layer = 100000
     eros_max = 1
+    al_depth = None
     update_slope = False
     timescale = 150 
     ts_length = 60 * 60 * 24
@@ -407,7 +410,7 @@ def test_Po_Engelund_all_true_no_tlag():
 
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
                                                  indx_tr_cap, indx_tr_partition, indx_flo_depth,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -491,6 +494,7 @@ def test_Po_Wilcock_all_true_no_tlag():
     # User defined parameters:
     deposit_layer = 100000
     eros_max = 1
+    al_depth = None
     update_slope = False
     timescale = 150 
     ts_length = 60 * 60 * 24
@@ -556,7 +560,7 @@ def test_Po_Wilcock_all_true_no_tlag():
 
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length,
+                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
                                                  indx_tr_cap, indx_tr_partition, indx_flo_depth,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -638,6 +642,7 @@ def test_Po_Engelund_all_new_options_true():
     # User defined parameters:
     deposit_layer = 100000
     eros_max = 1
+    al_depth = None
     update_slope = False
     timescale = 150 
     ts_length = 60 * 60 * 24
@@ -685,7 +690,7 @@ def test_Po_Engelund_all_new_options_true():
     # Run definition
     start = time.time()
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length, 
+                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length, 
                                                  indx_tr_cap , indx_tr_partition, indx_flo_depth)
     
     end = time.time()
@@ -761,6 +766,7 @@ def test_Po_Wilcock_all_new_options_true():
     # User defined parameters:
     deposit_layer = 100000
     eros_max = 1
+    al_depth = None
     update_slope = False
     timescale = 150 
     ts_length = 60 * 60 * 24
@@ -807,7 +813,7 @@ def test_Po_Wilcock_all_new_options_true():
 
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length, 
+                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length, 
                                                  indx_tr_cap , indx_tr_partition, indx_flo_depth)
         
     # Test the total mobilised volume per reach
