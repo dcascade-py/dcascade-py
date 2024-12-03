@@ -23,7 +23,7 @@ from supporting_functions import sortdistance, D_finder
 
 
 class DCASCADE:
-    def __init__(self, sedim_sys, indx_flo_depth, indx_slope_red):
+    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red):
         
         self.sedim_sys = sedim_sys
         self.reach_data = sedim_sys.reach_data
