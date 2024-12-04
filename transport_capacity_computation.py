@@ -625,7 +625,11 @@ def sed_velocity_OLD(Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel, phi, indx_tr_
             
         elif indx_tr_cap == 5: 
             tr_cap = Wong_Parker_formula( dmi ,Slope_t, Wac_t ,h ) 
-    
+
+        elif indx_tr_cap == 7: 
+            tr_cap = np.zeros((len(dmi), len(Slope_t)))
+            for i in range(len(Slope_t)):
+                tr_cap[:,i], _ = Rickenmann_formula(dmi, Slope_t[i], Q_t[i], Wac_t[i])    
         
         #calculate velocity
         multiply = (Wac_t * L_a * (1-phi)).to_numpy()
