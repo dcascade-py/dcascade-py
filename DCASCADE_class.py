@@ -215,8 +215,7 @@ class DCASCADE:
                 # considering eventually the passing cascades during the remaining time:
                 tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
-                                                                                  passing_cascades = passing_cascades,
-                                                                                  per_second = True)                
+                                                                                  passing_cascades = passing_cascades)                
                
                 # Store transport capacity and active layer informations: 
                 SedimSys.Fi_al[t, n, :] = Fi_al

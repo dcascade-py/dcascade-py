@@ -493,10 +493,13 @@ class SedimentarySystem:
     
     def compute_transport_capacity(self, Vdep, roundpar, t, n, Q, v, h,
                                    indx_tr_cap, indx_tr_partition,
-                                   passing_cascades = None, per_second = True):
+                                   passing_cascades = None, per_second = False):
         # Compute the transport capacity in m3/s using the active layer
         # on the deposit layer (Vdep) and passing cascades (if they are).
+        
         # The option "per second" put the passing cascades in m3/s instead of m3/ts_length
+        # This option is by default False. Putting it True can create some 
+        # strange behaviour (on and off mobilisation) 
         
         if passing_cascades == None or passing_cascades == []:
             passing_volume = None
