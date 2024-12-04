@@ -272,7 +272,7 @@ class SedimentarySystem:
             
         else:
             # Apply the input AL depth
-            al_depth_t = input_AL_depth
+            al_depth_t = input_AL_depth * np.ones(self.n_reaches)
         # Compute the AL volumes (all reaches)
         al_vol_t = al_depth_t * self.reach_data.wac * self.reach_data.length
         # Store it for all time steps:
