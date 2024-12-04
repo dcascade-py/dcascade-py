@@ -145,14 +145,10 @@ class TransportCapacityCalculator:
         Wilcock, Crowe(2003). Surface-based transport model for mixed-size sediment. Journal of Hydraulic Engineering.
         """
         
-        if self.fi_r_reach.ndim == 1:
-            self.fi_r_reach = self.fi_r_reach[:,None]
-            # Fraction of sand in river bed (sand considered as sediment with phi > -1)
-            Fr_s = np.sum((self.psi > - 1)[:,None] * 1 * self.fi_r_reach)
-        else:
-            Fr_s = np.sum((self.psi > - 1)[:,None] * 1 * self.fi_r_reach, axis = 0)[None,:]
+        # Fraction of sand in river bed (sand considered as sediment with phi > -1)
+        Fr_s = np.sum((self.psi > - 1) * self.fi_r_reach)
         ## Transport capacity from Wilcock-Crowe equations
-    
+        
         tau = np.array(RHO_W * GRAV * self.h * self.slope) # bed shear stress [Kg m-1 s-1]
         if tau.ndim != 0:
             tau = tau[None,:] # add a dimension for computation
@@ -163,9 +159,11 @@ class TransportCapacityCalculator:
         b = 0.67 / (1 + np.exp(1.5 - self.class_D50 / self.D50)) # hiding factor
         
         fact = (self.class_D50 / self.D50)**b
-        tau_ri = tau_r50 * fact[:,None] # reference shear stress for each sediment class [Kg m-1 s-1]
+        
+        tau_ri = tau_r50 * fact # reference shear stress for each sediment class [Kg m-1 s-1]
         
         phi_ri = tau / tau_ri
+        
         # Dimensionless transport rate for each sediment class [-]
         # The formula changes for each class according to the phi_ri of the class
         # is higher or lower then 1.35.
@@ -180,7 +178,7 @@ class TransportCapacityCalculator:
             self.wac = np.array(self.wac)[None, :]
             tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
         
-        tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
+        tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0            
     
         return {"tr_cap": tr_cap}
     
