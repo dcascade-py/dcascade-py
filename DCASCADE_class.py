@@ -192,7 +192,6 @@ class DCASCADE:
                     slicevol = Qbi_dep_old[n][:,1:].sum() *(self.reach_data.wac[n] / self.reach_data.wac_bf[n])
                     
                     #BIG QUESTION from JR for others - which here is the 'right way up?'
-                    # DD: In Qdep, first rows are the bottom layers, last rows are the top
                     hypso_V_above = slicevol #from one direction
                     #hypso_V_above = Qbi_dep_old[n].sum()- slicevol # test, from the other direction
                     
@@ -205,6 +204,7 @@ class DCASCADE:
                     #strip off overburden here, which is thought of as 'under' but I am thinking of as 'farther in width'
                     _, Vdep_init, Vdep_overburden, Fi_slice = SedimSys.layer_search(Qbi_dep_old[n], hypso_V_above, roundpar)
                     Vdep_init = np.flipud(Vdep_init) #this should 'insert' new cascades on the correct 'side' of Vdep_init
+                    # DD: if understood well you want to deposit things "between" Vdepinit and Vdep_overburden
                     #needs flipped back below. 
                     if np.isnan(self.Vfracsave[t,n]):
                         print(t,n,self.Vfracsave[t,n])
