@@ -118,7 +118,7 @@ class SedimentarySystem:
     # matrice in the constructor ? (I did it)
     
     def __init__(self, reach_data, network, timescale, ts_length, save_dep_layer, 
-                 update_slope, psi, phi = 0.4, minvel = 0.0000001):
+                 update_slope, psi, reach_hypsometry, phi = 0.4, minvel = 0.0000001):
         
         self.reach_data = reach_data
         self.network = network
@@ -134,6 +134,7 @@ class SedimentarySystem:
         self.outlet = int(network['outlet'])    # outlet reach ID identification
         
         self.sand_indices = np.where(self.psi > -1)[0]
+        self.reach_hypsometry = reach_hypsometry
         # Setted variables      
   
         
@@ -164,8 +165,8 @@ class SedimentarySystem:
         self.Qbi_dep_0 = None 
         
         self.Qc_class_all = None        # DD: can it be optional ?
-        # self.Delta_V_class_all = None   # DD: To be removed        
-        # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
+        self.Delta_V_class_all = None   # DD: To be removed        
+        self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
 
         
     def create_3d_zero_array(self):
@@ -231,14 +232,14 @@ class SedimentarySystem:
         self.Fi_al_before_tlag = self.create_3d_zero_array()
         self.Fi_al_before_tlag[:,0] = np.nan #DD: why ?
         self.Qc_class_all = self.create_3d_zero_array()
-        # self.Delta_V_class_all = self.create_3d_zero_array()
+        self.Delta_V_class_all = self.create_3d_zero_array()
         
         # 2D arrays
         self.D50_al = self.create_2d_zero_array()  # D50 of the active layer in each reach in each timestep
         self.D50_al_before_tlag = self.create_2d_zero_array()
         self.tr_cap_sum = self.create_2d_zero_array()  # total transport capacity 
         self.flow_depth = self.create_2d_zero_array()
-        # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
+        self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
  
     def set_sediment_initial_deposit(self, Qbi_dep_in):
         #TODO: (DD) better way to store Qbi_dep, Qbi_dep_0 etc ? 

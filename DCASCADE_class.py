@@ -19,12 +19,12 @@ from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
-from flow_depth_calc import hypso_manning_Q
+# from flow_depth_calc import hypso_manning_Q
 from scipy.interpolate import interp1d
 from scipy.optimize import fsolve
 
 class DCASCADE:
-    def __init__(self, sedim_sys, indx_flo_depth, indx_slope_red):
+    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red):
         
         self.sedim_sys = sedim_sys
         self.reach_data = sedim_sys.reach_data
@@ -171,9 +171,10 @@ class DCASCADE:
 
         
             #ccJR - add our inputs to the bed, for the next timestep to deal with. it will at least be available and mass conserving..
-            #V_dep_init[0, 1:] += Qbi_input[t,n,:] #didn't work
+            #V_dep_init[0, 1:] += Qbi_input[t,n,:] #didn't work. DD: You can create a new layer (like Qtoadd below) and concatenate it to V_dep_init
                 if t>1 and SedimSys.Qbi_input[t,n,:].sum()>0:
                     # The mobilised cascade is added to a temporary container
+                    # DD: why do you put elapsed time 1 and not 0 ? If 1, then this cascade will stop in the reach, and will be added to Vdep at the end of the time step. 
                     et0 = np.ones(self.n_classes) # its elapsed time is 0
                     #how it's done:                 mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
                     arrgh = SedimSys.Qbi_input[t, n, :] #the first dim is the source reach.  
@@ -187,9 +188,11 @@ class DCASCADE:
                 #ccJR hypso - REMOVE 'overburden' which is volume of (wacmax - wac) for now. the 2.0 or 1.5 changes the range. adding 1 slicevol keeps it away from the edge.
                 if self.hypsolayers:
                     #volume we want to use this timestep. how to keep away from the edges
-                    slicevol = Qbi_dep_old[n].sum() *(self.reach_data.wac[n] / self.reach_data.wac_bf[n])
+                    # DD: need exclude first column of Qbi_dep_old[n] using [:,1:] (the first column indicates the original provenance)
+                    slicevol = Qbi_dep_old[n][:,1:].sum() *(self.reach_data.wac[n] / self.reach_data.wac_bf[n])
                     
                     #BIG QUESTION from JR for others - which here is the 'right way up?'
+                    # DD: In Qdep, first rows are the bottom layers, last rows are the top
                     hypso_V_above = slicevol #from one direction
                     #hypso_V_above = Qbi_dep_old[n].sum()- slicevol # test, from the other direction
                     
@@ -200,7 +203,7 @@ class DCASCADE:
                     #and erode from. I am trying to set a datum near the 'middle' and let widths alter
                     #where we access teh bed volume.
                     #strip off overburden here, which is thought of as 'under' but I am thinking of as 'farther in width'
-                    _,Vdep_init,Vdep_overburden, Fi_slice = SedimSys.layer_search(Qbi_dep_old[n], hypso_V_above, roundpar)
+                    _, Vdep_init, Vdep_overburden, Fi_slice = SedimSys.layer_search(Qbi_dep_old[n], hypso_V_above, roundpar)
                     Vdep_init = np.flipud(Vdep_init) #this should 'insert' new cascades on the correct 'side' of Vdep_init
                     #needs flipped back below. 
                     if np.isnan(self.Vfracsave[t,n]):
@@ -240,6 +243,7 @@ class DCASCADE:
                     SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    #the velocity height is the same as the active layer depth
                     
                     #ccJR - we need to dynamically calculate AL volume.
+                    # DD: I agree, but this step should not be done in this if condition, but maybe somwhere else in the code ?
                     SedimSys.al_vol[t, n] = self.reach_data.wac[n] * self.reach_data.length[n] * np.maximum(2*self.reach_data.D84[n], 0.01) 
                     SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_init,
                                                Q[t,n], v[n], h[n], roundpar, t, n,                           
@@ -396,11 +400,11 @@ class DCASCADE:
                 # Compute the changes in bed elevation
                 # Modify bed elevation according to increased deposit
                 Delta_V = np.sum(SedimSys.Qbi_dep_0[n][:,1:]) -  np.sum(Qbi_dep_old[n][:,1:])
-                # # Record Delta_V
-                # self.Delta_V_all[t,n] = Delta_V 
-                # # And Delta_V per class
-                self.Delta_V_class = np.sum(SedimSys.Qbi_dep_0[n][:,1:], axis=0) - np.sum(Qbi_dep_old[n][:,1:], axis=0)
-                SedimSys.Delta_V_class_all[t,n,:] = self.Delta_V_class            
+                # Record Delta_V
+                SedimSys.Delta_V_all[t,n] = Delta_V 
+                # And Delta_V per class
+                Delta_V_class = np.sum(SedimSys.Qbi_dep_0[n][:,1:], axis=0) - np.sum(Qbi_dep_old[n][:,1:], axis=0)
+                SedimSys.Delta_V_class_all[t,n,:] = Delta_V_class            
                 
                 # Update slope, if required.
                 if self.update_slope == True:

@@ -57,22 +57,22 @@ from scipy.optimize import fsolve
 
 
 #-------River shape files 
-path_river_network = Path('../RangitataFC_dH/')
+path_river_network = Path('Input/rangitata')
 name_river_network = 'River_Network5.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
 filename_river_network = path_river_network / name_river_network
 
 #--------Discharge files
-path_q = Path('../RangitataFC_dH/')
+path_q = Path('Input/rangitata')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 name_q = 'q_2024.csv'
 filename_q = path_q / name_q
 
 #csv file with the size of q timeseries. could simplify to just specific reaches, but let's keep full structure for now. 
-name_qs = 'qsand_40pct_gravUpper68_2024.csv'
+name_qs = 'qsand_40pct_2024.csv'
 filename_qs = path_q / name_qs
 
 #--------Path to the output folder
-path_results = Path("./Results/Rev4_HypsoSolv/reachhypssolv_mean/")
+path_results = Path("../Rangitata_case/cascade_results")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -225,7 +225,7 @@ op3 = False
 
 #JR addition - variable Wac. Currently with easy to set up hydraulic geometry a,b stored in ReachData
 #width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
-vary_width = True
+vary_width = False
 
 #JR addition - recalculate roughness from changing GSD. Question - do this annually, or per timestep?
 vary_roughness = True
@@ -243,7 +243,7 @@ if vary_width:
 reach_hypsometry = np.zeros(reach_data.wac.shape,dtype = bool)
 #hard code which ones exist. could read from dir..
  
-reach_hypsometry[6:13] = True
+# reach_hypsometry[6:13] = True
 
 reach_hypsometry_data = {}
 # Loop through each reach
@@ -251,7 +251,7 @@ for i in range(len(reach_hypsometry)):
     if reach_hypsometry[i]:
         # file name from reach index
         #filename = f"../RangitataFC_dH/Reach_Hypsometry_{i}.csv"
-        filename = f"../RangitataFC_dH/Active_Hypsometry_{i}.csv"
+        filename = f"Input/rangitata/Active_Hypsometry_{i}.csv"
         
     
         df = pd.read_csv(filename, header=0)  # assuming no header in the CSV files
