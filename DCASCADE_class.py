@@ -21,7 +21,9 @@ from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
 from flow_depth_calc import hypso_manning_Q
 from scipy.interpolate import interp1d
+from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import fsolve
+from line_profiler import profile
 
 class DCASCADE:
     def __init__(self, sedim_sys, indx_flo_depth, indx_slope_red):
@@ -54,8 +56,8 @@ class DCASCADE:
         #JR extra saving storage
         self.T_record_days = np.zeros(self.timescale) #time storage, days #ccJR
         self.wac_save = np.zeros((self.timescale, self.n_reaches)) #hydraulics storage,  #ccJR
-        self.h_save = np.zeros((self.timescale, self.n_reaches)) #hydraulics storage,  #ccJR
-        self.v_save = np.zeros((self.timescale, self.n_reaches)) #hydraulics storage,  #ccJR
+        self.h_save = np.zeros((self.timescale, self.n_reaches, 100)) #hydraulics storage,  #ccJR
+        self.v_save = np.zeros((self.timescale, self.n_reaches, 100)) #hydraulics storage,  #ccJR
         self.Vfracsave = np.zeros((self.timescale, self.n_reaches)) #hypso slicing storage,  #ccJR
         
     def set_transport_indexes(self, indx_tr_cap, indx_tr_partition):
@@ -91,13 +93,47 @@ class DCASCADE:
     
 
         
-    
+    @profile    
     def run(self, Q, roundpar):
         # DD: Should we create a subclass in SedimentarySystem to handle the temporary parameters for one time step
         # like Qbi_pass, Qbi_dep_0 ? Could be SedimentarySystemOneTime ?
         
         SedimSys = self.sedim_sys
         
+    
+        #define some reach hypso constants once. Move this to class defintions once working   
+        
+        heights_at_Xgrid = {}  # Store heights for each reach
+        q_to_H_interp_func = {}
+        dX = 5 #stable with 2. Storage set for dX = 5 
+        Xgrid =  np.arange(0, 1000 + dX, dX) #width regular grid now
+        for n in self.network['n_hier']:
+            if SedimSys.reach_hypsometry[n] == True:     
+            # Precompute a 2D interpolant
+                heights_at_flow = []  # Store heights for each flow rate for this reach
+                for i, qstep in enumerate(SedimSys.qsteps):
+                    # Interpolate height for this flow rate and reach
+                    width_interp_func = interp1d(
+                        SedimSys.Wvec_q[n, i, :],  # Widths for this flow
+                        SedimSys.Hvec[n],          # Heights corresponding to widths
+                        bounds_error=False,
+                        fill_value=10,
+                    )
+                    heights_at_flow.append(width_interp_func(Xgrid))  # Interpolate on Xgrid
+                heights_at_Xgrid[n] = (np.array(heights_at_flow))  # Save array for this reach
+                
+                interp_func = RegularGridInterpolator(
+                   (SedimSys.qsteps, Xgrid),
+                   heights_at_Xgrid[n],  # Precomputed heights
+                   bounds_error=False,
+                   fill_value=10,
+                   )
+                
+                q_to_H_interp_func[n] = interp_func
+                #test: this should give heights at every Xgrid:
+                #q_to_H_interp_func[n]((120, Xgrid))
+                
+                    
         # start waiting bar    
         for t in tqdm(range(self.timescale - 1)):
             
@@ -120,31 +156,51 @@ class DCASCADE:
             # deposit layer from previous timestep
             Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
             
+            #now and then, compact neighbouring small cascades ith same provenance:
+                #after all that, doesn't speed it up much AND causes instability. 
+            # if t % 10 == 0:
+            #     for n in self.network['n_hier']:
+            #         if Qbi_dep_old[n].shape[0] > SedimSys.n_layers * 2:
+            #             Qbi_dep_old[n] = SedimSys.matrix_compact_neighbours(Qbi_dep_old[n],1e5)
+            
             # volumes of sediment passing through a reach in this timestep,
             # ready to go to the next reach in the same time step.
             Qbi_pass = [[] for n in range(self.n_reaches)]
                     
             # loop for all reaches:
+
+            
             for n in self.network['n_hier']:  
                 
                 if SedimSys.reach_hypsometry[n] == True:
                     #reach_hypsometry_data[n]['Zvec']
                     #redo h_ferguson to run a Q loop, redolfi style. 
                     #print(SedimSys.Hvec[n])
-                    Winterp_func = interp1d(SedimSys.Hvec[n] ,SedimSys.Wvec[n],  bounds_error=False, fill_value="extrapolate")
-                    Xinterp_func = interp1d(SedimSys.Wvec[n], SedimSys.Hvec[n] , bounds_error=False, fill_value="extrapolate")
-                    dX = 2
-                    Xgrid =  np.arange(0, self.reach_data.wac_bf[n] + dX, dX) #width regular grid now
-                    Zgrid = Xinterp_func(Xgrid)
-                    Zgrid = np.nan_to_num(Zgrid, posinf=10, neginf=10) 
+                    
+                    #GET THE RIGHT WVEC for this Q!
+                    #qi = np.argmax(SedimSys.qsteps >= Q[t,n])
+                    #SedimSys.Wvec[n,:] = SedimSys.Wvec_q[n,qi]
+                    #Winterp_func = interp1d(SedimSys.Hvec[n] ,SedimSys.Wvec[n],  bounds_error=False, fill_value="extrapolate")
+                    #Xinterp_func = interp1d(SedimSys.Wvec[n], SedimSys.Hvec[n] , bounds_error=False, fill_value="extrapolate")
+                    
+                    #Zgrid1D = Xinterp_func(Xgrid)
+                    Zgrid = q_to_H_interp_func[n]((Q[t,n], Xgrid))  #now interpolates at this q. One function for each reach, pre-allocated.
+                    
+                    #Zgrid = np.nan_to_num(Zgrid, posinf=10, neginf=10) 
                     #print(Zgrid)
+                    
+                    #try this with truncated / trimmed Zgrid?  8.5 it/s before. 
                     def func(D):
                         Q_Eng, b_Eng, JS = hypso_manning_Q(D, Zgrid, dX, self.reach_data.n[n], SedimSys.slope[t,n])
                         return (Q_Eng/Q[t,n])-1
             
                 # Solve for eta using fsolve. needed a higher guess for some reaches to converge - 4x Manning for now?
+                    if t>1:
+                        hguess = max(self.h_save[t-1,n])
+                    else:
+                        hguess = 4*h[n] #eta is bigger by far than the average depth. 
                     try:
-                        eta, info, ier, msg = fsolve(func, 4*h[n], full_output=True)
+                        eta, info, ier, msg = fsolve(func, hguess, full_output=True)  #13.5% of all time
                         if ier != 1:
                             print("Reach", n, " did not converge,",h[n],eta, ". Message:", msg)
                             # Handle the case where fsolve did not converge, for example:
@@ -155,16 +211,22 @@ class DCASCADE:
                     #use eta to get h 
                     Q_Eng, b_Eng, JS = hypso_manning_Q(eta, Zgrid, dX, self.reach_data.n[n], SedimSys.slope[t,n])
                     #WHERE TO FROM HERE. I now have a variety of h,v data. 
+                    #Cut off zeroes here. JS retains full length which is good for saving consistent matrix. 
+                    # Remove trailing zeros
+                    Vsave_trimmed = np.trim_zeros(JS['Vsave'], 'b')        
+                    Hsave_trimmed = np.trim_zeros(JS['Hsave'], 'b')        
+                    #Csave_trimmed = np.trim_zeros(JS['Csave'], 'b') #do I need this? 
                     #I can destroy the new information by making h = mean(JS.) for nonzero returns. let's do that first. 
                     #print([reach_data.wac[n]] / b_Eng )
-                    self.v_save[t,n] = JS['Vsave'].mean()
-                    self.h_save[t,n] = JS['Hsave'].mean()
+                    self.v_save[t,n,:len(Vsave_trimmed)] = Vsave_trimmed
+                    self.h_save[t,n,:len(Hsave_trimmed)] = Hsave_trimmed
                     #print('v,h frac of manning:', self.v_save[t,n]/v[n], self.h_save[t,n]/h[n])
-                    self.h_save[t,n]/h[n]
+                    #self.h_save[t,n]/h[n]
                     
-                    h[n] = self.h_save[t,n]
-                    v[n] = self.v_save[t,n]
-                    self.reach_data.wac[n] = b_Eng
+                    h[n] = Hsave_trimmed.mean()
+                    v[n] = Vsave_trimmed.mean()
+                    self.reach_data.wac[n] = b_Eng  #overwrites hydraulic geom wac
+                    SedimSys.flow_depth[t,n] = h[n]
                     #can I summarize by my height bins? or are we working in width now?
     
 
@@ -177,7 +239,7 @@ class DCASCADE:
                     et0 = np.ones(self.n_classes) # its elapsed time is 0
                     #how it's done:                 mobilized_cascades.append(Cascade(provenance, elapsed_time, V_mob))
                     arrgh = SedimSys.Qbi_input[t, n, :] #the first dim is the source reach.  
-                    Qtoadd =  np.insert(arrgh, 0, 0)
+                    Qtoadd =  np.insert(arrgh, 0, n)
                     Qtoadd = Qtoadd.reshape(1, -1)
                     Qbi_pass[n].append(Cascade(n, et0, Qtoadd)) #ccJR adding source volume here.     
                      
@@ -188,6 +250,11 @@ class DCASCADE:
                 if self.hypsolayers:
                     #volume we want to use this timestep. how to keep away from the edges
                     slicevol = Qbi_dep_old[n].sum() *(self.reach_data.wac[n] / self.reach_data.wac_bf[n])
+                    
+                    #OK! think it's sorting through cascades in the way I want it to. Now, totalV * widthratio means
+                    #we would always use the whole volume at full width. I want to be careful changing active height as it 
+                    #would mess with my accounting: if active layer ht changed during run, the scaling of width vs volume would
+                    #magically alter. but how to 
                     
                     #BIG QUESTION from JR for others - which here is the 'right way up?'
                     hypso_V_above = slicevol #from one direction
@@ -200,8 +267,11 @@ class DCASCADE:
                     #and erode from. I am trying to set a datum near the 'middle' and let widths alter
                     #where we access teh bed volume.
                     #strip off overburden here, which is thought of as 'under' but I am thinking of as 'farther in width'
+                    
+                    #if width is large, we slice off a large Vdep_init from Qbi_dep_old. width->volume based length * 1m active layer
+                    #but since actual active layer is smaller, I'm using too small a proportion. 
                     _,Vdep_init,Vdep_overburden, Fi_slice = SedimSys.layer_search(Qbi_dep_old[n], hypso_V_above, roundpar)
-                    Vdep_init = np.flipud(Vdep_init) #this should 'insert' new cascades on the correct 'side' of Vdep_init
+                    Vdep_init = np.flipud(Vdep_init) #this should 'insert' new cascades on the correct 'side' of Vdep_init. YES, worked, i think. 
                     #needs flipped back below. 
                     if np.isnan(self.Vfracsave[t,n]):
                         print(t,n,self.Vfracsave[t,n])
@@ -214,7 +284,7 @@ class DCASCADE:
                 if self.vary_width:
                     
                     #wac has changed, reset erosmax
-                    SedimSys.set_erosion_maximum(SedimSys.eros_max_depth[0,n], roundpar)                           
+                    SedimSys.set_erosion_maximum(SedimSys.eros_max_depth[n], roundpar)                           
                 ###------Step 1 : Cascades generated from the reaches upstream during 
                 # the present time step, are passing the inlet of the reach
                 # (stored in Qbi_pass[n]).
@@ -240,7 +310,7 @@ class DCASCADE:
                     SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    #the velocity height is the same as the active layer depth
                     
                     #ccJR - we need to dynamically calculate AL volume.
-                    SedimSys.al_vol[t, n] = self.reach_data.wac[n] * self.reach_data.length[n] * np.maximum(2*self.reach_data.D84[n], 0.01) 
+                    SedimSys.al_vol[t, n] = np.float32(self.reach_data.wac[n] * self.reach_data.length[n] * np.maximum(2*self.reach_data.D84[n], 0.01) )
                     SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_init,
                                                Q[t,n], v[n], h[n], roundpar, t, n,                           
                                                self.indx_velocity, self.indx_vel_partition, 
@@ -313,11 +383,27 @@ class DCASCADE:
                 
                 # Now compute transport capacity and mobilise  
                 # considering eventually the passing cascades during the remaining time:
+                    #JR - work here if not doing time lag. which not, for testing. 
                 tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
                                                                                   passing_cascades = passing_cascades,
-                                                                                  per_second = True)                
-               
+                                                                                  per_second = True) 
+                #for hypso, we need a width, a Fs which we'll calculate here first, and local h,v
+                #Also need Q proportion? h*v*h_wac
+                  #  self.v_save[t,n] = JS['Vsave'].mean()
+                  #  self.h_save[t,n] = JS['Hsave'].mean()    
+                if SedimSys.reach_hypsometry[n] == True:  
+                     
+                    Xwac = Xgrid[:len(Vsave_trimmed)+1]   
+                    Xwac[-1] = self.reach_data.wac[n] #last cell lengthen to match width
+                    #31% of all time!
+                    htr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.hypso_transport_capacity(Vdep, roundpar, t, n, Q, Xwac,Vsave_trimmed, Hsave_trimmed,
+                                                                                  self.indx_tr_cap, self.indx_tr_partition,
+                                                                                  passing_cascades = passing_cascades,
+                                                                                  per_second = True)
+                    #print('Qs ratio', htr_cap_per_s / tr_cap_per_s) #JR todo - save this by class
+                    #or just save both for reporting and comparison later
+                    tr_cap_per_s = htr_cap_per_s
                 # Store transport capacity and active layer informations: 
                 SedimSys.Fi_al[t, n, :] = Fi_al
                 SedimSys.D50_al[t, n] = D50_al
@@ -367,20 +453,29 @@ class DCASCADE:
                     # to reproduce v1, we only store the cascade mobilised from the reach
                     for cascade in reach_mobilized_cascades:
                         SedimSys.Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]     
+                
                         
-                # Deposit the stopping cascades in Vdep 
+                # Deposit the stopping cascades in Vdep - ccJR did negative occur here? 
                 if to_be_deposited is not None:                   
                     to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
                     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
+                    
+                if np.any(Vdep_end < 0):
+                    # debugging
+                    print("Negative values found in Vdep_end!")
                     
                 # ..and store Vdep for next time step
                 #put 'overburden' back
                 if self.hypsolayers:
                     Vdep_end = np.flipud(Vdep_end) #Flipping back to original direction
                     SedimSys.Qbi_dep_0[n] = np.concatenate([Vdep_overburden, np.float32(Vdep_end)], axis=0)
+                    #ccJR hardcoded checks, these negatives are coming from somewhere but I can't seem to explore CASCADE objects
+                    #in Spyder, even though I think I used to be able to? !! HELP !!
+                    
+                    SedimSys.Qbi_dep_0[n][SedimSys.Qbi_dep_0[n]<0] = 0
                 else:
                     SedimSys.Qbi_dep_0[n] = np.float32(Vdep_end)
-    
+                    
                 # Finally, pass these cascades to the next reach (if we are not at the outlet)  
                 if n != SedimSys.outlet:
                     n_down = np.squeeze(self.network['downstream_node'][n], axis = 1) 
@@ -406,21 +501,16 @@ class DCASCADE:
                 if self.update_slope == True:
                     self.sedim_sys.node_el[t+1][n]= self.sedim_sys.node_el[t,n] + Delta_V/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['upstream_node'][n])]) * (1-self.sedim_sys.phi) )
                 
-                #Test speeding up by compacting neighbours. wait for things to get going. NOPE, took more time. 
-                #most time is in layer_search.
-                #if t > 100:
-                #    SedimSys.Qbi_dep_0[n] = SedimSys.matrix_compact_neighbours(SedimSys.Qbi_dep_0[n])
-                
-                vary_roughness_inloop = True 
+              
                 #update roughness within the time loop.ccJR - assuming uniform width GSD for now. 
                 if self.vary_roughness:
                     #need updated D84 at least
                     #reach_data.D16[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 16, psi)
                     #reach_data.D50[n] = D_finder(extended_output['Fi_r_ac'][timescale-2][n], 50, psi)
-                    SedimSys.reach_data.D84[n] = D_finder(SedimSys.Fi_al[t,n,:], 84, SedimSys.psi)  
+                    SedimSys.reach_data.D84[n] = D_finder(SedimSys.Fi_al[t,n,:], 84, SedimSys.psi).astype(np.float32)
                     
-                    Hbar = h[n]
-                    s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (3*SedimSys.reach_data.D84[n]))
+                    Hbar = h[n]  #JR updated C84 to be a reachdata variable
+                    s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (SedimSys.reach_data.C84_fac[n]*SedimSys.reach_data.D84[n])) #make the 3 a passable parameters? ccJR
                     C_keul = s8f_keul * np.sqrt(9.81)
                     n_keul = Hbar**(1/6) / C_keul
                     SedimSys.reach_data.n[n] = n_keul   
@@ -445,20 +535,42 @@ class DCASCADE:
                     #think really hard about which way is up. layer_search works from the top. nl 0 is the top then?
                                      
             
-            #I had this saved less often, but I need it more often to see change Fi during events, and diagnostics. 
-            if self.hypsolayers:
-                for n in self.network['n_hier']:            
-                    for nl in range(SedimSys.n_layers):  #this will loop in increments. could go finer. and could turn into the whole hypso transport curve.
-                        slicevol = (nl+1)* (SedimSys.Qbi_dep_0[n].sum() / SedimSys.n_layers)  #even slices
-                        _,V_dep_init,V_dep_overburden, Fi_slice = SedimSys.layer_search(SedimSys.Qbi_dep_0[n], slicevol, roundpar)
-                        D50_custom = D_finder(Fi_slice, 50, SedimSys.psi) 
-                        #print(1000*D50_custom, (Fi_slice[5:7].sum()*100).round(3) ) #great - the sand is at the top,
-                        SedimSys.Qbi_FiLayers[t,n,nl,:] = Fi_slice #might lose a bit at the bottom if major aggradation?
-            else:
-                for n in self.network['n_hier']: 
-                    #handle saving an active layer Fi at save_dep_layer times. 
-                    _,_,_, Fi_slice = SedimSys.layer_search(SedimSys.Qbi_dep_0[n], SedimSys.al_vol[t, n], roundpar)
-                    SedimSys.Qbi_FiLayers[t,n,0,:] = Fi_slice       
+                    #I had this saved less often, but I need it more often to see change Fi during events, and diagnostics. 
+                    #this is a very important step for restarting/reinitializing the model and seeing the result. It is also
+                    #where the # of layers will help summarize the braidplain. 
+                    #NOW: indented to be in monthhour. de-intend twice ot save every timestep
+                    if self.hypsolayers:
+                    #if False:  #off for testing. was 5.1 it/s, now 7. ccJR HARDCODED DEBUG. 35+% of all time. 
+                        for n in self.network['n_hier']:            
+                            for nl in range(SedimSys.n_layers):  #this will loop in increments. could go finer. and could turn into the whole hypso transport curve.
+                                #this nl+1 was always reaching bottom:  slicevol = (nl+1)* (SedimSys.Qbi_dep_0[n].sum() / SedimSys.n_layers)  #even slices
+                                
+                                singleslicevol = (SedimSys.Qbi_dep_0[n].sum() / SedimSys.n_layers)  #even slices
+                                #slice off the right amount of overburden.take off volumes, starting at 0 which is 'bottom/edge' (plus roundpar so we don't get a nan)
+                                _,V_dep_init,V_dep_overburden, Fi_slice = SedimSys.layer_search(SedimSys.Qbi_dep_0[n],(SedimSys.n_layers-nl-1)*singleslicevol, roundpar,None,False)
+                                
+                                if np.any(np.isnan(V_dep_overburden)):
+                                    V_dep_overburden[np.isinf(V_dep_overburden) | np.isnan(V_dep_overburden)] = 0
+                                    total_sum = np.sum(V_dep_overburden[:, 1:]) + np.sum(V_dep_overburden[:, 1:])
+                                    sum_per_class = np.sum(V_dep_overburden[:, 1:], axis=0) + np.sum(V_dep_overburden[:, 1:], axis=0)
+                                    Fi_slice = sum_per_class / total_sum
+                                
+                                #slice off one layer from the bottom of V_dep_overburden , using flipud. n=0 should get n=1
+                                _,V_dep_slice,V_remaining, Fi_slice = SedimSys.layer_search((V_dep_overburden),singleslicevol-20*roundpar, roundpar,None,False)
+                                
+                                
+                                #print(nl,V_dep_slice.sum(),V_dep_slice[:,1].sum(),V_dep_init.sum(),V_dep_overburden.sum())
+                                #D50_custom = D_finder(Fi_slice, 50, SedimSys.psi) 
+                                #print(1000*D50_custom, (Fi_slice[5:7].sum()*100).round(3) ) #great - the sand is at the top,
+                                SedimSys.Qbi_FiLayers[t,n,nl,:] = Fi_slice #might lose a bit at the bottom if major aggradation?
+                            #np.set_printoptions(precision=3,suppress=True)
+                            #SedimSys.Qbi_FiLayers[t,n,:,:]
+                            
+                    else:
+                        for n in self.network['n_hier']: 
+                            #handle saving an active layer Fi at save_dep_layer times. 
+                            _,_,_, Fi_slice = SedimSys.layer_search(SedimSys.Qbi_dep_0[n], SedimSys.al_vol[t, n], roundpar)
+                            SedimSys.Qbi_FiLayers[t,n,0,:] = Fi_slice       
             
             # in case of changing slope..
             if self.update_slope == True:
