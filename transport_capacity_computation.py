@@ -390,17 +390,16 @@ class TransportCapacityCalculator:
         Water Resources Research 37(12): 3295–3305.DOI: 10.1029/2001WR000319.
         """
         
-        # Q is on whole width, Qunit = Q/w
+        # Unit discharge Qunit. Q is on whole width, Qunit = Q/w.
         Qunit = self.Q / self.wac
         
-        # Critical unit discharge (Eq. 2.111) in Rickenmann, 1990.
+        # Critical unit discharge (Eq. 2.111 in Rickenmann, 1990).
         Qc = 0.065 * R_VAR**1.67 * GRAV**0.5 * self.D50**1.5 * self.slope**(-1.12)
     
-        #Check if Q is smaller than Qc
+        # Initialize Qarr to the size of Qc, and value of Qunit.
         Qarr = np.full_like(Qc, Qunit)
         
-        Qb = np.zeros_like(Qc)
-        
+        # Bedload transport rate per unit of channel width (Eq. 3 in Rickenmann, 2001)
         condition = (Qarr - Qc) < 0
         Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * self.slope**1.5)
     

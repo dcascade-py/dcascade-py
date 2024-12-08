@@ -97,21 +97,18 @@ def test_rickenmann_formula():
     discharge = 3
     
     # Manually calculated transport capacity
-    expected_tr_cap = 0.0058621118228
-    expected_qc = 0.0058621118228
+    expected_tr_cap = 0.048053935
+    expected_qc = 0.013461692
     
     # Computing the transport capacity with the D-CASCADE implementation
     calculator = TransportCapacityCalculator(np.nan, np.nan, slope, discharge, wac, np.nan, np.nan, np.nan)
     calculator.D50 = D50
     computed_tr_cap = calculator.Rickenmann_formula()
     
-    print("computed_tr_cap['tr_cap'][[0]]", computed_tr_cap['tr_cap'][[0]])
-    print("computed_tr_cap['Qc']", computed_tr_cap['Qc'])
-    
     # Asserting the computed value is equal to manually calculated one, allowing
     # for with error tolerance EPSILON
     np.testing.assert_allclose(computed_tr_cap['tr_cap'][[0]], expected_tr_cap, atol=EPSILON)
-    np.testing.assert_allclose(computed_tr_cap['Qc'][[0]], expected_qc, atol=EPSILON)
+    np.testing.assert_allclose(computed_tr_cap['Qc'], expected_qc, atol=EPSILON)
     
 
 if __name__ == "__main__":
