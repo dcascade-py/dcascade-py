@@ -46,33 +46,33 @@ from preprocessing import graph_preprocessing, extract_Q
 from DCASCADE_main_script import DCASCADE_main
 from supporting_classes import ReachData
 from widget import read_user_input
-import profile
+#import profile
 import os
 from pathlib import Path
 from scipy.interpolate import interp1d
 from scipy.optimize import fsolve
-
+from line_profiler import profile
 
 '''user defined input data'''
 
 
 #-------River shape files 
 path_river_network = Path('../RangitataFC_dH/')
-name_river_network = 'River_Network5.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
+name_river_network = 'River_Network6.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
 filename_river_network = path_river_network / name_river_network
 
 #--------Discharge files
 path_q = Path('../RangitataFC_dH/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'q_2024.csv'
+name_q = 'q_2024_1Jan_1Jul.csv'
 filename_q = path_q / name_q
 
 #csv file with the size of q timeseries. could simplify to just specific reaches, but let's keep full structure for now. 
-name_qs = 'qsand_40pct_gravUpper68_2024.csv'
+name_qs = 'qsand_40pct_2024_1Jan_1Jul.csv'
 filename_qs = path_q / name_qs
 
 #--------Path to the output folder
-path_results = Path("./Results/Rev4_HypsoSolv/reachhypssolv_mean/")
+path_results = Path("./Results/Rev5_Speedups/02_diag_wetted_nocompact_RP0_Q2d_LR/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -84,24 +84,23 @@ sed_range = [-9, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 7        # number of classes
 
 #---Timescale 
-timescale =  2882 # hours   #420
+timescale = 4369 # hours   #4369  2882
 ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
-nrepeats = 100 # number of times to repeat the hydrograph. think 'years' ?
+nrepeats = 50 # number of times to repeat the hydrograph. think 'years' ?
 #---Change slope or not
 update_slope = True # if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes #ccJR chaged this to a nominal width * depth. which is why 1000 didn't work, too wide for that!
 #what are the units now?
 deposit_layer = 1   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
-nlayers_init = 9 #ccJR split up deposit layers. best to have these a different number than n_classes
+nlayers_init = 12 #ccJR split up deposit layers. best to have these a different number than n_classes
 eros_max = .05             # Maximum depth (threshold) that can be eroded in one time step  in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'monthhour' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
-
 #---Others
-roundpar = 1 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 
 
@@ -171,7 +170,7 @@ if hypsolayers == True:
     Qbi_dep_in = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
     for n in range(reach_data.n_reaches):
         for nl in range(nlayers_init):
-            Fi_r[n,5:7] = 0.02 #low sand IC : layer. initial condition testing. 0 is the bottom, nlayers_init-1 is the top (thalweg)
+            Fi_r[n,5:7] = 0.01 #low sand IC : layer. initial condition testing. 0 is the bottom, nlayers_init-1 is the top (thalweg)
             Fi_r[n] /= Fi_r[n].sum()  # Renormalize  
             Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:]
             #diagnostic code. using coarse material to just do some orienting of myself. 
@@ -248,22 +247,29 @@ reach_hypsometry[6:13] = True
 reach_hypsometry_data = {}
 # Loop through each reach
 for i in range(len(reach_hypsometry)):
+    
     if reach_hypsometry[i]:
+        qfilename = f"../RangitataFC_dH/Qsteps_Table.csv"
+        qdf = pd.read_csv(qfilename, header=0)  # assuming no header in the CSV files
+        Qindex = qdf.iloc[:, 0].astype(float).values
+        Qsteps = qdf.iloc[:, 1].astype(float).values
         # file name from reach index
         #filename = f"../RangitataFC_dH/Reach_Hypsometry_{i}.csv"
-        filename = f"../RangitataFC_dH/Active_Hypsometry_{i}.csv"
+        #filename = f"../RangitataFC_dH/Active_Hypsometry_{i}.csv"
+        filename = f"../RangitataFC_dH/Wet_Hypsometry_q1_23_{i}.csv"
         
     
         df = pd.read_csv(filename, header=0)  # assuming no header in the CSV files
         #tried to put this in reach_data but didn't get it right
         Zvec = df.iloc[:, 0].astype(float).values  # Convert to float if necessary
-        Wvec = df.iloc[:, 1].astype(float).values
+        Wvec = df.iloc[:, 1:].astype(float).values
     
         # Store in the dictionary
         reach_hypsometry_data[i] = {
             'Zvec': Zvec,
             'Wvec': Wvec,
             'Hvec': Zvec-Zvec.min(),
+            'Qsteps': Qsteps,
         }
 
 reach_data_original = copy.deepcopy(reach_data)  
@@ -302,15 +308,7 @@ name_file = path_results / 'save_all_0.mat'
 # Save using scipy.io (MATLAB-style)
 scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': extended_output})
 
-
-#name_file_ext = path_results + 'save_all_ext.p'
-#pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
-
-
-# ## Plot results 
-# keep_slider = dynamic_plot(data_output_t, reach_data, psi)
-
-#
+ 
 ##
 
 from supporting_functions import D_finder
@@ -326,9 +324,20 @@ for NR in range(nrepeats):
     
      
     Qbi_dep_in2 = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
-     
+    #find last V_dep_sum with data (sometimes its length is ntimes, sometimes less often, sometimes last one is blank)
     nsave_dep_time = data_output['V_dep_sum'].shape[0]-1 #last deposit save index
-    FiFinal_Layers = extended_output['Qbi_FiLayers'][-2] # final time index
+    
+    #find last Qbi_FiLayers with data (sometimes its length is ntimes, sometimes less often, sometimes last one is blank)
+    last_tdata = None
+    for tf in reversed(range(len(extended_output['Qbi_FiLayers']))):  # Iterate from the last index backwards
+        if np.sum(extended_output['Qbi_FiLayers'][tf]) > 0:  # Check if the sum of the layer is greater than zero
+            last_tdata = tf
+            break  # Exit the loop as soon as the last non-zero index is found
+    if last_tdata is None:            
+        print('No bed data on restart?')
+        raise()
+    else:
+        FiFinal_Layers = extended_output['Qbi_FiLayers'][last_tdata] # final time index
    
     for n in range(reach_data.n_reaches):
         #Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]    #template from above    
@@ -350,7 +359,7 @@ for NR in range(nrepeats):
     #update roughness. each vector is length n_reaches
     if vary_roughness:
         Hbar = (data_output['flow_depth'][0:-1]).mean(0) 
-        s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (3*reach_data.D84))
+        s8f_keul = (1 / 0.41) * np.log((12.14 * Hbar) / (reach_data.C84_fac[n]*reach_data.D84))
         C_keul = s8f_keul * np.sqrt(9.81)
         n_keul = Hbar**(1/6) / C_keul
         reach_data.n = n_keul
