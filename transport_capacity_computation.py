@@ -10,6 +10,7 @@ Different formula for the calculation of the tranport capacity and for the assig
 import numpy as np
 import numpy.matlib
 from supporting_functions import D_finder
+from line_profiler import profile
 from constants import (
     RHO_S,
     RHO_W,
@@ -43,10 +44,12 @@ class TransportCapacityCalculator:
         self.class_D50 = 2**(-self.psi) / 1000 # sediment classes diameter [m]
         self.gamma = gamma # hiding factor
         self.hiding_max = 200
+        self.sand_indices = np.where(self.psi > -1)[0]
+        self.sand_tf = (self.psi > - 1)[:,None]
         self.SUSP_MULT = 0.75 #multiplier for suspended sediment transport rate. <1 due to dead space? replace with hypso solver? Or pass dead space frac?
         self.input = np.nan # D50 or dmi depending on the partitioning
         
-        
+    @profile    
     def tr_cap_function(self, indx_tr_cap, indx_partition):
         """
         Refers to the transport capacity equation and partitioning 
@@ -87,7 +90,7 @@ class TransportCapacityCalculator:
     
         return Qtr_cap, Qc
         
-        
+    @profile    
     def choose_formula(self, indx_tr_cap):
         """
         Dynamically chooses and calls the transport capacity function based on indx_tr_cap.
@@ -235,7 +238,7 @@ class TransportCapacityCalculator:
     
         nu = 1.003*1E-6        # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
         
-        GeoStd = self.GSD_std(self.class_D50);
+        GeoStd = self.GSD_std(self.class_D50)
         
         #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of Sediment Particles. (1933)
         #         
@@ -455,7 +458,7 @@ class TransportCapacityCalculator:
             
         return pci
 
-
+    @profile
     def GSD_std(self, dmi):
         """
         Calculates the geometric standard deviation of input X, using the formula
@@ -483,14 +486,14 @@ class TransportCapacityCalculator:
         
         return std
     
-    
+    @profile
     def WC_VR_formulas(self):
         
         
         if self.fi_r_reach.ndim == 1:
             self.fi_r_reach = self.fi_r_reach[:,None]
             # Fraction of sand in river bed (sand considered as sediment with phi > -1)
-            Fr_s = np.sum((self.psi > - 1)[:,None] * 1 * self.fi_r_reach)
+            Fr_s = np.sum(self.fi_r_reach[self.sand_indices]) 
         else:
             Fr_s = np.sum((self.psi > - 1)[:,None] * 1 * self.fi_r_reach, axis = 0)[None,:]
         ## Transport capacity from Wilcock-Crowe equations
@@ -511,8 +514,10 @@ class TransportCapacityCalculator:
         # Dimensionless transport rate for each sediment class [-]
         # The formula changes for each class according to the phi_ri of the class
         # is higher or lower then 1.35.
-        W_i = (phi_ri >= 1.35) * (14 * (np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0))**4.5) + (phi_ri < 1.35) * (0.002 * phi_ri**7.5)
-        
+        phi_logical = phi_ri >= 1.35
+        W_i = np.where(phi_logical, 
+               14 * np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0) ** 4.5,
+               0.002 * phi_ri ** 7.5)
         # Dimensionful transport rate for each sediment class [m3/s]
         if self.wac.ndim == 0:
             tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
@@ -527,12 +532,9 @@ class TransportCapacityCalculator:
         
         #ccJR = preparing to check suspended sand capacity, not there yet. 
         
-        rho_w = 1000  # water density in kg/m^3
-        rho_s = 2650  # sediment density in kg/m^3
-         
-        SRATIO = rho_s / rho_w - 1  # submerged specific gravity of sediment
+          
         visc_kin = 1e-6  # kinematic viscosity in m^2/s
-        
+        rho_w = 1000
         #Fi_r_reach = Fi_r_reach.squeeze()  %this seems ready to run across another dimension, which I want for the hypso solver. ccJR
         vr_a = 2 * self.D50
         #tau = np.array(RHO_W * GRAV * h * self.slope) # bed shear stress [Kg m-1 s-1]
@@ -542,11 +544,11 @@ class TransportCapacityCalculator:
         gamma_gravel = 0.86
         tr_cap_VRnolimit = np.zeros(len(self.psi)).reshape(-1,1)
         
-        sand_indices = np.where(self.psi > -1)[0]
-        Fr_s = np.sum(self.fi_r_reach[sand_indices]) # all sand class sum
-        for p in sand_indices:
+        
+        # done above. Fr_s = np.sum(self.fi_r_reach[self.sand_indices]) # all sand class sum
+        for p in self.sand_indices:
              
-            Dst = self.class_D50[p] * (SRATIO * GRAV / visc_kin ** 2) ** (1 / 3)
+            Dst = self.class_D50[p] * (R_VAR * GRAV / visc_kin ** 2) ** (1 / 3)
             if 0.1 < Dst <= 4:
                 theta_cr = 0.24 / Dst
             elif 4 < Dst <= 10:
@@ -562,27 +564,30 @@ class TransportCapacityCalculator:
                 print("Grain size too small perhaps?")
                 continue
             #critical bed shear stress
-            tbed_cr = (rho_s - rho_w) * GRAV * self.class_D50[p] * theta_cr
+            tbed_cr = (1000*R_VAR) * GRAV * self.class_D50[p] * theta_cr
     
             # McCarron's hiding function
             gamma_McCarron = gamma_sand + (gamma_gravel - gamma_sand) * (1 - Fr_s) ** 1.73
             hiding_xi = np.minimum((self.class_D50[p] / self.D50) ** -gamma_McCarron, self.hiding_max)
             # Bed shear stress parameters with and without hiding
-            Tsf = (tau - tbed_cr) / tbed_cr
-            Tsf = np.clip(Tsf, 0, None)
+            #Tsf = (tau - tbed_cr) / tbed_cr
+            #Tsf = np.clip(Tsf, 0, None)
+            #Tsf = np.maximum(Tsf, 0)
             
             Tmf = (tau - hiding_xi * tbed_cr) / tbed_cr
-            Tmf = np.clip(Tmf, 0, None) 
+            #Tmf = np.clip(Tmf, 0, None) 
+            Tmf = np.maximum(Tmf, 0)
             
             # Fall velocity and other transport parameters - any way to speed up by storing??
-            ws = 10 * visc_kin / self.class_D50[p] * (np.sqrt(1 + 0.01 * SRATIO * GRAV * self.class_D50[p] ** 3 / visc_kin ** 2) - 1)
+            ws = 10 * visc_kin / self.class_D50[p] * (np.sqrt(1 + 0.01 * R_VAR * GRAV * self.class_D50[p] ** 3 / visc_kin ** 2) - 1)
             ca = 0.015 * (self.class_D50[p] / vr_a) * (Tmf ** 1.5 / Dst ** 0.3)
     
             # Stratification and shape factors
             phi_factor = 2.5 * (ws / ustar) ** 0.8 * (ca / 0.65) ** 0.4
             beta = np.minimum(1 + 2 * (ws / ustar) ** 2, 2)
             Z = ws / (beta * 0.41 * ustar)
-            Z = np.clip(Z, None, 20)
+            #Z = np.clip(Z, None, 20)
+            Z = np.minimum(Z, 20)
             
             Zpr = Z + phi_factor
             F = ((vr_a / self.h) ** Zpr - (vr_a / self.h) ** 1.2) / ((1 - vr_a / self.h) ** Zpr * (1.2 - Zpr))
@@ -591,16 +596,16 @@ class TransportCapacityCalculator:
     
             # Suspended transport (m^2/s)
             Qs_nolimit = F * self.v * self.h * ca
-            Qs_nolimit = np.real(np.array(Qs_nolimit))
+            #Qs_nolimit = np.real(np.array(Qs_nolimit))
             #Qs = Qs_nolimit * Fi_r_reach[:, p]
-            Qs_nolimit[np.isnan(Qs_nolimit)] = 0
+            #Qs_nolimit[np.isnan(Qs_nolimit)] = 0.0
             
             # Convert to  [m3/s]
             #tr_cap[p] = Qs * wac * rho_s
             tr_cap_VRnolimit[p] = Qs_nolimit * self.wac # [m3/s]   
-        tr_cap_susp = self.SUSP_MULT * (tr_cap_VRnolimit[sand_indices] * self.fi_r_reach[sand_indices])
+        tr_cap_susp = self.SUSP_MULT * (tr_cap_VRnolimit[self.sand_indices] * self.fi_r_reach[self.sand_indices])
         tr_cap_susp = tr_cap_susp[None,:].reshape(1,-1).flatten() #JR not doing great with column/row dimensions here...
-        tr_cap[sand_indices] += tr_cap_susp
+        tr_cap[self.sand_indices] += tr_cap_susp
         
         return {"tr_cap": tr_cap}
     
