@@ -23,7 +23,7 @@ from supporting_functions import sortdistance, D_finder
 from scipy.interpolate import interp1d
 from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import fsolve
-from line_profiler import profile
+# from line_profiler import profile
 
 class DCASCADE:
     def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red):
@@ -93,7 +93,7 @@ class DCASCADE:
     
 
         
-    @profile    
+    # @profile    
     def run(self, Q, roundpar):
         # DD: Should we create a subclass in SedimentarySystem to handle the temporary parameters for one time step
         # like Qbi_pass, Qbi_dep_0 ? Could be SedimentarySystemOneTime ?
@@ -263,7 +263,7 @@ class DCASCADE:
                     #hypso_V_above = Qbi_dep_old[n].sum()- slicevol # test, from the other direction
                     
                     
-                    self.Vfracsave[t,n] = hypso_V_above / Qbi_dep_old[n].sum() #fraction of total volume we are removing, to save.
+                    self.Vfracsave[t,n] = hypso_V_above / Qbi_dep_old[n][:,1:].sum() #fraction of total volume we are removing, to save.
                     
                     #ccJR thjs definitely needs checking with my understanding of where cascades deposit to 
                     #and erode from. I am trying to set a datum near the 'middle' and let widths alter

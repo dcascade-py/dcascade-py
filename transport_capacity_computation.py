@@ -10,7 +10,7 @@ Different formula for the calculation of the tranport capacity and for the assig
 import numpy as np
 import numpy.matlib
 from supporting_functions import D_finder
-from line_profiler import profile
+# from line_profiler import profile
 from constants import (
     RHO_S,
     RHO_W,
@@ -49,7 +49,7 @@ class TransportCapacityCalculator:
         self.SUSP_MULT = 0.75 #multiplier for suspended sediment transport rate. <1 due to dead space? replace with hypso solver? Or pass dead space frac?
         self.input = np.nan # D50 or dmi depending on the partitioning
         
-    @profile    
+    # @profile    
     def tr_cap_function(self, indx_tr_cap, indx_partition):
         """
         Refers to the transport capacity equation and partitioning 
@@ -90,7 +90,7 @@ class TransportCapacityCalculator:
     
         return Qtr_cap, Qc
         
-    @profile    
+    # @profile    
     def choose_formula(self, indx_tr_cap):
         """
         Dynamically chooses and calls the transport capacity function based on indx_tr_cap.
@@ -458,7 +458,7 @@ class TransportCapacityCalculator:
             
         return pci
 
-    @profile
+    # @profile
     def GSD_std(self, dmi):
         """
         Calculates the geometric standard deviation of input X, using the formula
@@ -486,7 +486,7 @@ class TransportCapacityCalculator:
         
         return std
     
-    @profile
+    # @profile
     def WC_VR_formulas(self):
         
         

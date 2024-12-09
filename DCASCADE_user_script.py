@@ -51,7 +51,7 @@ import os
 from pathlib import Path
 from scipy.interpolate import interp1d
 from scipy.optimize import fsolve
-from line_profiler import profile
+# from line_profiler import profile
 
 '''user defined input data'''
 
@@ -69,6 +69,7 @@ filename_q = path_q / name_q
 
 #csv file with the size of q timeseries. could simplify to just specific reaches, but let's keep full structure for now. 
 name_qs = 'qsand_40pct_2024.csv'
+name_qs = 'qsand_40pct_2024_1Jan_1Jul.csv'
 filename_qs = path_q / name_qs
 
 #--------Path to the output folder
@@ -227,7 +228,7 @@ op3 = False
 vary_width = False
 
 #JR addition - recalculate roughness from changing GSD. Question - do this annually, or per timestep?
-vary_roughness = True
+vary_roughness = False
 
 if vary_width:
     Bcheck = reach_data.width_a * Q.max()**reach_data.width_b
@@ -242,14 +243,14 @@ if vary_width:
 reach_hypsometry = np.zeros(reach_data.wac.shape,dtype = bool)
 #hard code which ones exist. could read from dir..
  
-# reach_hypsometry[6:13] = True
+reach_hypsometry[6:13] = True
 
 reach_hypsometry_data = {}
 # Loop through each reach
 for i in range(len(reach_hypsometry)):
     
     if reach_hypsometry[i]:
-        qfilename = f"../RangitataFC_dH/Qsteps_Table.csv"
+        qfilename = f"Input/rangitata/Qsteps_Table.csv"
         qdf = pd.read_csv(qfilename, header=0)  # assuming no header in the CSV files
         Qindex = qdf.iloc[:, 0].astype(float).values
         Qsteps = qdf.iloc[:, 1].astype(float).values

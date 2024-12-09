@@ -84,6 +84,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
     sedimentary_system.set_active_layer()
     sedimentary_system.set_Qbi_input(Qbi_input, roundpar)
+    sedimentary_system.set_reach_hypsometry(reach_hypsometry, reach_hypsometry_data)
     
     # Create DCASCADE solver 
     dcascade = DCASCADE(sedimentary_system, indx_flo_depth, indx_slope_red)

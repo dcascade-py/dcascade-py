@@ -15,7 +15,7 @@ from tqdm import tqdm
 import copy
 import sys
 import os
-from line_profiler import profile
+# from line_profiler import profile
 np.seterr(divide='ignore', invalid='ignore')
 
 from transport_capacity_computation import TransportCapacityCalculator 
@@ -79,7 +79,7 @@ class ReachData:
         self.width_b = geodataframe['b'].astype(np.float32).values if 'b' in geodataframe.columns else None
         self.C84_fac = geodataframe['C84_Fric_Fa'].astype(np.float32).values if 'C84_Fric_Fa' in geodataframe.columns else None
 
-    @profile    
+    # @profile    
     def sort_values_by(self, sorting_array):
         """
         Function to sort the Reaches by the array given in input.
@@ -100,7 +100,7 @@ class ReachData:
                 
         return sorted_indices
     
-    @profile
+    # @profile
     def compute_rugosity(self):
         # DD: idea of function for the rugosity. 
         # to test and see if it is what we want in terms of physics
@@ -311,7 +311,7 @@ class SedimentarySystem:
                 self.Wvec_q[n,:,:] = np.transpose(reach_hypsometry_data[n]['Wvec'])
                 self.Zvec[n] = reach_hypsometry_data[n]['Zvec']
     
-    @profile        
+    # @profile        
     def set_active_layer(self):       
         # Set active layer volume, i.e. the one used for calculating the tranport 
         # capacity in [m3/s]. Corresponds to the depth that the river can see 
@@ -332,7 +332,7 @@ class SedimentarySystem:
             self.al_vol[:,n] = np.repeat(al_vol_t, self.timescale, axis=0)
             self.al_depth[:,n] = np.repeat(al_depth_t, self.timescale, axis=0)        
         
-    @profile
+    # @profile
     def compute_cascades_velocities(self, cascades_list, Vdep, 
                                     Q_reach, v, h, roundpar, t, n, 
                                     indx_velocity, indx_vel_partition,
@@ -384,7 +384,7 @@ class SedimentarySystem:
         # Store velocities
         self.V_sed[t, n, :] = velocities * self.ts_length
 
-    @profile
+    # @profile
     def volume_velocities(self, volume, Q_reach, v, h, t, n, 
                           indx_vel_partition,
                           indx_tr_cap, indx_tr_partition):
@@ -433,7 +433,7 @@ class SedimentarySystem:
         return velocities        
     
     
-    @profile
+    # @profile
     def cascades_end_time_or_not(self, cascade_list, n):
         ''' Fonction to decide if the traveling cascades in cascade list stop in 
         the reach or not, due to the end of the time step.
@@ -500,7 +500,7 @@ class SedimentarySystem:
         
         return cascade_list_new, depositing_volume #DD: to be stored somewhere
     
-    @profile
+    # @profile
     def stop_or_not(self, t_new, Vm):
         ''' 
         Function that decides if a volume of sediments will stop in this 
@@ -524,7 +524,7 @@ class SedimentarySystem:
             
         return Vm_stop, Vm_continue
     
-    @profile
+    # @profile
     def compute_time_lag(self, cascade_list):#, passing_cascade_in_trcap, time_lag_for_mobilised):
         
         # The time lag is the time we use to mobilise from the reach, 
@@ -541,7 +541,7 @@ class SedimentarySystem:
         
         return time_lag     
     
-    @profile
+    # @profile
     def compute_transport_capacity(self, Vdep, roundpar, t, n, Q, v, h,
                                    indx_tr_cap, indx_tr_partition,
                                    passing_cascades = None, per_second = True):
@@ -578,7 +578,7 @@ class SedimentarySystem:
         
         return tr_cap_per_s, Fi_al_, D50_al_, Qc
     
-    @profile
+    # @profile
     def hypso_transport_capacity(self, Vdep, roundpar, t, n, Q, Xwac, vsave, hsave,
                                    indx_tr_cap, indx_tr_partition,
                                    passing_cascades = None, per_second = True):
@@ -630,7 +630,7 @@ class SedimentarySystem:
         total_h_tr_cap_per_s = np.sum(h_tr_cap_per_s, axis=0)
         return total_h_tr_cap_per_s, Fi_al_, D50_al_, Qc
 
-    @profile
+    # @profile
     def compute_mobilised_volume(self, Vdep, tr_cap_per_s, n, roundpar,
                                  passing_cascades = None, time_fraction = None):
         
@@ -681,7 +681,7 @@ class SedimentarySystem:
     
         
     
-    @profile
+    # @profile
     def tr_cap_deposit(self, V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
         ''' 
         INPUTS:
@@ -810,7 +810,7 @@ class SedimentarySystem:
         return V_mob, V_dep
 
 
-    @profile
+    # @profile
     def deposit_from_passing_sediments(self, V_remove, cascade_list, roundpar):
         ''' This function remove the quantity V_remove from the list of cascades. 
         The order in which we take the cascade is from largest times (arriving later) 
@@ -917,7 +917,7 @@ class SedimentarySystem:
         
         return Slope_t, Node_el_t
     
-    @profile
+    # @profile
     def matrix_compact(self, volume):
         # Function that groups layers (rows) in volume
         # according to the original provenance (first column)
@@ -944,7 +944,7 @@ class SedimentarySystem:
         
         return volume_compacted
     
-    @profile
+    # @profile
     def matrix_compact_neighbours(self, volume, thresh):
         """
         Compacts rows in the volume matrix by grouping and summing rows with the same provenance
@@ -1045,7 +1045,7 @@ class SedimentarySystem:
 #called from the wrapper, which has classes, numba doesn't like classes
 #@jit
 
-@profile
+# @profile
 def nb_layer_search(n_classes,V_dep_old, V_lim, roundpar,Qpass_volume):  
     #print("n_classes dtype:", n_classes.dtype)
     # print("V_dep_old dtype:", V_dep_old.dtype)
