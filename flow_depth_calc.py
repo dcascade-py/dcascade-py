@@ -33,6 +33,7 @@ from constants import GRAV
 import numpy as np
 import numpy.matlib
 from supporting_functions import D_finder
+from line_profiler import profile
 
 def h_manning(reach_data, slope, Q, t):
     """
@@ -48,7 +49,7 @@ def h_ferguson(reach_data, slope, Q, t):
     """
     
     #calculate water depth and velocity with the Ferguson formula (2007)
-    q_star = Q[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
+    q_star = Q.iloc[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
     
     #𝑝…𝑖𝑓 𝑞∗<100 → 𝑝=0.24, 𝑖𝑓 𝑞^∗>100 → 𝑝=0.31
     p = np.where(q_star < 100, 0.24, 0.31)
@@ -66,3 +67,68 @@ def choose_flow_depth(reach_data, slope, Q, t, flow_depth):
         [h, v] = h_ferguson(reach_data, slope, Q, t)
     
     return h, v
+
+@profile
+def hypso_manning_Q(H, Hsec, dy, n, slope):
+    #return a Q based on given H (water level) and height section ()
+    g = 9.81
+    Npoints = len(Hsec)
+    Qsec = 0
+    bsec = 0
+    
+    Hsave = np.zeros(Npoints - 1)
+    Vsave = np.zeros(Npoints - 1)
+    Csave = np.zeros(Npoints - 1)
+    
+    # Elevation adjustment
+    Hsec = Hsec - np.min(Hsec)
+    
+    for j_point in range(Npoints - 1):
+        hl = H - Hsec[j_point]
+        hr = H - Hsec[j_point + 1]
+        
+        if hl > 0 and hr > 0:
+            # Trapezoidal slice
+            hm = (hl + hr) / 2
+            Bi = np.sqrt(dy**2 + (hl - hr)**2)
+            Ai = hm * dy
+            Rhi = Ai / Bi
+            C = hm**(1/6) / n
+            Qi = C * Ai * np.sqrt(Rhi) * np.sqrt(slope)
+            
+            bsec += dy
+            Qsec += Qi
+            Hsave[j_point] = hm
+            Vsave[j_point] = Qi / Ai
+            Csave[j_point] = C
+            
+        elif hl > 0 or hr > 0:
+            # Triangular slice
+            hmax = max(hl, hr)
+            bi = dy * hmax / abs(hr - hl)
+            Bi = np.sqrt(bi**2 + hmax**2)
+            Ai = hmax * bi / 2
+            Rhi = Ai / Bi
+            C = hmax**(1/6) / n
+            Qi = C * Ai * np.sqrt(Rhi) * np.sqrt(slope)
+            
+            bsec += bi
+            Qsec += Qi
+            #save H, V and Chezy C
+            Hsave[j_point] = hmax
+            Vsave[j_point] = Qi / Ai
+            Csave[j_point] = C
+       
+    JS = {'Hsave': Hsave, 'Vsave': Vsave, 'Csave': Csave}
+    return Qsec, bsec, JS
+
+# def hypso_manning(reach_data, slope, Q, t):
+#     #move things here eventually
+#     Hvec = reach_hypsometry_data[n]['Hvec']
+#     Wvec = reach_hypsometry_data[n]['Wvec']
+#     Xinterp_func = interp1d(Wvec, Hvec , bounds_error=False, fill_value="extrapolate")
+#     dX = 1
+#     Xgrid = Xinterp_func
+    
+#     #reinterpolate back on original dz?s
+#     return h,v,hvec,vvec
