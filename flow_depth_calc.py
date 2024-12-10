@@ -71,6 +71,7 @@ def choose_flow_depth(reach_data, slope, Q, t, flow_depth):
 @profile
 def hypso_manning_Q(H, Hsec, dy, n, slope):
     #return a Q based on given H (water level) and height section ()
+    # Adapted from code by Marco Redolfi by JM Rogers
     g = 9.81
     Npoints = len(Hsec)
     Qsec = 0
