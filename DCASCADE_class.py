@@ -19,7 +19,7 @@ from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
 from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
-# from flow_depth_calc import hypso_manning_Q
+from flow_depth_calc import hypso_manning_Q
 from scipy.interpolate import interp1d
 from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import fsolve
