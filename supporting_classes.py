@@ -23,10 +23,10 @@ from supporting_functions import D_finder
 class Cascade:
     def __init__(self, provenance, elapsed_time, volume):
         self.provenance = provenance
-        self.elapsed_time = elapsed_time
+        self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
         self.volume = volume
         # To be filled during the time step
-        self.velocities = np.nan
+        self.velocities = np.nan # in m/s
 
 
            
@@ -272,7 +272,7 @@ class SedimentarySystem:
             
         else:
             # Apply the input AL depth
-            al_depth_t = input_AL_depth
+            al_depth_t = input_AL_depth * np.ones(self.n_reaches)
         # Compute the AL volumes (all reaches)
         al_vol_t = al_depth_t * self.reach_data.wac * self.reach_data.length
         # Store it for all time steps:
@@ -325,10 +325,10 @@ class SedimentarySystem:
                                                 indx_vel_partition,  
                                                 indx_tr_cap, indx_tr_partition)
             
-            for cascade in cascades_list:
+            for cascade in cascades_list: 
                 cascade.velocities = velocities
                 
-        # Store velocities
+        # Store velocities in m/ts_length
         self.V_sed[t, n, :] = velocities * self.ts_length
 
 
@@ -336,8 +336,9 @@ class SedimentarySystem:
                           indx_vel_partition,
                           indx_tr_cap, indx_tr_partition):
         
-        ''' Compute the velocity of the volume of sediments. The transport capacity [m3/s]
-        is calculated on this volume, and the velocity is calculated by dividing the 
+        ''' Compute the velocity of the volume of sediments in m/s. 
+        The transport capacity [m3/s] is calculated on this volume, 
+        and the velocity is calculated by dividing the 
         transport capacity by a section (hVel x width x (1 - porosity)). 
         For partionning the section among the different sediment class in the volume, 
         two methods are proposed. 
@@ -401,7 +402,7 @@ class SedimentarySystem:
         # Order cascades according to their arrival time, so that first arriving 
         # cascade are first in the loop and are deposited first 
         # Note: in the deposit layer matrix, first rows are the bottom layers
-        cascade_list = sorted(cascade_list, key=lambda x: np.mean(x.elapsed_time))
+        cascade_list = sorted(cascade_list, key=lambda x: np.nanmean(x.elapsed_time))
         
         depositing_volume_list = []
         cascades_to_be_completely_removed = []
@@ -428,11 +429,10 @@ class SedimentarySystem:
             if Vm_continue is not None:
                 # update time for continuing cascades
                 cascade.elapsed_time = t_out 
-                # put to 0 the elapsed time of the empty sediment classes
-                # i.e. the classes that have deposited, while other did not
+                # put to np.nan the elapsed time of the empty sediment classes
                 # (Necessary for the time lag calculation later in the code)
                 cond_0 = np.all(cascade.volume[:,1:] == 0, axis = 0)
-                cascade.elapsed_time[cond_0] = 0
+                cascade.elapsed_time[cond_0] = np.nan
                 
         
         # If they are, remove complete cascades:
@@ -473,7 +473,7 @@ class SedimentarySystem:
         return Vm_stop, Vm_continue
     
 
-    def compute_time_lag(self, cascade_list):#, passing_cascade_in_trcap, time_lag_for_mobilised):
+    def compute_time_lag(self, cascade_list):
         
         # The time lag is the time we use to mobilise from the reach, 
         # before cascades from upstream reaches arrive at the outlet of the present reach.
@@ -484,18 +484,23 @@ class SedimentarySystem:
         if cascade_list == []:
             time_lag = np.ones(self.n_classes) # the time lag is the entire time step as no other cascade reach the outlet
         else:
-            time_arrays = np.array([cascade.elapsed_time for cascade in cascade_list])
-            time_lag = np.min(time_arrays, axis=0)                   
+            casc_mean_elaps_time = np.array([np.nanmean(cascade.elapsed_time) for cascade in cascade_list])
+            if np.isnan(casc_mean_elaps_time).any() == True:
+                raise ValueError("Strange case, one passing cascades has only nan in her elapsed times")
+            time_lag = np.min(casc_mean_elaps_time)                   
         
         return time_lag     
     
     
     def compute_transport_capacity(self, Vdep, roundpar, t, n, Q, v, h,
                                    indx_tr_cap, indx_tr_partition,
-                                   passing_cascades = None, per_second = True):
+                                   passing_cascades = None, per_second = False):
         # Compute the transport capacity in m3/s using the active layer
         # on the deposit layer (Vdep) and passing cascades (if they are).
+        
         # The option "per second" put the passing cascades in m3/s instead of m3/ts_length
+        # This option is by default False. Putting it True can create some 
+        # strange behaviour (on and off mobilisation) 
         
         if passing_cascades == None or passing_cascades == []:
             passing_volume = None
@@ -867,8 +872,8 @@ class SedimentarySystem:
         
         # Order cascades according to the inverse of their elapsed time 
         # and put cascade with same time in a sublist, in order to treat them together
-        sorted_cascade_list = sorted(cascade_list, key=lambda x: np.sum(x.elapsed_time), reverse=True)
-        sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.sum(x.elapsed_time))]
+        sorted_cascade_list = sorted(cascade_list, key=lambda x: np.nanmean(x.elapsed_time), reverse=True)
+        sorted_and_grouped_cascade_list = [list(group) for _, group in groupby(sorted_cascade_list, key=lambda x: np.nanmean(x.elapsed_time))]
         
         # Loop over the sorted and grouped cascades
         for cascades in sorted_and_grouped_cascade_list:        
