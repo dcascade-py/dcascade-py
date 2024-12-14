@@ -199,6 +199,7 @@ class TransportCapacityCalculator:
         References:
         Engelund, F., and E. Hansen (1967), A Monograph on Sediment Transport in 
         Alluvial Streams, Tekniskforlag, Copenhagen.
+        Stevens Jr., H. H. & Yang, C.T. Summary and use of selected fluvial sediment-discharge formulas. (1989).
         Naito, K., Ma, H., Nittrouer, J. A., Zhang, Y., Wu, B., Wang, Y., … Parker, G. (2019). 
         Extended Engelund–Hansen type sediment transport relation for mixtures based on the sand-silt-bed Lower Yellow River, China. Journal of Hydraulic Research, 57(6), 770–785.
         """
