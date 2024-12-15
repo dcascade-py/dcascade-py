@@ -33,14 +33,14 @@ import numpy as np
 exponent_a = 1.5 # exponent a between 1-2, typically 1.5
 
 def slopeRed_Rickenmann(slope, h, reach_data, t):  
-   if isinstance(reach_data.D90, np.ndarray):
+   if reach_data.D90 is None:
        slope[t] = slope[t] * (0.092 * slope[t] ** (-0.35) * (h / reach_data.D84) ** (0.33)) ** exponent_a  
    else:
        slope[t] = slope[t] * (0.092 * slope[t] ** (-0.35) * (h / reach_data.D90) ** (0.33)) ** exponent_a   
    return slope
    
 def slopeRed_Chiari_Rickenmann(slope, Q, reach_data, t):
-    if isinstance(reach_data.D90, np.ndarray): 
+    if reach_data.D90 is None:
         slope[t] = slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(GRAV**0.096 * reach_data.D84**0.47 * slope[t]**0.19)) ** exponent_a
     else:
         slope[t] = slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(GRAV**0.096 * reach_data.D90**0.47 * slope[t]**0.19)) ** exponent_a
