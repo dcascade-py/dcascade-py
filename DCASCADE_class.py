@@ -107,6 +107,8 @@ class DCASCADE:
                     
             # loop for all reaches:
             for n in self.network['n_hier']:  
+                if n==2 and t==97:
+                    print('stopped')
                 
                 # TODO : How to include the lateral input ?
                                    
@@ -129,20 +131,48 @@ class DCASCADE:
                         # DD: If we want to store instead the direct provenance
                         # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)  
                 
+                # Temp : get the Qbi_stop
+                if self.passing_cascade_in_outputs == False:
+                    Qbi_stopped  =  np.c_[np.array(range(self.n_reaches)), SedimSys.Qbi_tr[t][:, n,:]] 
+                    Qbi_stopped  = np.delete(Qbi_stopped, np.sum(Qbi_stopped[:,1:], axis = 1)==0, axis = 0) # sum all classes and delete the zeros  (rows represents provenance)
+                    if Qbi_stopped.ndim == 1:
+                        Qbi_stopped = np.expand_dims(Qbi_stopped, axis = 0)
+                    if Qbi_stopped.size == 0:
+                        Qbi_stopped = None
+                        # Qbi_stopped = np.hstack((n, np.zeros(self.n_classes))) # put an empty cascade if no incoming volumes are present (for computation)
+                    # sort incoming matrix according to distance, in this way sediment coming from closer reaches will be deposited first 
+                    if Qbi_stopped is not None:
+                        Qbi_stopped = sortdistance(Qbi_stopped, self.network['upstream_distance_list'][n] )
+                else:
+                    Qbi_stopped = None
                     
                 # Compute the velocity of the cascades in this reach [m/s] 
-                if Qbi_pass[n] != []:
+                # temp DD: Incorporate Qbistop per s in Vdep 
+                if self.passing_cascade_in_outputs == False:
+                    if Qbi_stopped is not None:
+                        Qbi_stopped_per_s = copy.deepcopy(Qbi_stopped)
+                        Qbi_stopped_per_s[:,1:] = Qbi_stopped_per_s[:,1:] / self.ts_length
+                        Vdep_temp = copy.deepcopy(Vdep_init)
+                        Vdep_temp = np.concatenate((Vdep_temp, Qbi_stopped_per_s))
+                        # elapsed_time = np.zeros(self.n_classes)
+                        # cascades_stopped = [Cascade(n, elapsed_time, Qbi_stopped_per_s)]
+                    else:
+                        Vdep_temp = copy.deepcopy(Vdep_init)
+                else:
+                    Vdep_temp = copy.deepcopy(Vdep_init)
+                
+                if Qbi_pass[n] != []:        
                     # Define the velocity section height:
                     # coef_AL_vel = 0.1
                     # SedimSys.vl_height[t,n] = coef_AL_vel * h[n]                 
                     SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    # the velocity height is the same as the active layer depth
                     
-                    SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_init,
+                    SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_temp,
                                                Q[t,n], v[n], h[n], roundpar, t, n,                           
                                                self.indx_velocity, self.indx_vel_partition, 
                                                self.indx_tr_cap, self.indx_tr_partition)
-
-                
+                    del Vdep_temp
+                    
                 # Decides weather cascades, or parts of cascades, 
                 # finish the time step here or not.
                 # After this step, Qbi_pass[n] contains volume that do not finish
@@ -213,10 +243,24 @@ class DCASCADE:
                 
                 # Now compute transport capacity and mobilise  
                 # considering eventually the passing cascades during the remaining time:
-                tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
+                if self.passing_cascade_in_outputs == False:
+                    if Qbi_stopped is not None:
+                        Qbi_stopped_per_s = copy.deepcopy(Qbi_stopped)
+                        Qbi_stopped_per_s[:,1:] = Qbi_stopped_per_s[:,1:] / self.ts_length
+                        Vdep_temp = copy.deepcopy(Vdep)
+                        Vdep_temp = np.concatenate([Vdep_temp, Qbi_stopped_per_s], axis=0)
+                        # elapsed_time = np.zeros(self.n_classes)
+                        # cascades_stopped = [Cascade(n, elapsed_time, Qbi_stopped_per_s)]
+                    else: 
+                        Vdep_temp = copy.deepcopy(Vdep)
+                else:
+                    Vdep_temp = copy.deepcopy(Vdep)
+                    
+                tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_temp, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
                                                                                   passing_cascades = passing_cascades)                
-               
+                del Vdep_temp
+                
                 # Store transport capacity and active layer informations: 
                 SedimSys.Fi_al[t, n, :] = Fi_al
                 SedimSys.D50_al[t, n] = D50_al
@@ -233,6 +277,10 @@ class DCASCADE:
                 SedimSys.tr_cap_sum[t,n] = np.sum(SedimSys.tr_cap[t, n, :])    
                               
                 # Mobilise:
+                if self.passing_cascade_in_outputs == False:
+                    if Qbi_stopped is not None:
+                        Vdep = np.concatenate([Vdep, Qbi_stopped], axis=0)
+                    
                 Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volume(Vdep, tr_cap_per_s, 
                                                                                      n, roundpar,
                                                                                      passing_cascades = passing_cascades,
@@ -250,7 +298,7 @@ class DCASCADE:
                         elapsed_time = time_lag
                     provenance = n
                     reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Vmob))
-                                        
+                
 
                 ###-----Step 3: Finalisation.
                 
@@ -269,10 +317,12 @@ class DCASCADE:
                     for cascade in reach_mobilized_cascades:
                         SedimSys.Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]     
                         
-                # Deposit the stopping cascades in Vdep 
-                if to_be_deposited is not None:                   
-                    to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
-                    Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
+                # Deposit the stopping cascades in Vdep
+                if self.passing_cascade_in_outputs == True:
+                    if to_be_deposited is not None:                   
+                        to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
+                        Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
+
                     
                 # ..and store Vdep for next time step
                 SedimSys.Qbi_dep_0[n] = np.float32(Vdep_end)
@@ -301,6 +351,8 @@ class DCASCADE:
                 # Update slope, if required.
                 if self.update_slope == True:
                     self.node_el[t+1][n]= self.node_el[t,n] + Delta_V/( np.sum(self.reach_data.Wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
+                
+                del Vdep_init, Vdep, Vdep_end, Vmob, to_be_deposited, tr_cap_per_s, passing_cascades
                 
             """End of the reach loop"""
             

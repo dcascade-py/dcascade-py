@@ -312,7 +312,7 @@ class SedimentarySystem:
             # concatenate cascades in one volume, and compact it by original provenance
             # DD: should the cascade volume be in [m3/s] ?
             volume_all_cascades = np.concatenate([cascade.volume for cascade in cascades_list], axis=0) 
-            volume_all_cascades = self.matrix_compact(volume_all_cascades)
+            volume_all_cascades = self.matrix_compact(volume_all_cascades)                                                    
             
             volume_total = np.sum(volume_all_cascades[:,1:])            
             if volume_total < self.al_vol[t, n]:
@@ -325,6 +325,17 @@ class SedimentarySystem:
                                                 indx_vel_partition,  
                                                 indx_tr_cap, indx_tr_partition)
             
+            for cascade in cascades_list: 
+                cascade.velocities = velocities
+        
+        # temp old
+        if indx_velocity == 3:
+            _, Vdep_active, _, _ = self.layer_search(Vdep, self.al_vol[t, n],
+                                    roundpar)
+            velocities = self.volume_velocities(Vdep_active, 
+                                                Q_reach, v, h, t, n,
+                                                indx_vel_partition,  
+                                                indx_tr_cap, indx_tr_partition)
             for cascade in cascades_list: 
                 cascade.velocities = velocities
                 
