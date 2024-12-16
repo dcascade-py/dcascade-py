@@ -42,7 +42,7 @@ class TransportCapacityCalculator:
         self.class_D50 = 2**(-self.psi) / 1000 # sediment classes diameter [m]
         self.gamma = gamma # hiding factor
         
-        self.input = np.nan # D50 or dmi depending on the partitioning
+        self.D50 = np.nan
         
         
     def tr_cap_function(self, indx_tr_cap, indx_partition):
@@ -382,32 +382,31 @@ class TransportCapacityCalculator:
         Critical discharge Qc is based on the equation probosed by Barthust et al. (1987)
         and later refined by Rickenmann (1991).
         
-        References: 
-        Rickenmann (2001). Comparison of bed load transport in torrents and gravel bed streams. 
-        Water Resources Research 37(12): 3295–3305.DOI: 10.1029/2001WR000319.
+        References:
+        Rickenmann, D. (1990). Bedload transport capacity of slurry flows at steep slopes
+        (Doctoral dissertation, ETH Zurich).
         Barthust et al. (1987). Bed load discharge equations for steep mountain rivers. 
         In Sediment Transport in Gravel-Bed Rivers, Wiley: New York; 453–477
         Rickenmann (1991). Hyperconcentrated flow and sediment transport at steep flow. 
         Journal ofHydraulic Engineering 117(11): 1419–1439. DOI: 10.1061/(ASCE)0733-9429(1991)117:11(1419)
+        Rickenmann (2001). Comparison of bed load transport in torrents and gravel bed streams. 
+        Water Resources Research 37(12): 3295–3305.DOI: 10.1029/2001WR000319.
         """
         
-        # Q is on whole width, Qunit = Q/w
+        # Unit discharge Qunit. Q is on whole width, Qunit = Q/w.
         Qunit = self.Q / self.wac
         
-        exponent_e = 1.5
-        # critical unit discharge
-        Qc = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (self.D50 ** exponent_e) * (self.slope ** (-1.12))
+        # Critical unit discharge (Eq. 2.111 in Rickenmann, 1990).
+        Qc = 0.065 * R_VAR**1.67 * GRAV**0.5 * self.D50**1.5 * self.slope**(-1.12)
     
-        #Check if Q is smaller than Qc
+        # Initialize Qarr to the size of Qc, and value of Qunit.
         Qarr = np.full_like(Qc, Qunit)
         
-        Qb = np.zeros_like(Qc)
-        
+        # Bedload transport rate per unit of channel width (Eq. 3 in Rickenmann, 2001)
         condition = (Qarr - Qc) < 0
-        Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * (self.slope ** 1.5))
+        Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * self.slope**1.5)
     
-        Qb_Wac = Qb * self.wac
-        tr_cap = Qb_Wac
+        tr_cap = Qb * self.wac
     
         return {"tr_cap": tr_cap, "Qc": Qc}
 
