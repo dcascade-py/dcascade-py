@@ -48,7 +48,7 @@ def h_ferguson(reach_data, slope, Q, t):
     """
     
     #calculate water depth and velocity with the Ferguson formula (2007)
-    q_star = Q.iloc[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
+    q_star = Q[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
     
     #𝑝…𝑖𝑓 𝑞∗<100 → 𝑝=0.24, 𝑖𝑓 𝑞^∗>100 → 𝑝=0.31
     p = np.where(q_star < 100, 0.24, 0.31)

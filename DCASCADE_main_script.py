@@ -22,7 +22,7 @@ import itertools
 """ MAIN FUNCTION SECTION """
 
 def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
-                  update_slope, eros_max, save_dep_layer, ts_length,
+                  update_slope, eros_max, al_depth, save_dep_layer, ts_length,
                   indx_tr_cap, indx_tr_partition, indx_flo_depth,                 
                   indx_velocity = 2, 
                   indx_vel_partition = 1,                   
@@ -80,7 +80,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     sedimentary_system.initialize_storing_matrices()
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
-    sedimentary_system.set_active_layer()
+    sedimentary_system.set_active_layer(al_depth)
     
     
     # Create DCASCADE solver 

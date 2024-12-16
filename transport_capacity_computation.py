@@ -9,7 +9,7 @@ Different formula for the calculation of the tranport capacity and for the assig
 
 import numpy as np
 import numpy.matlib
-from supporting_functions import D_finder, matrix_compact
+from supporting_functions import D_finder
 from constants import (
     RHO_S,
     RHO_W,
@@ -80,7 +80,7 @@ class TransportCapacityCalculator:
             Qtr_cap = self.fi_r_reach * Qtr_cap 
             
         elif indx_partition == 3: 
-            pci = Molinas_rates(self.class_D50*1000, self.total_D50*1000)
+            pci = self.Molinas_rates(self.class_D50*1000, self.total_D50*1000)
             Qtr_cap = pci * Qtr_cap
     
         return Qtr_cap, Qc
@@ -190,7 +190,8 @@ class TransportCapacityCalculator:
         This function is for use in the D-CASCADE toolbox.
         
         WARNING: Engelund and Hansen use a factor of 0.1 and but this function uses
-        a factor of 0.05.
+        a factor of 0.05 (corrected).The factor 0.05 seems to appear because of the
+        division by 2 in the friction coefficient. 
         
         slope: All reaches' slopes
         h: All reaches' water heights
@@ -198,16 +199,18 @@ class TransportCapacityCalculator:
         References:
         Engelund, F., and E. Hansen (1967), A Monograph on Sediment Transport in 
         Alluvial Streams, Tekniskforlag, Copenhagen.
+        Stevens Jr., H. H. & Yang, C.T. Summary and use of selected fluvial sediment-discharge formulas. (1989).
+        Naito, K., Ma, H., Nittrouer, J. A., Zhang, Y., Wu, B., Wang, Y., … Parker, G. (2019). 
+        Extended Engelund–Hansen type sediment transport relation for mixtures based on the sand-silt-bed Lower Yellow River, China. Journal of Hydraulic Research, 57(6), 770–785.
         """
         
         # Friction factor (Eq. 3.1.3 of the monograph)
         C = (2 * GRAV * self.slope * self.h) / self.v**2
     
-        # Dimensionless shear stress (Eq. 3.2.3)
+        # Dimensionless shear stress (Eq. 3.2.3) (Schield parameter)
         tau_eh = (self.slope * self.h) / (R_VAR * self.D50)
-        # Dimensionless transport capacity (Eq. 4.3.5), although Engelund and Hansen
-        # find a factor of 0.1 and not 0.05.
-        q_eh = 0.05 / C * tau_eh**(5/2)
+        # Dimensionless transport capacity (Eq. 4.3.5)
+        q_eh = 0.1 / C * tau_eh**(5/2)
         # Dimensionful transport capacity per unit width [m3/(s*m)]
         # (page 56 of the monograph)
         q_eh_dim = q_eh * np.sqrt(R_VAR * GRAV * self.D50**3) # m3/s
@@ -231,7 +234,7 @@ class TransportCapacityCalculator:
     
         nu = 1.003*1E-6        # kinematic viscosity @ : http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
         
-        GeoStd = GSD_std(self.class_D50);
+        GeoStd = self.GSD_std(self.class_D50);
         
         #  1) settling velocity for grains - Darby, S; Shafaie, A. Fall Velocity of Sediment Particles. (1933)
         #         
@@ -409,7 +412,7 @@ class TransportCapacityCalculator:
 
     
     
-    def Molinas_rates(dmi_finer, D50_finer):
+    def Molinas_rates(self, dmi_finer, D50_finer):
         """
         Returns the Molinas coefficient of fractional transport rates pci, to be
         multiplied by the total sediment load to split it into different classes.
@@ -424,7 +427,7 @@ class TransportCapacityCalculator:
         # Molinas requires D50 and dmi in mm
                       
         # Hydraulic parameters in each flow percentile for the current reach
-        Dn = (1 + (GSD_std(dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
+        Dn = (1 + (self.GSD_std(dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
         
         tau = 1000 * GRAV * self.h * self.slope
         vstar = np.sqrt(tau / 1000);
@@ -433,8 +436,8 @@ class TransportCapacityCalculator:
         # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
         # EQ 24 , 25 , 26 , Molinas and Wu (2000)
         alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / D50_finer)**(-2))
-        beta = 0.2 * GSD_std(dmi_finer)
-        zeta = 2.8 * froude**(-1.2) *  GSD_std(dmi_finer)**(-3) 
+        beta = 0.2 * self.GSD_std(dmi_finer)
+        zeta = 2.8 * froude**(-1.2) *  self.GSD_std(dmi_finer)**(-3) 
         zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size. 
         
         # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
@@ -451,7 +454,7 @@ class TransportCapacityCalculator:
         return pci
 
 
-    def GSD_std(dmi):
+    def GSD_std(self, dmi):
         """
         Calculates the geometric standard deviation of input X, using the formula
         std = sqrt(D84/D16).

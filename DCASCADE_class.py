@@ -14,27 +14,16 @@ import sys
 import os
 np.seterr(divide='ignore', invalid='ignore')
 
-# Supporting functions
-
-# from supporting_functions import D_finder, sortdistance, matrix_compact, change_slope
-# from supporting_functions import layer_search, tr_cap_deposit
-# # from supporting_functions import cascades_end_time_or_not
-# from supporting_functions import deposit_from_passing_sediments
-# from supporting_functions import compute_time_lag
-
-# from transport_capacity_computation import compute_transport_capacity, compute_cascades_velocities
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
-
-from supporting_classes import Cascade
-
-from supporting_functions import sortdistance, change_slope, D_finder
+from supporting_classes import Cascade, SedimentarySystem
+from supporting_functions import sortdistance, D_finder
 
 
 
 class DCASCADE:
-    def __init__(self, sedim_sys, indx_flo_depth, indx_slope_red):
+    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red):
         
         self.sedim_sys = sedim_sys
         self.reach_data = sedim_sys.reach_data
@@ -108,11 +97,12 @@ class DCASCADE:
             # Slope reduction functions
             SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys.slope, Q, t, h, self.indx_slope_red)
            
-            # deposit layer from previous timestep
+            # Deposit layer from previous timestep
             Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
             
-            # volumes of sediment passing through a reach in this timestep,
-            # ready to go to the next reach in the same time step.
+            # Matrix to store volumes of sediment passing through a reach 
+            # in this timestep, ready to go to the next reach in the same time step.
+            # For each reach, stores list of Cascade objects.
             Qbi_pass = [[] for n in range(self.n_reaches)]
                     
             # loop for all reaches:
@@ -122,7 +112,7 @@ class DCASCADE:
                                    
                 # Extracts the deposit layer left in previous time step          
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
-                                           
+                
                 ###------Step 1 : Cascades generated from the reaches upstream during 
                 # the present time step, are passing the inlet of the reach
                 # (stored in Qbi_pass[n]).
@@ -145,7 +135,7 @@ class DCASCADE:
                     # Define the velocity section height:
                     # coef_AL_vel = 0.1
                     # SedimSys.vl_height[t,n] = coef_AL_vel * h[n]                 
-                    SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    #the velocity height is the same as the active layer depth
+                    SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    # the velocity height is the same as the active layer depth
                     
                     SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_init,
                                                Q[t,n], v[n], h[n], roundpar, t, n,                           
@@ -156,7 +146,7 @@ class DCASCADE:
                 # Decides weather cascades, or parts of cascades, 
                 # finish the time step here or not.
                 # After this step, Qbi_pass[n] contains volume that do not finish
-                # the time step in this reach
+                # the time step in this reach.                
                 if Qbi_pass[n] != []:
                     Qbi_pass[n], to_be_deposited = SedimSys.cascades_end_time_or_not(Qbi_pass[n], n)                    
                 else:
@@ -174,8 +164,12 @@ class DCASCADE:
                 ###------Step 2 : Mobilise volumes from the reach considering the 
                 # eventual passing cascades.
                 
-                # Temporary container to store the reach mobilised cascades:
+                # Temporary container to store the mobilised cascades from the reach itself:
                 reach_mobilized_cascades = [] 
+                
+                # Temp DD: Extract the layers in Vdep that can be eroded in this reach at this time step, 
+                # according to the erosion maximum volume               
+                # Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
                 
                 # An optional time lag vector (x n_classes) is used to mobilise reach sediment  
                 # before the eventual first passing cascade arrives at the outlet. 
@@ -221,8 +215,7 @@ class DCASCADE:
                 # considering eventually the passing cascades during the remaining time:
                 tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
-                                                                                  passing_cascades = passing_cascades,
-                                                                                  per_second = True)                
+                                                                                  passing_cascades = passing_cascades)                
                
                 # Store transport capacity and active layer informations: 
                 SedimSys.Fi_al[t, n, :] = Fi_al
@@ -241,10 +234,12 @@ class DCASCADE:
                               
                 # Mobilise:
                 Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volume(Vdep, tr_cap_per_s, 
-                                                                                n, roundpar,
-                                                                                passing_cascades = passing_cascades,
-                                                                                time_fraction = r_time_lag)
-                if passing_cascades is not None:
+                                                                                     n, roundpar,
+                                                                                     passing_cascades = passing_cascades,
+                                                                                     time_fraction = r_time_lag)
+                # Update Qbi_pass[n] in case passing cascades were considered
+                # in the transport capacity calculation:                                                             
+                if self.passing_cascade_in_trcap == True:
                     Qbi_pass[n] = passing_cascades
                     
                 # Add the possible reach mobilised cascade to a temporary container
@@ -321,7 +316,7 @@ class DCASCADE:
             # in case of changing slope..
             if self.update_slope == True:
                 #..change the slope accordingly to the bed elevation
-                self.slope[t+1,:], self.node_el[t+1,:] = change_slope(self.node_el[t+1,:], self.reach_data.length, self.network, s = self.min_slope)
+                self.slope[t+1,:], self.node_el[t+1,:] = SedimSys.change_slope(self.node_el[t+1,:], self.reach_data.length, self.network, s = self.min_slope)
                     
         """end of the time loop"""    
     
@@ -480,33 +475,34 @@ class DCASCADE:
         
         #--Output struct definition 
         #data_plot contains the most important D_CASCADE outputs 
-        data_output = {'Channel Width [m]': np.repeat(np.array(self.reach_data.wac).reshape(1,-1),len(SedimSys.Qbi_dep), axis = 0), 
-                       'Reach slope': SedimSys.slope,
-                       'Discharge [m^3/s]': Q[0:self.timescale,:],
-                       'Mobilized [m^3]': QB_mob_sum,
-                       'Transported [m^3]': tot_tranported,
-                       'Transported + deposited [m^3]': tot_sed,
-                       'D50 deposit layer [m]': D50_dep,
+        data_output = {'Channel Width [m]': np.repeat(np.array(self.reach_data.wac).reshape(1,-1),len(SedimSys.Qbi_dep), axis = 0), #
+                       'Reach slope': SedimSys.slope,   #
+                       'Discharge [m^3/s]': Q[0:self.timescale,:],  #
+                       'Mobilized [m^3]': QB_mob_sum, 
+                       'Transported [m^3]': tot_tranported, # DD: instead have what is deposited or stopping
+                       'Transported + deposited [m^3]': tot_sed,  #
+                       'D50 deposit layer [m]': D50_dep, #
                        'D50 mobilised layer [m]': D50_mob,
-                       'D50 active layer before time lag[m]': SedimSys.D50_al_before_tlag,
+                       'D50 active layer before time lag[m]': SedimSys.D50_al_before_tlag, # depending on the option
                        'D50 active layer [m]': SedimSys.D50_al,
-                       'Transport capacity [m^3]': SedimSys.tr_cap_sum,
-                       'Deposit layer [m^3]': V_dep_sum,
-                       # 'Delta deposit layer [m^3]': self.Delta_V_all,
-                       'Transported + deposited - per class [m^3]': tot_sed_class,
-                       'Deposited - per class [m^3]': deposited_class,
-                       'Mobilised - per class [m^3]': mobilised_class,
-                       'Transported- per class [m^3]': transported_class,
+                       'Transport capacity [m^3]': SedimSys.tr_cap_sum, #
+                       'Deposit layer [m^3]': V_dep_sum, #
+                       # 'Delta deposit layer [m^3]': self.Delta_V_all, # --> add the budget
+                       'Transported + deposited - per class [m^3]': tot_sed_class, #
+                       'Deposited - per class [m^3]': deposited_class, # flag per class ?
+                       'Mobilised - per class [m^3]': mobilised_class, #
+                       'Transported - per class [m^3]': transported_class, #
                        # 'Delta deposit layer - per class [m^3]': self.Delta_V_class,
-                       'Transport capacity - per class [m^3]': tr_cap_class,
-                       'Sed_velocity [m/day]': SedimSys.V_sed,
-                       'Sed_velocity - per class [m/day]': V_sed_class,
-                       'Flow depth': SedimSys.flow_depth,
-                       'Active layer [m]': SedimSys.al_depth,
-                       'Maximum erosion layer [m]': SedimSys.eros_max_depth,
-                       'Q_out [m^3]': SedimSys.Q_out,
-                       'Q_out_class [m^3]': Q_out_class,
-                       'Q_out_tot [m^3]': outcum_tot
+                       'Transport capacity - per class [m^3]': tr_cap_class, #
+                       'Sed_velocity [m/day]': SedimSys.V_sed, #
+                       'Sed_velocity - per class [m/day]': V_sed_class, #
+                       'Flow depth': SedimSys.flow_depth, #
+                       'Active layer [m]': SedimSys.al_depth, # rename
+                       'Maximum erosion layer [m]': SedimSys.eros_max_depth, #
+                       # output to say when we reach the maximum erosion layer
+                       'Q_out [m^3]': SedimSys.Q_out, # rename
+                       'Q_out_class [m^3]': Q_out_class, #
+                       'Q_out_tot [m^3]': outcum_tot #
                        }
     
         if self.indx_tr_cap == 7:
@@ -517,8 +513,8 @@ class DCASCADE:
                            'Qbi_mob': SedimSys.Qbi_mob,
                            'Q_out': SedimSys.Q_out,
                            'Qbi_dep': SedimSys.Qbi_dep,
-                           'Fi_r_ac': SedimSys.Fi_al,
-                           'node_el': SedimSys.node_el
+                           'Fi_r_ac': SedimSys.Fi_al,  #
+                           'node_el': SedimSys.node_el # return if the option update_slope is true
                            }
         
         return data_output, extended_output
