@@ -49,7 +49,7 @@ class ReachData:
         self.el_fn = geodataframe['el_FN'].astype(float).values
         self.el_tn = geodataframe['el_TN'].astype(float).values
         
-        self.rugosity = self.compute_rugosity()
+        self.roughness = self.compute_roughness()
         
         # Optional attributes
         self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else None
@@ -91,16 +91,15 @@ class ReachData:
                 
         return sorted_indices
     
-    def compute_rugosity(self):
-        # DD: idea of function for the rugosity. 
+    def compute_roughness(self):
         # to test and see if it is what we want in terms of physics
-        if 'rugosity' in self.geodf:
-            rugosity = self.geodf['rugosity'].astype(float).values
+        if 'roughness' in self.geodf:
+            roughness = self.geodf['roughness'].astype(float).values
         elif 'D90' in self.geodf:
-            rugosity = self.geodf['D90'].astype(float).values
+            roughness = self.geodf['D90'].astype(float).values
         else:
-            rugosity = self.geodf['D84'].astype(float).values
-        return rugosity
+            roughness = self.geodf['D84'].astype(float).values
+        return roughness
 
 
 
