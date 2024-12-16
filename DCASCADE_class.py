@@ -87,6 +87,8 @@ class DCASCADE:
         
         # start waiting bar    
         for t in tqdm(range(self.timescale - 1)):
+            if t == 201:
+                print('ok')
             
             # TODO: DD see with Anne Laure and Felix, which slope are we using for the flow?
             
@@ -107,7 +109,7 @@ class DCASCADE:
                     
             # loop for all reaches:
             for n in self.network['n_hier']:  
-                if n==2 and t==97:
+                if n==0 and t==153:
                     print('stopped')
                 
                 # TODO : How to include the lateral input ?
@@ -247,19 +249,21 @@ class DCASCADE:
                     if Qbi_stopped is not None:
                         Qbi_stopped_per_s = copy.deepcopy(Qbi_stopped)
                         Qbi_stopped_per_s[:,1:] = Qbi_stopped_per_s[:,1:] / self.ts_length
-                        Vdep_temp = copy.deepcopy(Vdep)
-                        Vdep_temp = np.concatenate([Vdep_temp, Qbi_stopped_per_s], axis=0)
-                        # elapsed_time = np.zeros(self.n_classes)
-                        # cascades_stopped = [Cascade(n, elapsed_time, Qbi_stopped_per_s)]
-                    else: 
-                        Vdep_temp = copy.deepcopy(Vdep)
-                else:
-                    Vdep_temp = copy.deepcopy(Vdep)
+                        # Vdep_temp = copy.deepcopy(Vdep)
+                        # Vdep_temp = np.concatenate([Vdep_temp, Qbi_stopped_per_s], axis=0)
+                        elapsed_time = np.zeros(self.n_classes)
+                        cascades_stopped = [Cascade(n, elapsed_time, Qbi_stopped_per_s)]
+                    else:
+                        cascades_stopped = None
+                #     else: 
+                #         Vdep_temp = copy.deepcopy(Vdep)
+                # else:
+                #     Vdep_temp = copy.deepcopy(Vdep)
                     
-                tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_temp, roundpar, t, n, Q, v, h,
+                tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
-                                                                                  passing_cascades = passing_cascades)                
-                del Vdep_temp
+                                                                                  passing_cascades = cascades_stopped)                
+                # del Vdep_temp
                 
                 # Store transport capacity and active layer informations: 
                 SedimSys.Fi_al[t, n, :] = Fi_al
@@ -279,11 +283,14 @@ class DCASCADE:
                 # Mobilise:
                 if self.passing_cascade_in_outputs == False:
                     if Qbi_stopped is not None:
-                        Vdep = np.concatenate([Vdep, Qbi_stopped], axis=0)
-                    
+                        # Vdep = np.concatenate([Vdep, Qbi_stopped], axis=0)
+                        elapsed_time = np.zeros(self.n_classes)
+                        cascades_stopped = [Cascade(n, elapsed_time, Qbi_stopped)]
+                    else: 
+                        cascades_stopped = None
                 Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volume(Vdep, tr_cap_per_s, 
                                                                                      n, roundpar,
-                                                                                     passing_cascades = passing_cascades,
+                                                                                     passing_cascades = cascades_stopped,
                                                                                      time_fraction = r_time_lag)
                 # Update Qbi_pass[n] in case passing cascades were considered
                 # in the transport capacity calculation:                                                             
@@ -298,7 +305,9 @@ class DCASCADE:
                         elapsed_time = time_lag
                     provenance = n
                     reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Vmob))
-                
+                if passing_cascades is not None:
+                    reach_mobilized_cascades.extend(passing_cascades)
+
 
                 ###-----Step 3: Finalisation.
                 
