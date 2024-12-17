@@ -153,7 +153,7 @@ class DCASCADE:
                 if self.passing_cascade_in_outputs == False:
                     if Qbi_stopped is not None:
                         Qbi_stopped_per_s = copy.deepcopy(Qbi_stopped)
-                        Qbi_stopped_per_s[:,1:] = Qbi_stopped_per_s[:,1:] / self.ts_length
+                        # Qbi_stopped_per_s[:,1:] = Qbi_stopped_per_s[:,1:] / self.ts_length
                         Vdep_temp = copy.deepcopy(Vdep_init)
                         Vdep_temp = np.concatenate((Vdep_temp, Qbi_stopped_per_s))
                         # elapsed_time = np.zeros(self.n_classes)
@@ -248,7 +248,7 @@ class DCASCADE:
                 if self.passing_cascade_in_outputs == False:
                     if Qbi_stopped is not None:
                         Qbi_stopped_per_s = copy.deepcopy(Qbi_stopped)
-                        Qbi_stopped_per_s[:,1:] = Qbi_stopped_per_s[:,1:] / self.ts_length
+                        # Qbi_stopped_per_s[:,1:] = Qbi_stopped_per_s[:,1:] / self.ts_length
                         # Vdep_temp = copy.deepcopy(Vdep)
                         # Vdep_temp = np.concatenate([Vdep_temp, Qbi_stopped_per_s], axis=0)
                         elapsed_time = np.zeros(self.n_classes)
