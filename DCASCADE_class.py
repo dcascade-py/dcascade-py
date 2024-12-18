@@ -141,7 +141,8 @@ class DCASCADE:
                                                Q[t,n], v[n], h[n], roundpar, t, n,                           
                                                self.indx_velocity, self.indx_vel_partition, 
                                                self.indx_tr_cap, self.indx_tr_partition)
-
+                else:
+                    SedimSys.V_sed[t, n, :] = np.nan
                 
                 # Decides weather cascades, or parts of cascades, 
                 # finish the time step here or not.
