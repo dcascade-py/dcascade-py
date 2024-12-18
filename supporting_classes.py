@@ -442,7 +442,6 @@ class SedimentarySystem:
             depositing_volume = np.concatenate(depositing_volume_list, axis=0)
             if np.all(depositing_volume[:,1:] == 0):
                 raise ValueError("DD check: we have an empty layer stopping ?")
-            depositing_volume = self.matrix_compact(depositing_volume)
         else:
             depositing_volume = None
         
