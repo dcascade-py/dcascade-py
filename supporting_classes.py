@@ -136,6 +136,7 @@ class SedimentarySystem:
         self.Qbi_dep = None
         self.Qbi_tr = None
         self.Qbi_mob = None
+        self.Qbi_mob_from_r = None
         self.V_sed = None
         self.Q_out = None
         self.slope = None
@@ -162,6 +163,11 @@ class SedimentarySystem:
         # self.Delta_V_class_all = None   # DD: To be removed        
         # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
 
+    def create_4d_zero_array(self):
+        ''' This type of matrice is made for including provenance (axis 0)
+        Note: we add the time as a list, otherwise we can not look at the 4d matrix in spyder.               
+        '''
+        return [np.zeros((self.n_reaches, self.n_reaches, self.n_classes), dtype=np.float32) for _ in range(self.timescale)]
         
     def create_3d_zero_array(self):
         return np.zeros((self.timescale, self.n_reaches, self.n_classes))
@@ -186,9 +192,10 @@ class SedimentarySystem:
         self.node_el = np.zeros((self.timescale, self.n_reaches + 1))
         self.node_el[0,:] = np.append(self.reach_data.el_fn, self.reach_data.el_tn[self.outlet])
         self.node_el[1,:] = np.append(self.reach_data.el_fn, self.reach_data.el_tn[self.outlet])
+        # Fix last node elevation for all time steps:
         self.node_el[:,-1] = self.node_el[1,-1]
         
-        # In case of constant slope
+        # In case of constant slope:
         if self.update_slope == False:
             self.node_el[:,: ] = self.node_el[0,:]
         
@@ -204,16 +211,21 @@ class SedimentarySystem:
             dep_save_number = self.timescale
         self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_classes + 1, dtype=np.float32), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
         
-        self.Qbi_tr = [np.zeros((self.n_reaches, self.n_reaches, self.n_classes), dtype=np.float32) for _ in range(self.timescale)] # sediment within the reach AFTER transfer, which also gives the provenance 
-        self.Qbi_mob = [np.zeros((self.n_reaches, self.n_reaches, self.n_classes), dtype=np.float32) for _ in range(self.timescale)] # sediment within the reach BEFORE transfer, which also gives the provenance
-        # Note Qbi_tr and Qbi_mob are 3D matrices, if we add the time as a 4th dimension, we can not look at the matrix in spyder. 
-               
+        # Initial Qbi_dep:
         self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1, dtype=np.float32), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches  
-       
+              
+        # Moving sediments storing matrice        
+        self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
+        self.Qbi_mob_from_r = self.create_4d_zero_array() # Volume mobilised from reach (gives also original provenance)
+        # TODO: DD see if we keep Qbi_tr
+        self.Qbi_tr = self.create_4d_zero_array() # Volume entering the reach (gives also original provenance) 
+        self.direct_connectivity = self.create_4d_zero_array() # Direct connectivity matrice
+
         # 3D arrays
         self.Q_out = self.create_3d_zero_array()  # amount of material delivered outside the network in each timestep
         self.V_sed = self.create_3d_zero_array()  # velocities
-        
+        self.sediment_budget = self.create_3d_zero_array() 
+                        
         self.tr_cap = self.create_3d_zero_array()  # transport capacity per each sediment class
         self.tr_cap_before_tlag = self.create_3d_zero_array()
         
@@ -222,15 +234,15 @@ class SedimentarySystem:
         self.Fi_al_before_tlag = self.create_3d_zero_array()
         self.Fi_al_before_tlag[:,0] = np.nan #DD: why ?
         self.Qc_class_all = self.create_3d_zero_array()
-        # self.Delta_V_class_all = self.create_3d_zero_array()
-        
+
         # 2D arrays
         self.D50_al = self.create_2d_zero_array()  # D50 of the active layer in each reach in each timestep
         self.D50_al_before_tlag = self.create_2d_zero_array()
         self.tr_cap_sum = self.create_2d_zero_array()  # total transport capacity 
         self.flow_depth = self.create_2d_zero_array()
-        # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
- 
+        
+
+
     def set_sediment_initial_deposit(self, Qbi_dep_in):
         #TODO: (DD) better way to store Qbi_dep, Qbi_dep_0 etc ? 
         for n in self.network['n_hier']:  
@@ -327,8 +339,8 @@ class SedimentarySystem:
             for cascade in cascades_list: 
                 cascade.velocities = velocities
                 
-        # Store velocities in m/ts_length
-        self.V_sed[t, n, :] = velocities * self.ts_length
+        # Store velocities in m/s
+        self.V_sed[t, n, :] = velocities
 
 
     def volume_velocities(self, volume, Q_reach, v, h, t, n, 
@@ -381,7 +393,7 @@ class SedimentarySystem:
     
     
     
-    def cascades_end_time_or_not(self, cascade_list, n):
+    def cascades_end_time_or_not(self, cascade_list, n, t):
         ''' Fonction to decide if the traveling cascades in cascade list stop in 
         the reach or not, due to the end of the time step.
         Inputs:
@@ -416,6 +428,8 @@ class SedimentarySystem:
             
             if Vm_stop is not None:
                 depositing_volume_list.append(Vm_stop)
+                # Fill connectivity matrice:
+                self.direct_connectivity[t][cascade.provenance, n, :] += np.sum(Vm_stop[:,1:], axis = 0)
                 
                 if Vm_continue is None: 
                     # no part of the volume continues, we remove the entire cascade
@@ -530,7 +544,7 @@ class SedimentarySystem:
         return tr_cap_per_s, Fi_al_, D50_al_, Qc
     
     
-    def compute_mobilised_volume(self, Vdep, tr_cap_per_s, n, roundpar,
+    def compute_mobilised_volume(self, Vdep, tr_cap_per_s, n, t, roundpar,
                                  passing_cascades = None, time_fraction = None):
         
         # Case where we don't consider a time lag, the time for mobilising is the complete time step:
@@ -572,7 +586,7 @@ class SedimentarySystem:
         # They are deposited, i.e. directly added to Vdep
         diff_neg = -np.where(diff_with_capacity > 0, 0, diff_with_capacity)     
         if np.any(diff_neg):  
-            Vm_removed, passing_cascades, residual = self.deposit_from_passing_sediments(np.copy(diff_neg), passing_cascades, roundpar)
+            Vm_removed, passing_cascades, residual = self.deposit_from_passing_sediments(np.copy(diff_neg), passing_cascades, roundpar, n, t)
             # Deposit the Vm_removed:
             Vdep_new = np.concatenate([Vdep_new, Vm_removed], axis=0)
         
@@ -849,7 +863,7 @@ class SedimentarySystem:
 
 
 
-    def deposit_from_passing_sediments(self, V_remove, cascade_list, roundpar):
+    def deposit_from_passing_sediments(self, V_remove, cascade_list, roundpar, n, t):
         ''' This function remove the quantity V_remove from the list of cascades. 
         The order in which we take the cascade is from largest times (arriving later) 
         to shortest times (arriving first). Hypotheticaly, cascade arriving first 
@@ -897,7 +911,9 @@ class SedimentarySystem:
                             # Ensure no negative values 
                             if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) == True:
                                 raise ValueError("Negative value in VM is strange")
-                        
+                            # Store removed volume in direct connectivity matrix:
+                            self.direct_connectivity[t][casc.provenance, n, col_idx] += np.sum(removed_quantities)
+                                
                         # Store the removed quantities in the removed volumes matrix
                         removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove               
                         # Update V_remove by subtracting the total removed quantity
