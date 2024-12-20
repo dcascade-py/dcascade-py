@@ -3,13 +3,31 @@
 """
 Created on Tue Mar 10 17:26:23 2020
 
-@author: Marco Tangi and Elisa Bozzolan
+@author: Marco Tangi, Elisa Bozzolan and Diane Doolaeghe
 """
 
 import numpy as np
 import networkx as nx
 import os
 import pandas as pd
+import geopandas as gpd
+
+
+
+def read_network(file_path):
+    # Get the file extension
+    file_extension = os.path.splitext(file_path)[1].lower()
+
+    if file_extension == '.csv':
+        # Read CSV file using pandas
+        return pd.read_csv(file_path)
+    
+    elif file_extension == '.shp':
+        # Read Shapefile using geopandas
+        return gpd.read_file(file_path)
+    
+    else:
+        raise ValueError(f"Unsupported file type: {file_extension}")
 
 
 def extract_Q(filename_q):

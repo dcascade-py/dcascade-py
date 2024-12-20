@@ -30,7 +30,7 @@ This script was adapted from the Matlab version by Marco Tangi
 
 # import libraries 
 import numpy as np
-import geopandas as gpd
+# import geopandas as gpd
 import pandas as pd
 from plot_function import dynamic_plot
 import copy
@@ -38,7 +38,7 @@ from numpy import random
 
 # import ad hoc functions
 from GSD import GSDcurvefit
-from preprocessing import graph_preprocessing, extract_Q
+from preprocessing import read_network, extract_Q, graph_preprocessing
 from DCASCADE_main_script import DCASCADE_main
 from supporting_classes import ReachData
 from widget import read_user_input
@@ -97,7 +97,7 @@ roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (a
 ################ MAIN ###############
 
 # Read the network 
-network = gpd.GeoDataFrame.from_file(filename_river_network) #read shapefine from shp format
+network = read_network(filename_river_network) 
 reach_data = ReachData(network)
 
 # Define the initial deposit layer per each reach in [m3/m]
@@ -144,8 +144,8 @@ for n in range(reach_data.n_reaches):
 
 # Compulsory indexes to choose:
 # Indexes for the transport capacity:
-indx_tr_cap = 7 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
-indx_tr_partition = 2 # 2: BMF; 4: Shear stress correction
+indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
+indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
 
 # Index for the flow calculation: 
 indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)

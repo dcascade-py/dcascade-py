@@ -7,7 +7,7 @@ Created on Thu Sep  5 13:50:28 2024
 
 import numpy as np
 from DCASCADE_main_script import DCASCADE_main, ReachData
-from preprocessing import graph_preprocessing, extract_Q
+from preprocessing import graph_preprocessing, extract_Q, read_network
 from pathlib import Path
 import geopandas as gpd
 from GSD import GSDcurvefit
@@ -59,7 +59,7 @@ def test_Po_Engelund_all_new_options_false():
     
     
     # reach data
-    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    network = read_network(filename_river_network)   
     reach_data = ReachData(network)
     reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
     sorted_indices = reach_data.sort_values_by(reach_data.from_n)
@@ -208,7 +208,7 @@ def test_Po_Wilcock_all_new_options_false():
     
     
     # reach data
-    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    network = read_network(filename_river_network)  
     reach_data = ReachData(network)
     reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
     sorted_indices = reach_data.sort_values_by(reach_data.from_n)
@@ -354,7 +354,7 @@ def test_Po_Engelund_all_true_no_tlag():
     
     
     # reach data
-    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    network = read_network(filename_river_network)  
     reach_data = ReachData(network)
     reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
     sorted_indices = reach_data.sort_values_by(reach_data.from_n)
@@ -503,7 +503,7 @@ def test_Po_Wilcock_all_true_no_tlag():
     
     
     # reach data
-    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    network = read_network(filename_river_network)
     reach_data = ReachData(network)
     reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
     sorted_indices = reach_data.sort_values_by(reach_data.from_n)
@@ -651,7 +651,7 @@ def test_Po_Engelund_all_new_options_true():
     
     
     # reach data
-    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    network = read_network(filename_river_network)
     reach_data = ReachData(network)
     reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
     sorted_indices = reach_data.sort_values_by(reach_data.from_n)
@@ -775,7 +775,7 @@ def test_Po_Wilcock_all_new_options_true():
     
     
     # reach data
-    network = gpd.GeoDataFrame.from_file(filename_river_network)  # read shapefine from shp format
+    network = read_network(filename_river_network)
     reach_data = ReachData(network)
     reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
     sorted_indices = reach_data.sort_values_by(reach_data.from_n)
