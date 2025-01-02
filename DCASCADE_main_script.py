@@ -26,7 +26,8 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
                   indx_tr_cap, indx_tr_partition, indx_flo_depth,                 
                   indx_velocity = 2, 
                   indx_vel_partition = 1,                   
-                  indx_slope_red = 1,                  
+                  indx_slope_red = 1,
+                  indx_width_variation = 1,
                   passing_cascade_in_outputs = True,
                   passing_cascade_in_trcap = True, 
                   time_lag_for_mobilised = True):
@@ -81,10 +82,10 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
     sedimentary_system.set_active_layer(al_depth)
-    
+        
     
     # Create DCASCADE solver 
-    dcascade = DCASCADE(sedimentary_system, indx_flo_depth, indx_slope_red)
+    dcascade = DCASCADE(sedimentary_system, indx_flo_depth, indx_slope_red, indx_width_variation)
     
     dcascade.set_transport_indexes(indx_tr_cap, indx_tr_partition)
     dcascade.set_velocity_indexes(indx_velocity, indx_vel_partition)

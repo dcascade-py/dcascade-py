@@ -17,6 +17,12 @@ np.seterr(divide='ignore', invalid='ignore')
 
 from transport_capacity_computation import TransportCapacityCalculator 
 from supporting_functions import D_finder
+from constants import (
+    RHO_S,
+    RHO_W,
+    GRAV,
+    R_VAR,
+)
 
 
 
@@ -140,6 +146,7 @@ class SedimentarySystem:
         self.V_sed = None
         self.Q_out = None
         self.slope = None
+        self.width = None
         self.node_el = None
         self.flow_depth = None
         self.tr_cap = None 

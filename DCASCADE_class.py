@@ -17,13 +17,15 @@ np.seterr(divide='ignore', invalid='ignore')
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
+from width_variation import choose_widthVariation
 from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
 
 
 
 class DCASCADE:
-    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red):
+    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red,
+                 indx_width_variation):
         
         self.sedim_sys = sedim_sys
         self.reach_data = sedim_sys.reach_data
@@ -40,6 +42,7 @@ class DCASCADE:
         # Indexes
         self.indx_flo_depth = indx_flo_depth
         self.indx_slope_red = indx_slope_red
+        self.indx_width_variation = indx_width_variation
         self.indx_tr_cap = None
         self.indx_tr_partition = None
         self.indx_velocity = None
@@ -75,8 +78,6 @@ class DCASCADE:
             
     
     def run(self, Q, roundpar):
-        # DD: Should we create a subclass in SedimentarySystem to handle the temporary parameters for one time step
-        # like Qbi_pass, Qbi_dep_0 ? Could be SedimentarySystemOneTime ?
         
         SedimSys = self.sedim_sys
         
@@ -92,6 +93,9 @@ class DCASCADE:
             # Slope reduction functions
             SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys.slope, Q, t, h, self.indx_slope_red)
            
+            # Width variation functions
+            SedimSys.width = choose_widthVariation(self.reach_data, SedimSys.width, Q, t, h, self.indx_width_variation)
+                      
             # Deposit layers of all reaches from previous timestep
             Qbi_dep_old = copy.deepcopy(SedimSys.Qbi_dep_0)
             
@@ -384,6 +388,8 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed,
                            'Node_el [m]': SedimSys.node_el,
                            'Fi_al': SedimSys.Fi_al,
+                           'AL depth [m]': SedimSys.al_depth,
+                           
                            }
         
         if self.time_lag_for_mobilised == True:
