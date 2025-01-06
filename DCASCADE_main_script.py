@@ -76,7 +76,8 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     # Create sedimentary system 
     sedimentary_system = SedimentarySystem(reach_data, network, timescale, ts_length, 
                                            save_dep_layer, update_slope, psi)
-    sedimentary_system.initialize_slopes()
+    sedimentary_system.initialize_widths()
+    sedimentary_system.initialize_slopes()    
     sedimentary_system.initialize_elevations()
     sedimentary_system.initialize_storing_matrices()
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)

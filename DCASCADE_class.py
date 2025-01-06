@@ -294,9 +294,9 @@ class DCASCADE:
                 
                 # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
                 if self.update_slope == True:
-                    sed_budg_t_n = np.sum(SedimSys.sediment_budget[t,n,:])                                   
-                    # TODO: DD check this line
-                    self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.Wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
+                    sed_budg_t_n = np.sum(SedimSys.sediment_budget[t,n,:]) 
+                    # TODO: DD check this line 
+                    self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
                                                 
             """End of the reach loop"""
             
@@ -554,7 +554,7 @@ class DCASCADE:
         
         #--Output struct definition 
         #data_plot contains the most important D_CASCADE outputs 
-        data_output = {'Channel Width [m]': np.repeat(np.array(self.reach_data.wac).reshape(1,-1),len(SedimSys.Qbi_dep), axis = 0), #
+        data_output = {'Channel Width [m]': SedimSys.width,
                        'Reach slope': SedimSys.slope,   #
                        'Discharge [m^3/s]': Q[0:self.timescale,:],  #
                        'Mobilized [m^3]': QB_mob_sum, 

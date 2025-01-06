@@ -32,8 +32,11 @@ def vary_width_Lugo(width, Q, reach_data, t):
     # Dimentionless stream power:
     w_star = (Q[t, :] * slopes) / (max_widths * np.sqrt(GRAV * R_VAR * d50s**3))
     
-    # active width        
+    # active width
+    # DD: Note, 0.2 will be the minimum ratio in this case.         
     width[t] = np.maximum(0.20, np.minimum(2.36 * w_star + 0.09, 1)) * max_widths
+    
+    return width
    
 def choose_widthVariation(reach_data, width, Q, t, h, width_vary):
     if width_vary == 1:
