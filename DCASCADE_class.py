@@ -318,11 +318,11 @@ class DCASCADE:
         # Volume in             : total volume [m^3] entering the reach per time step, including passing cascades
         # Sediment budget       : budget between the total leaving the reach and entering the reach
         # Mobilised from reach  : total volume [m^3] from the reach per time step, excluding passing cascades
-        # Deposited             : volume that deposit in the reach [m^3] (includes cascades finishing the time step + over-capacity cascades)
+        # Deposited             : volume that deposits in the reach [m^3] (includes cascades finishing the time step + over-capacity cascades)
         # Volume outlet         : total volume of sediment leaving the network
-        # D50 mobilised layer   : D50 in the mobilised volume    
+        # D50 volume out        : D50 in the volume out    
         # D50 active layer      : D50 in the active layer, used to compute the transport capacity
-        # Direct connectivity   : volume connectivity per time step 
+        # Direct connectivity   : volume connectivity per time step (axis 0). For a given cascade produce by a reach (axis 1), we see where it deposits (axis 2).
         # Transport capacity    : total transport capacity [m^3] per reach and per time step
         # Touch erosion max     : binary matrice indicating when the erosion maximum is reached
         
@@ -362,7 +362,7 @@ class DCASCADE:
                        'Mobilised from reach [m^3]': mobilised_from_reach,
                        'Deposited [m^3]': deposited,
                        'Volume outlet [m^3]': mobilised[:, SedimSys.outlet],
-                       'D50 mobilised [m]': D50_mob,
+                       'D50 volume out [m]': D50_mob,
                        'D50 active layer [m]': SedimSys.D50_al,
                        'Direct connectivity [m^3]': direct_connectivity,
                        'Transport capacity [m^3]': transport_capacity                      
