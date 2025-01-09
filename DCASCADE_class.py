@@ -83,9 +83,7 @@ class DCASCADE:
         
         # start waiting bar    
         for t in tqdm(range(self.timescale - 1)):
-            
-            # TODO: DD see with Anne Laure and Felix, which slope are we using for the flow?
-            
+                        
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys.slope, Q, t, self.indx_flo_depth)
             SedimSys.flow_depth[t] = h
@@ -107,10 +105,12 @@ class DCASCADE:
             # loop for all reaches:
             for n in self.network['n_hier']:  
                 
-                # TODO : How to include the lateral input ?
-                                   
                 # Extracts the deposit layer left in previous time step          
-                Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach 
+                Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
+                
+                # Extract external cascade (if they are)
+                if SedimSys.external_inputs is not None:
+                    Qbi_pass[n] = SedimSys.extract_external_inputs(Qbi_pass[n], t, n)
                 
                 ###------Step 1 : Cascades generated from the reaches upstream during 
                 # the present time step, are passing the inlet of the reach
@@ -159,24 +159,26 @@ class DCASCADE:
                                                         
                 # After this step, Qbi_pass[n] contains volume that do not finish
                 # the time step in this reach, i.e the passing cascades
-                                
-                    
+
+             
                 ###------Step 2 : Mobilise volumes from the reach considering the 
                 # eventual passing cascades.
                 
+
                 # Temporary container to store the mobilised cascades from the reach itself:
                 reach_mobilized_cascades = [] 
                 
-                # Temp DD: Extract the layers in Vdep that can be eroded in this reach at this time step, 
-                # according to the erosion maximum volume               
+                # TODO idea DD: Extract the layers in Vdep that can be eroded in this reach at this time step, 
+                # according to the erosion maximum volume  ?             
                 # Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
                 
                 # An optional time lag vector (x n_classes) is used to mobilise reach sediment  
                 # before the eventual first passing cascade arrives at the outlet. 
-                # (NB: it is a proportion of the time step)                 
+                # (NB: it is a proportion of the time step)    
+                
                 if self.time_lag_for_mobilised == True and Qbi_pass[n] != []:  
-                    time_lag = SedimSys.compute_time_lag(Qbi_pass[n]) 
-                    # Transport capacity is only calculated on Vdep_init
+                    time_lag = SedimSys.compute_time_lag(Qbi_pass[n])
+                    # Transport capacity is only calculated on Vdep_init (plus possibly external cascades)
                     tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                              self.indx_tr_cap, self.indx_tr_partition)
                     # Store values: 
@@ -186,7 +188,7 @@ class DCASCADE:
                     
                     # Mobilise during the time lag
                     Vmob, _, Vdep = SedimSys.compute_mobilised_volume(Vdep_init, tr_cap_per_s, 
-                                                                      n, t, roundpar,
+                                                                      n, t, roundpar,                        
                                                                       time_fraction = time_lag) 
                                        
                     # Add the possible mobilised cascade to a temporary container
@@ -194,6 +196,7 @@ class DCASCADE:
                         elapsed_time = np.zeros(self.n_classes) # it start its journey at the beginning of the time step
                         provenance = n
                         reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Vmob))
+                    
                         
                     # Remaining time after time lag
                     r_time_lag = 1 - time_lag 
@@ -246,7 +249,7 @@ class DCASCADE:
                     if time_lag is None:
                         elapsed_time = np.zeros(self.n_classes) 
                     else: 
-                        elapsed_time = time_lag
+                        elapsed_time = time_lag * np.ones(self.n_classes)
                     provenance = n
                     reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Vmob))
                                         
@@ -322,11 +325,11 @@ class DCASCADE:
         # Volume in             : total volume [m^3] entering the reach per time step, including passing cascades
         # Sediment budget       : budget between the total leaving the reach and entering the reach
         # Mobilised from reach  : total volume [m^3] from the reach per time step, excluding passing cascades
-        # Deposited             : volume that deposit in the reach [m^3] (includes cascades finishing the time step + over-capacity cascades)
+        # Deposited             : volume that deposits in the reach [m^3] (includes cascades finishing the time step + over-capacity cascades)
         # Volume outlet         : total volume of sediment leaving the network
-        # D50 mobilised layer   : D50 in the mobilised volume    
+        # D50 volume out        : D50 in the volume out    
         # D50 active layer      : D50 in the active layer, used to compute the transport capacity
-        # Direct connectivity   : volume connectivity per time step 
+        # Direct connectivity   : volume connectivity per time step (axis 0). For a given cascade produce by a reach (axis 1), we see where it deposits (axis 2).
         # Transport capacity    : total transport capacity [m^3] per reach and per time step
         # Touch erosion max     : binary matrice indicating when the erosion maximum is reached
         
@@ -366,7 +369,7 @@ class DCASCADE:
                        'Mobilised from reach [m^3]': mobilised_from_reach,
                        'Deposited [m^3]': deposited,
                        'Volume outlet [m^3]': mobilised[:, SedimSys.outlet],
-                       'D50 mobilised [m]': D50_mob,
+                       'D50 volume out [m]': D50_mob,
                        'D50 active layer [m]': SedimSys.D50_al,
                        'Direct connectivity [m^3]': direct_connectivity,
                        'Transport capacity [m^3]': transport_capacity                      

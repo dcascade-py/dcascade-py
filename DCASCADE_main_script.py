@@ -21,9 +21,10 @@ import itertools
            
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, 
+def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar, 
                   update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                  indx_tr_cap, indx_tr_partition, indx_flo_depth,                 
+                  indx_tr_cap, indx_tr_partition, indx_flo_depth, 
+                  external_inputs = None,
                   indx_velocity = 2, 
                   indx_vel_partition = 1,                   
                   indx_slope_red = 1,
@@ -40,7 +41,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     reach_data          = nx1 Struct defining the features of the network reaches
     network             = 1x1 struct containing for each node info on upstream and downstream nodes
     Q                   = txn matrix reporting the discharge for each timestep
-    Qbi_input           = per each reach and per each timestep is defined an external sediment input of a certain sediment class
+    external_input      = txnxn_c matrix. Per each reach and per each timestep is defined an external sediment input of a certain sediment class
     Qbi_dep_in          = sediment material volume available in reaches at the beginning of the simulation
                         (it could be that for the same reach id, there are two strata defined so two rows of the dataframe with the top row is the deepest strata)
     timescale           = length for the time horizion considered
@@ -81,9 +82,12 @@ def DCASCADE_main(reach_data, network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
     sedimentary_system.initialize_elevations()
     sedimentary_system.initialize_storing_matrices()
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
+    sedimentary_system.set_external_input(external_inputs, roundpar)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
     sedimentary_system.set_active_layer(al_depth)
         
+    
+    
     
     # Create DCASCADE solver 
     dcascade = DCASCADE(sedimentary_system, indx_flo_depth, indx_slope_red, indx_width_variation)
