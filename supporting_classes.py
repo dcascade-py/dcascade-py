@@ -24,10 +24,11 @@ class Cascade:
     def __init__(self, provenance, elapsed_time, volume):
         self.provenance = provenance
         self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
-        self.volume = volume
+        self.volume = volume # size = n_classes + 1, to include the original provenance in a first column
         # To be filled during the time step
         self.velocities = np.nan # in m/s
-
+        # Flag to know if the cascade is from external source (default False)
+        self.is_external = False
 
            
         
@@ -109,9 +110,7 @@ class SedimentarySystem:
     '''
     #TODO: (DD) tests must be made on eros max, al, and velocity_height 
     # to make sure that they don't contain Nans
-    #TODO: Better think on how the matrices should be initialised.
-    # For example the vel_section_height should it not be directly set as a 2D zero
-    # matrice in the constructor ? (I did it)
+
     
     def __init__(self, reach_data, network, timescale, ts_length, save_dep_layer, 
                  update_slope, psi, phi = 0.4, minvel = 0.0000001):
@@ -134,6 +133,7 @@ class SedimentarySystem:
         
         # Storing matrices
         self.Qbi_dep = None
+        self.lateral_inputs = None
         self.Qbi_tr = None
         self.Qbi_mob = None
         self.Qbi_mob_from_r = None
@@ -160,8 +160,7 @@ class SedimentarySystem:
         self.Qbi_dep_0 = None 
         
         self.Qc_class_all = None        # DD: can it be optional ?
-        # self.Delta_V_class_all = None   # DD: To be removed        
-        # self.Delta_V_all = self.create_2d_zero_array()  # reach mass balance (volumes eroded or deposited)
+
 
     def create_4d_zero_array(self):
         ''' This type of matrice is made for including provenance (axis 0)
@@ -289,8 +288,26 @@ class SedimentarySystem:
         # Store it for all time steps:
         self.al_vol = np.tile(al_vol_t, (self.timescale, 1))
         self.al_depth = np.tile(al_depth_t, (self.timescale, 1))
-
+        
+    def set_external_input(self, external_inputs, roundpar):
+        # define Qbi_input in this sed_system
+        self.external_inputs = external_inputs
+        
     
+    def extract_external_inputs(self, cascade_list, t, n):   
+        # Create a new cascade in reach n at time step t, to be added to the cascade list
+        if numpy.any(self.external_inputs[t, n, :] > 0):
+            provenance = n
+            elapsed_time = np.zeros(self.n_classes)  
+            volume = np.expand_dims(np.append(n, self.external_inputs[t, n, :]), axis = 0)
+            ext_cascade = Cascade(provenance, elapsed_time, volume)
+            # We specify that the cascade is external: 
+            ext_cascade.is_external = True 
+            cascade_list.append(ext_cascade)
+            
+        return cascade_list
+        
+        
     def compute_cascades_velocities(self, cascades_list, Vdep, 
                                     Q_reach, v, h, roundpar, t, n, 
                                     indx_velocity, indx_vel_partition,
@@ -420,7 +437,13 @@ class SedimentarySystem:
         for cascade in cascade_list:
             # Time in, time travel, and time out in time step unit (not seconds)
             t_in = cascade.elapsed_time
-            t_travel_n = self.reach_data.length[n] / (cascade.velocities * self.ts_length)
+            if cascade.is_external == True and cascade.provenance == n: 
+                # External sources coming from current reach,
+                # are starting halfway of the reach.
+                distance_to_reach_outlet = 0.5 * self.reach_data.length[n]
+            else:
+                distance_to_reach_outlet = self.reach_data.length[n]
+            t_travel_n = distance_to_reach_outlet / (cascade.velocities * self.ts_length)
             t_out = t_in + t_travel_n
             # Vm_stop is the stopping part of the cascade volume
             # Vm_continue is the continuing part
@@ -458,7 +481,7 @@ class SedimentarySystem:
         else:
             depositing_volume = None
         
-        return cascade_list_new, depositing_volume #DD: to be stored somewhere
+        return cascade_list_new, depositing_volume 
     
     
     def stop_or_not(self, t_new, Vm):
@@ -868,6 +891,7 @@ class SedimentarySystem:
         The order in which we take the cascade is from largest times (arriving later) 
         to shortest times (arriving first). Hypotheticaly, cascade arriving first 
         are passing in priority, in turn, cascades arriving later are deposited in priority.
+        (DD: can be discussed)
         If two cascades have the same time, they are processed as one same cascade.
         
         INPUTS:
