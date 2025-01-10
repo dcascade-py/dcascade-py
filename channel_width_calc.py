@@ -18,31 +18,40 @@ from constants import (
     R_VAR
 )
 
+def static_width(reach_data, SedimSys, Q, t):
+    
+    SedimSys.width[t] = reach_data.wac
+    
+    return SedimSys.width
+
+
 def dynamic_width_Lugo(reach_data, SedimSys, Q, t):
     
     #inputs
     d50 = reach_data.D50
     slope = reach_data.slope
-    width_loflo = reach_data.wac
-    width_hiflo = reach_data.wac_bf
+    
+    if hasattr(reach_data, 'wac_bf'):
+        width = reach_data.wac_bf
+    else:
+        width = reach_data.wac
     
     # Dimensionless Stream Power
-    # TO DO: For the relatiove submerged gravity Lugo uses a different calculation than Bizzi. Need to check which is better
-    #w_star = (Q[t, :] * slope) / (width_hiflo * np.sqrt(GRAV * (RHO_S/(RHO_S - RHO_W)) * (d50 ** 3))) # as in Lugo
-    w_star = (Q[t, :] * slope) / (width_hiflo * np.sqrt(GRAV * R_VAR * (d50 ** 3))) # as in Bizzi et al 2021
+    w_star = (Q[t, :] * slope) / (width * np.sqrt(GRAV * R_VAR * (d50 ** 3)))
 
     r = np.maximum(0.2, np.minimum(2.36 * w_star + 0.09, 1))
 
-    SedimSys.width[t] = width_hiflo * r
+    SedimSys.width[t] = width * r
 
     return SedimSys.width
 
 def choose_width(reach_data, SedimSys, Q, t, width_calc):
 
     if  width_calc == 1:
-        SedimSys.width = SedimSys.width 
+        SedimSys.width = static_width(reach_data, SedimSys, Q, t)
+       
     
     elif width_calc == 2:
-        SedimSys.width = dynamic_width_Lugo(reach_data, SedimSys, Q, t)               
-    
+        SedimSys.width = dynamic_width_Lugo(reach_data, SedimSys, Q, t)
+
     return SedimSys.width
