@@ -32,34 +32,36 @@ from constants import GRAV
 import numpy as np
 exponent_a = 1.5 # exponent a between 1-2, typically 1.5
 
-def slopeRed_Rickenmann(SedimSys, h, reach_data, t): 
+def slopeRed_Rickenmann(slope, h, roughness): 
 
-    SedimSys.slope[t] = SedimSys.slope[t] * (0.092 * SedimSys.slope[t] ** (-0.35) * (h / reach_data.roughness) ** (0.33)) ** exponent_a  
+    reduced_slope = slope * (0.092 * slope ** (-0.35) * (h / roughness) ** (0.33)) ** exponent_a  
  
-    return SedimSys.slope
+    return reduced_slope
    
-def slopeRed_Chiari_Rickenmann(SedimSys, Q, reach_data, t):
+def slopeRed_Chiari_Rickenmann(slope, Q_t, roughness):
     
-    SedimSys.slope[t] = SedimSys.slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(GRAV**0.096 * reach_data.roughness**0.47 * SedimSys.slope[t]**0.19)) ** exponent_a
+    reduced_slope = slope * ((0.133 * (Q_t**0.19))/(GRAV**0.096 * roughness**0.47 * slope**0.19)) ** exponent_a
 
-    return SedimSys.slope
+    return reduced_slope
 
-def slopeRed_Nitsche(SedimSys, h, reach_data, t):
-    SedimSys.slope[t] = SedimSys.slope[t] * ((2.5 *((h / reach_data.D84) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  reach_data.D84)**(5/3)))) ** exponent_a
+def slopeRed_Nitsche(slope, h, D84):
+    reduced_slope = slope * ((2.5 *((h / D84) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  D84)**(5/3)))) ** exponent_a
     
-    return SedimSys.slope
+    return reduced_slope
 
-def choose_slopeRed(reach_data, SedimSys, Q, t, h, slope_red):
-    if slope_red == 1:
-        SedimSys.slope = reach_data.slope  
+def choose_slopeRed(reach_data, SedimSys, Q, t, h, indx_slope_red):
+    if indx_slope_red == 1:
+        slope_t = SedimSys.slope[t]  
     
-    elif slope_red == 2:
-        SedimSys.slope = slopeRed_Rickenmann(SedimSys, h, reach_data, t)
+    elif indx_slope_red == 2:
+        slope_t = slopeRed_Rickenmann(SedimSys.slope[t], h, reach_data.roughness)
     
-    elif slope_red == 3:
-        SedimSys.slope = slopeRed_Chiari_Rickenmann(SedimSys, Q, reach_data, t)
+    elif indx_slope_red == 3:
+        slope_t = slopeRed_Chiari_Rickenmann(SedimSys.slope[t], Q[t, :], reach_data.roughness)
     
-    elif slope_red == 4:
-        SedimSys.slope = slopeRed_Nitsche(SedimSys, h, reach_data, t)
+    elif indx_slope_red == 4:
+        slope_t = slopeRed_Nitsche(SedimSys.slope[t], h, reach_data.D84)
+    
+    SedimSys.slope[t] = slope_t
     
     return SedimSys.slope

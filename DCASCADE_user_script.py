@@ -127,7 +127,7 @@ print(max(reach_data.D84) * 1000, ' must be lower than ',  np.percentile(dmi, 90
    
 
 # External sediment for all reaches, all classes and all timesteps 
-external_inputs = np.ones((timescale, reach_data.n_reaches, n_classes))
+external_inputs = np.zeros((timescale, reach_data.n_reaches, n_classes))
 
 # Define input sediment load in the deposit layer
 deposit = reach_data.deposit * reach_data.length
@@ -161,7 +161,7 @@ indx_vel_partition = 1 # velocity section partitionning (1: same velocity for al
 indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
 
 # Width variation index: 
-indx_width_variation = 1 # None 
+indx_width_calc = 1 # None 
     
 
 # Options for the cascade algorithm (by default, they are all True):        
@@ -181,7 +181,7 @@ op2 = True
 # Option 3: If True, we consider a time lag between the beginning of the time step,
 # and the arrival of the first cascade to the ToN of the reach, 
 # during which we are able to mobilise from the reach itself
-op3 = True
+op3 = False
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
@@ -191,7 +191,7 @@ data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in,
                                              indx_velocity = indx_velocity, 
                                              indx_vel_partition = indx_vel_partition,
                                              indx_slope_red = indx_slope_red,
-                                             indx_width_variation = indx_width_variation,
+                                             indx_width_calc = indx_width_calc,
                                              passing_cascade_in_outputs = op1,
                                              passing_cascade_in_trcap = op2,
                                              time_lag_for_mobilised = op3)

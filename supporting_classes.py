@@ -191,17 +191,21 @@ class SedimentarySystem:
         if self.update_slope == False:
             self.slope[:,:] = self.slope[0,:]
             
-    def initialize_widths(self):
-        
-        #TO DO: Check min and max values, especcialy if wac_bf is not available
-        
-        self.min_width = min(self.reach_data.wac)  # put a minimum value to guarantee movement 
+    def initialize_widths(self, indx_width_calc):        
         self.width = self.create_2d_zero_array()
         
-        if hasattr(self.reach_data, 'wac_bf'):
-            self.width[0,:] = np.maximum(self.reach_data.wac_bf, self.min_width)
-        else:
-            self.width[0,:] = np.maximum(self.reach_data.wac, self.min_width)
+        if indx_width_calc == 1:
+            # Static width
+            self.width[0,:] = self.reach_data.wac
+            
+        if indx_width_calc == 2:
+            # Varying width, if a bankfull width is specified, we take this one
+            # Otherwise, we vary the width based on the Wac column in reachdata
+            # It will be reduced later within the time loop
+            if self.reach_data.wac_bf is not None:
+                self.width[0,:] = self.reach_data.wac_bf
+            else:
+                self.width[0,:] = self.reach_data.wac
             
         # Put the same initial width for all time steps
         self.width[:,:] = self.width[0,:]

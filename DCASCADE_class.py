@@ -17,7 +17,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
-from width_variation import choose_widthVariation
+from width_variation import choose_widthVar
 from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
 
@@ -83,10 +83,8 @@ class DCASCADE:
         # start waiting bar    
         for t in tqdm(range(self.timescale - 1)):
             
-            # TODO: DD see with Anne Laure and Felix, which slope are we using for the flow?
-            
             # Channel width calculation
-            SedimSys.width = choose_widthVariation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
+            SedimSys.width = choose_widthVar(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
             
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
@@ -392,13 +390,15 @@ class DCASCADE:
                            'Node_el [m]': SedimSys.node_el,
                            'Fi_al': SedimSys.Fi_al,
                            'AL depth [m]': SedimSys.al_depth,
-                           
+                           'Widths [m]': SedimSys.width,
+                           'Slopes': SedimSys.slope
                            }
         
         if self.time_lag_for_mobilised == True:
             extended_output['Fi_al before tlag'] = SedimSys.Fi_al_before_tlag
             extended_output['Tr_cap per class before tlag'] = SedimSys.tr_cap_before_tlag
-                                     
+        
+        
         return data_output, extended_output
     
     

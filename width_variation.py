@@ -2,7 +2,7 @@
 """
 Created on Wed Jan 2 15:52:00 2025
 
-@author: DDoolaeghe
+@author: FPitscheider and DDoolaeghe
 """
 
 '''
@@ -20,29 +20,29 @@ The formula by Lugo (2015) is developped on flume experiments and link the inste
 
 from constants import GRAV, R_VAR
 import numpy as np
-exponent_a = 1.5 # exponent a between 1-2, typically 1.5
 
 
-def vary_width_Lugo(width, Q, reach_data, t):
-    # reach input parameters                   
-    d50s = reach_data.D50
-    slopes = reach_data.slope
-    max_widths = reach_data.wac 
+
+
+def dynamic_width_Lugo(width, D50, slopes, Q_t):
     
-    # Dimentionless stream power:
-    w_star = (Q[t, :] * slopes) / (max_widths * np.sqrt(GRAV * R_VAR * d50s**3))
+    # Dimensionless Stream Power
+    w_star = (Q_t * slopes) / (width * np.sqrt(GRAV * R_VAR * (D50 ** 3)))
+
+    r = np.maximum(0.2, np.minimum(2.36 * w_star + 0.09, 1))
+
+    new_width = width * r
+
+    return new_width
+
+def choose_widthVar(reach_data, SedimSys, Q, t, indx_width_calc):
+
+    if  indx_width_calc == 1:        
+        width_t = SedimSys.width[t] # Static width
+           
+    elif indx_width_calc == 2:
+        width_t = dynamic_width_Lugo(SedimSys.width[t], reach_data.D50, reach_data.slope, Q[t,:])
     
-    # active width
-    # DD: Note, 0.2 will be the minimum ratio in this case.         
-    width[t] = np.maximum(0.20, np.minimum(2.36 * w_star + 0.09, 1)) * max_widths
+    SedimSys.width[t] = width_t
     
-    return width
-   
-def choose_widthVariation(reach_data, width, Q, t, h, width_vary):
-    if width_vary == 1:
-        width = width    
-    
-    elif width_vary == 2:
-        width = vary_width_Lugo(width, Q, reach_data, t)
-    
-    return width
+    return SedimSys.width

@@ -20,7 +20,7 @@ from constants import (
 
 
 class TransportCapacityCalculator:
-    def __init__(self, fi_r_reach, total_D50, slope, Q, width, v, h, psi, roughness, gamma=0.05):
+    def __init__(self, fi_r_reach, total_D50, slope, Q, wac, v, h, psi, roughness, gamma = 0.05):
         # Dictionaries mapping indices to different formula
         self.index_to_formula = {
             1: self.Parker_Klingeman_formula,
@@ -35,7 +35,7 @@ class TransportCapacityCalculator:
         self.total_D50 = total_D50
         self.slope = slope
         self.Q = Q
-        self.width = width 
+        self.wac = wac 
         self.v = v
         self.h = h
         self.psi = psi
@@ -154,10 +154,10 @@ class TransportCapacityCalculator:
             tau = tau[None,:] # add a dimension for computation
 
         # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
-        #tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
+        tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
         
         # tau_r50 after Mueller et al (2005) as presented in eqn 5 in Bizzi et al (2021)
-        tau_r50 = RHO_W * GRAV * R_VAR * self.D50 * (0.021 + 2.18 * self.slope)
+        # tau_r50 = RHO_W * GRAV * R_VAR * self.D50 * (0.021 + 2.18 * self.slope)
 
         b = 0.67 / (1 + np.exp(1.5 - self.class_D50 / self.D50)) # hiding factor
 
@@ -173,13 +173,13 @@ class TransportCapacityCalculator:
         W_i = (phi_ri >= 1.35) * (14 * (np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0))**4.5) + (phi_ri < 1.35) * (0.002 * phi_ri**7.5)
 
         # Dimensionful transport rate for each sediment class [m3/s]
-        if self.width.ndim == 0:
-            tr_cap = self.width * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+        if self.wac.ndim == 0:
+            tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
             if tr_cap.ndim > 1:
                tr_cap = np.squeeze(tr_cap) # EB: a bit of a mess here with dimensions, corrected a posteriori. I want a 1-d vector as output
         else:
-            self.width = np.array(self.width)[None, :]
-            tr_cap = self.width * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+            self.wac = np.array(self.wac)[None, :]
+            tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
 
         tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
 
@@ -396,13 +396,13 @@ class TransportCapacityCalculator:
         """
 
         # Unit discharge Qunit. Q is on whole width, Qunit = Q/w.
-        Qunit = self.Q / self.width
+        Qunit = self.Q / self.wac
 
         exponent_e = 1.5
         # critical unit discharge
         Qc_Rickenmann = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (self.D50 ** exponent_e) * (self.slope ** (-1.12))
-        Qc = Qc_Lenzi
-        Qc_Lenzi = (GRAV ** 0.5) * (self.D50 ** exponent_e) * (0.745 * (self.D50 / self.roughness) ** exponent_k)
+        # Qc_Lenzi = (GRAV ** 0.5) * (self.D50 ** exponent_e) * (0.745 * (self.D50 / self.roughness) ** exponent_k)
+        Qc = Qc_Rickenmann
 
         #Check if Q is smaller than Qc
         Qarr = np.full_like(Qc, Qunit)
@@ -411,7 +411,7 @@ class TransportCapacityCalculator:
         condition = (Qarr - Qc) < 0
         Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * self.slope**1.5)
 
-        tr_cap = Qb * self.width
+        tr_cap = Qb * self.wac
 
         return {"tr_cap": tr_cap, "Qc": Qc}
 
@@ -485,115 +485,6 @@ class TransportCapacityCalculator:
         std = np.sqrt(D_changes[0,1]/D_changes[0,0])
 
         return std
-
-
-
-
-
-
-
-# def compute_cascades_velocities(reach_cascades_list,
-#                                indx_velocity, indx_velocity_partitioning, hVel,
-#                                indx_tr_cap, indx_partition,
-#                                reach_width, reach_slope, Q_reach, v, h,
-#                                phi, minvel, psi,
-#                                reach_Vdep, active_layer_volume,
-#                                roundpar):
-
-#     ''' Compute the velocity of the cascades in reach_cascade_list.
-#     The velocity must be assessed by re-calculating the transport capacity
-#     in the present reach, considering the effect of the arriving cascade(s).
-#     Two methods are proposed to re-evaluated the transport capacity, chosen
-#     by the indx_velocity.
-#     First method: the simplest, we re-calculate the transport capacity on each cascade itself.
-#     Second method: we consider the active layer volume, to complete, if needed,
-#     the list of cascade by some reach material. If the cascade volume is more
-#     than the active layer, we consider all the cascade volume.
-#     '''
-
-#     if indx_velocity == 1:
-#         velocities_list = []
-#         for cascade in reach_cascades_list:
-#             cascade.velocities = volume_velocities(cascade.volume,
-#                                                    indx_velocity_partitioning,
-#                                                    hVel, phi, minvel, psi,
-#                                                    indx_tr_cap, indx_partition,
-#                                                    reach_width, reach_slope,
-#                                                    Q_reach, v, h)
-#             velocities_list.append(cascade.velocities)
-#         # In this case, we store the averaged velocities obtained among all the cascades
-#         velocities = np.mean(np.array(velocities_list), axis = 0)
-
-#     if indx_velocity == 2:
-#         # concatenate cascades in one volume, and compact it by original provenance
-#         # DD: should the cascade volume be in [m3/s] ?
-#         volume_all_cascades = np.concatenate([cascade.volume for cascade in reach_cascades_list], axis=0)
-#         volume_all_cascades = matrix_compact(volume_all_cascades)
-
-#         volume_total = np.sum(volume_all_cascades[:,1:])
-#         if volume_total < active_layer_volume:
-#             _, Vdep_active, _, _ = layer_search(reach_Vdep, active_layer_volume,
-#                                     roundpar, Qbi_incoming = volume_all_cascades)
-#             volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0)
-
-#         velocities = volume_velocities(volume_all_cascades, indx_velocity_partitioning,
-#                                        hVel, phi, minvel, psi,
-#                                        indx_tr_cap, indx_partition,
-#                                        reach_width, reach_slope,
-#                                        Q_reach, v, h)
-
-#         for cascade in reach_cascades_list:
-#             cascade.velocities = velocities
-
-#     return velocities
-
-
-# def volume_velocities(volume, indx_velocity_partitioning, hVel, phi, minvel, psi,
-#                       indx_tr_cap, indx_partition,
-#                       reach_width, reach_slope, Q_reach, v, h):
-
-#     ''' Compute the velocity of the volume of sediments. The transport capacity [m3/s]
-#     is calculated on this volume, and the velocity is calculated by dividing the
-#     transport capacity by a section (hVel x width x (1 - porosity)).
-#     For partionning the section among the different sediment class in the volume,
-#     two methods are proposed.
-#     The first one put the same velocity to all classes.
-#     The second divides the section equally among the classes with non-zero transport
-#     capacity, so the velocity stays proportional to the transport capacity of that class.
-
-#     '''
-#     # Find volume sediment class fractions and D50
-#     volume_total = np.sum(volume[:,1:])
-#     volume_total_per_class = np.sum(volume[:,1:], axis = 0)
-#     sed_class_fraction = volume_total_per_class / volume_total
-#     D50 = float(D_finder(sed_class_fraction, 50, psi))
-
-#     # Compute the transport capacity
-#     [ tr_cap_per_s, pci ] = tr_cap_function(sed_class_fraction, D50,
-#                                        reach_slope, Q_reach, reach_width,
-#                                        v , h, psi,
-#                                        indx_tr_cap, indx_partition)
-
-#     Svel = hVel * reach_width * (1 - phi)  # the global section where all sediments pass through
-#     if Svel == 0:
-#         raise ValueError("The section to compute velocities can not be 0.")
-
-#     if indx_velocity_partitioning == 1:
-#         velocity_same = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
-#         velocity_same = np.maximum(velocity_same , minvel)    # apply the min vel threshold
-#         velocities = np.full(len(tr_cap_per_s), velocity_same) # put the same value for all classes
-
-#     elif indx_velocity_partitioning == 2:
-#         # Get the number of classes that are non 0 in the transport capacity flux:
-#         number_with_flux = np.count_nonzero(tr_cap_per_s)
-#         if number_with_flux != 0:
-#             Si = Svel / number_with_flux             # same section for all sediments
-#             velocities = np.maximum(tr_cap_per_s/Si, minvel)
-#         else:
-#             velocities = np.zeros(len(tr_cap_per_s)) # if transport capacity is all 0, velocity is all 0
-#     return velocities
-
-
 
 
 
