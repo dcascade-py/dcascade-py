@@ -17,13 +17,14 @@ np.seterr(divide='ignore', invalid='ignore')
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
+from channel_width_calc import choose_width
 from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
 
 
 
 class DCASCADE:
-    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red):
+    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red, indx_width_calc):
         
         self.sedim_sys = sedim_sys
         self.reach_data = sedim_sys.reach_data
@@ -40,6 +41,7 @@ class DCASCADE:
         # Indexes
         self.indx_flo_depth = indx_flo_depth
         self.indx_slope_red = indx_slope_red
+        self.indx_width_calc = indx_width_calc
         self.indx_tr_cap = None
         self.indx_tr_partition = None
         self.indx_velocity = None
@@ -82,16 +84,21 @@ class DCASCADE:
         
         # start waiting bar    
         for t in tqdm(range(self.timescale - 1)):
-                        
+            
+            # TODO: DD see with Anne Laure and Felix, which slope are we using for the flow?
+            
+            # Channel width calculation
+            SedimSys.width = choose_width(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
+            
             # Define flow depth and flow velocity for all reaches at this time step:
-            h, v = choose_flow_depth(self.reach_data, SedimSys.slope, Q, t, self.indx_flo_depth)
+            h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
             SedimSys.flow_depth[t] = h
             
             # Slope reduction functions
-            SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys.slope, Q, t, h, self.indx_slope_red)
-           
-            # Deposit layers of all reaches from previous timestep
-            Qbi_dep_old = copy.deepcopy(SedimSys.Qbi_dep_0)
+            SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys, Q, t, h, self.indx_slope_red)
+
+            # Deposit layer from previous timestep
+            Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
             
             # Matrix to store volumes of sediment passing through a reach 
             # in this timestep, ready to go to the next reach in the same time step.
@@ -123,8 +130,7 @@ class DCASCADE:
                         SedimSys.Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
                         # DD: If we want to store instead the direct provenance
                         # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)  
-                
-                    
+                   
                 # Compute the velocity of the cascades in this reach [m/s] 
                 if Qbi_pass[n] != []:
                     # Define the velocity section height:
@@ -551,7 +557,7 @@ class DCASCADE:
         
         #--Output struct definition 
         #data_plot contains the most important D_CASCADE outputs 
-        data_output = {'Channel Width [m]': np.repeat(np.array(self.reach_data.wac).reshape(1,-1),len(SedimSys.Qbi_dep), axis = 0), #
+        data_output = {'Channel Width [m]': SedimSys.width, #
                        'Reach slope': SedimSys.slope,   #
                        'Discharge [m^3/s]': Q[0:self.timescale,:],  #
                        'Mobilized [m^3]': QB_mob_sum, 

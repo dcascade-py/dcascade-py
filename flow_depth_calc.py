@@ -34,35 +34,36 @@ import numpy as np
 import numpy.matlib
 from supporting_functions import D_finder
 
-def h_manning(reach_data, slope, Q, t):
+def h_manning(reach_data, SedimSys, Q, t):
     """
     The Manning equation.
     """
-    h = np.power(Q[t,:] * reach_data.n / (reach_data.wac * np.sqrt(slope[t])), 3/5)
-    v = 1 / reach_data.n * np.power(h, 2/3) * np.sqrt(slope[t])
+
+    h = np.power(Q[t,:] * reach_data.n / (SedimSys.width[t] * np.sqrt(SedimSys.slope[t])), 3/5)
+    v = 1 / reach_data.n * np.power(h, 2/3) * np.sqrt(SedimSys.slope[t])
 
     return h, v
 
-def h_ferguson(reach_data, slope, Q, t):
+def h_ferguson(reach_data, SedimSys, Q, t):
     """
     """
     
     #calculate water depth and velocity with the Ferguson formula (2007)
-    q_star = Q[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
-    
+    q_star = Q[t,:] / (SedimSys.width[t] * np.sqrt(GRAV * SedimSys.slope[t] * reach_data.D84**3))
+
     #𝑝…𝑖𝑓 𝑞∗<100 → 𝑝=0.24, 𝑖𝑓 𝑞^∗>100 → 𝑝=0.31
     p = np.where(q_star < 100, 0.24, 0.31)
     
     h = 0.015 * reach_data.D84 * (q_star**(2*p)) / (p**2.5)    
-    v = (np.sqrt(GRAV * h * slope[t])* 6.5 * 2.5 * (h / reach_data.D84)) / np.sqrt((6.2 ** 2) * (2.5 ** 2) * ((h / reach_data.D84) ** (5/3)))
+    v = (np.sqrt(GRAV * h * SedimSys.slope[t])* 6.5 * 2.5 * (h / reach_data.D84)) / np.sqrt((6.2 ** 2) * (2.5 ** 2) * ((h / reach_data.D84) ** (5/3)))
    
     return h, v
 
-def choose_flow_depth(reach_data, slope, Q, t, flow_depth):
+def choose_flow_depth(reach_data, SedimSys, Q, t, flow_depth):
     if flow_depth == 1:
-        [h, v] = h_manning(reach_data, slope, Q, t)
+        [h, v] = h_manning(reach_data, SedimSys, Q, t)
     
     elif flow_depth == 2:
-        [h, v] = h_ferguson(reach_data, slope, Q, t)
-    
+        [h, v] = h_ferguson(reach_data, SedimSys, Q, t)
+   
     return h, v
