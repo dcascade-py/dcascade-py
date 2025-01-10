@@ -139,6 +139,7 @@ class SedimentarySystem:
         self.V_sed = None
         self.Q_out = None
         self.slope = None
+        self.width = None
         self.node_el = None
         self.flow_depth = None
         self.tr_cap = None 
@@ -178,6 +179,13 @@ class SedimentarySystem:
         # In case of constant slope
         if self.update_slope == False:
             self.slope[:,:] = self.slope[0,:]
+            
+    def initialize_widths(self):
+        self.min_width = min(self.reach_data.wac)  # put a minimum value to guarantee movement 
+        self.width = self.create_2d_zero_array()
+        self.width[0,:] = np.maximum(self.reach_data.wac_bf, self.min_width)
+        # Put the same initial width for all time steps
+        self.width[:,:] = self.width[0,:]
         
     def initialize_elevations(self):    
         # Initialize node elevation (for each reach the matrix reports the fromN elevation)
@@ -326,10 +334,10 @@ class SedimentarySystem:
             
             for cascade in cascades_list: 
                 cascade.velocities = velocities
-                
+             
         # Store velocities in m/ts_length
         self.V_sed[t, n, :] = velocities * self.ts_length
-
+        
 
     def volume_velocities(self, volume, Q_reach, v, h, t, n, 
                           indx_vel_partition,
@@ -351,17 +359,17 @@ class SedimentarySystem:
         volume_total_per_class = np.sum(volume[:,1:], axis = 0)
         sed_class_fraction = volume_total_per_class / volume_total
         D50 = float(D_finder(sed_class_fraction, 50, self.psi))
-        
+
         # Compute the transport capacity
         calculator = TransportCapacityCalculator(sed_class_fraction, D50, 
                                                  self.slope[t, n], Q_reach, 
-                                                 self.reach_data.wac[n],
-                                                 v, h, self.psi, self.reach_data.rugosity[n])
+                                                 self.width[t, n],
+                                                 v, h, self.psi, self.reach_data.roughness[n])
         
         [ tr_cap_per_s, pci ] = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         
         
-        Svel = self.vl_height[t, n] * self.reach_data.wac[n] * (1 - self.phi)  # the global section where all sediments pass through
+        Svel = self.vl_height[t, n] * self.width[t, n] * (1 - self.phi)  # the global section where all sediments pass through
         if Svel == 0 or numpy.isnan(Svel) == True:
             raise ValueError("The section to compute velocities can not be 0 or NaN.")
     
@@ -523,8 +531,8 @@ class SedimentarySystem:
            
         # Transport capacity in m3/s
         calculator = TransportCapacityCalculator(Fi_al_ , D50_al_, self.slope[t,n], 
-                                               Q[t,n], self.reach_data.wac[n], v[n],
-                                               h[n], self.psi, self.reach_data.rugosity[n])
+                                               Q[t,n], self.width[t,n], v[n],
+                                               h[n], self.psi, self.reach_data.roughness[n])
         
         tr_cap_per_s, Qc = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         

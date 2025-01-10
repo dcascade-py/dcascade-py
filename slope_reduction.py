@@ -32,34 +32,34 @@ from constants import GRAV
 import numpy as np
 exponent_a = 1.5 # exponent a between 1-2, typically 1.5
 
-def slopeRed_Rickenmann(slope, h, reach_data, t): 
-    
-   slope[t] = slope[t] * (0.092 * slope[t] ** (-0.35) * (h / reach_data.roughness) ** (0.33)) ** exponent_a  
+def slopeRed_Rickenmann(SedimSys, h, reach_data, t): 
+
+    SedimSys.slope[t] = SedimSys.slope[t] * (0.092 * SedimSys.slope[t] ** (-0.35) * (h / reach_data.roughness) ** (0.33)) ** exponent_a  
  
-   return slope
+    return SedimSys.slope
    
-def slopeRed_Chiari_Rickenmann(slope, Q, reach_data, t):
+def slopeRed_Chiari_Rickenmann(SedimSys, Q, reach_data, t):
     
-    slope[t] = slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(GRAV**0.096 * reach_data.roughness**0.47 * slope[t]**0.19)) ** exponent_a
+    SedimSys.slope[t] = SedimSys.slope[t] * ((0.133 * (Q.iloc[t,:]**0.19))/(GRAV**0.096 * reach_data.roughness**0.47 * SedimSys.slope[t]**0.19)) ** exponent_a
 
-    return slope
+    return SedimSys.slope
 
-def slopeRed_Nitsche(slope, h, reach_data, t):
-    slope[t] = slope[t] * ((2.5 *((h / reach_data.D84) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  reach_data.D84)**(5/3)))) ** exponent_a
+def slopeRed_Nitsche(SedimSys, h, reach_data, t):
+    SedimSys.slope[t] = SedimSys.slope[t] * ((2.5 *((h / reach_data.D84) ** (5/6))) / (6.5 ** 2 + 2.5 ** 2 * ((h /  reach_data.D84)**(5/3)))) ** exponent_a
     
-    return slope
+    return SedimSys.slope
 
-def choose_slopeRed(reach_data, slope, Q, t, h, slope_red):
+def choose_slopeRed(reach_data, SedimSys, Q, t, h, slope_red):
     if slope_red == 1:
-        slope = slope    
+        SedimSys.slope = reach_data.slope  
     
     elif slope_red == 2:
-        slope = slopeRed_Rickenmann(slope, h, reach_data, t)
+        SedimSys.slope = slopeRed_Rickenmann(SedimSys, h, reach_data, t)
     
     elif slope_red == 3:
-        slope = slopeRed_Chiari_Rickenmann(slope, Q, reach_data, t)
+        SedimSys.slope = slopeRed_Chiari_Rickenmann(SedimSys, Q, reach_data, t)
     
     elif slope_red == 4:
-        slope = slopeRed_Nitsche(slope, h, reach_data, t)
+        SedimSys.slope = slopeRed_Nitsche(SedimSys, h, reach_data, t)
     
-    return slope
+    return SedimSys.slope

@@ -20,7 +20,7 @@ from constants import (
 
 
 class TransportCapacityCalculator:
-    def __init__(self, fi_r_reach, total_D50, slope, Q, wac, v, h, psi, rugosity, gamma=0.05):
+    def __init__(self, fi_r_reach, total_D50, slope, Q, width, v, h, psi, roughness, gamma=0.05):
         # Dictionaries mapping indices to different formula
         self.index_to_formula = {
             1: self.Parker_Klingeman_formula,
@@ -35,13 +35,13 @@ class TransportCapacityCalculator:
         self.total_D50 = total_D50
         self.slope = slope
         self.Q = Q
-        self.wac = wac
+        self.width = width 
         self.v = v
         self.h = h
         self.psi = psi
         self.class_D50 = 2**(-self.psi) / 1000 # sediment classes diameter [m]
         self.gamma = gamma # hiding factor
-        self.rugosity = rugosity # D90, D84 or rugosity from input reachdata class
+        self.roughness = roughness # D90, D84 or roughness from input reachdata class
 
         self.D50 = np.nan
 
@@ -170,13 +170,13 @@ class TransportCapacityCalculator:
         W_i = (phi_ri >= 1.35) * (14 * (np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0))**4.5) + (phi_ri < 1.35) * (0.002 * phi_ri**7.5)
 
         # Dimensionful transport rate for each sediment class [m3/s]
-        if self.wac.ndim == 0:
-            tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+        if self.width.ndim == 0:
+            tr_cap = self.width * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
             if tr_cap.ndim > 1:
                tr_cap = np.squeeze(tr_cap) # EB: a bit of a mess here with dimensions, corrected a posteriori. I want a 1-d vector as output
         else:
-            self.wac = np.array(self.wac)[None, :]
-            tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+            self.width = np.array(self.width)[None, :]
+            tr_cap = self.width * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
 
         tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
 
@@ -393,13 +393,13 @@ class TransportCapacityCalculator:
         """
 
         # Unit discharge Qunit. Q is on whole width, Qunit = Q/w.
-        Qunit = self.Q / self.wac
+        Qunit = self.Q / self.width
 
         exponent_e = 1.5
         # critical unit discharge
         Qc_Rickenmann = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (self.D50 ** exponent_e) * (self.slope ** (-1.12))
-        Qc_Lenzi = (GRAV ** 0.5) * (self.D50 ** exponent_e) * (0.745 * (self.D50 / self.rugosity) ** (-0.859))
         Qc = Qc_Lenzi
+        Qc_Lenzi = (GRAV ** 0.5) * (self.D50 ** exponent_e) * (0.745 * (self.D50 / self.roughness) ** exponent_k)
 
         #Check if Q is smaller than Qc
         Qarr = np.full_like(Qc, Qunit)
@@ -408,7 +408,7 @@ class TransportCapacityCalculator:
         condition = (Qarr - Qc) < 0
         Qb = np.where(condition, 0, 1.5 * (Qarr - Qc) * self.slope**1.5)
 
-        tr_cap = Qb * self.wac
+        tr_cap = Qb * self.width
 
         return {"tr_cap": tr_cap, "Qc": Qc}
 
