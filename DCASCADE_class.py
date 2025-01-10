@@ -17,7 +17,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
-from channel_width_calc import choose_width
+from width_variation import choose_widthVariation
 from supporting_classes import Cascade, SedimentarySystem
 from supporting_functions import sortdistance, D_finder
 
@@ -77,8 +77,6 @@ class DCASCADE:
             
     
     def run(self, Q, roundpar):
-        # DD: Should we create a subclass in SedimentarySystem to handle the temporary parameters for one time step
-        # like Qbi_pass, Qbi_dep_0 ? Could be SedimentarySystemOneTime ?
         
         SedimSys = self.sedim_sys
         
@@ -88,7 +86,7 @@ class DCASCADE:
             # TODO: DD see with Anne Laure and Felix, which slope are we using for the flow?
             
             # Channel width calculation
-            SedimSys.width = choose_width(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
+            SedimSys.width = choose_widthVariation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
             
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
@@ -299,9 +297,9 @@ class DCASCADE:
                 
                 # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
                 if self.update_slope == True:
-                    sed_budg_t_n = np.sum(SedimSys.sediment_budget[t,n,:])                                   
-                    # TODO: DD check this line
-                    self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.Wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
+                    sed_budg_t_n = np.sum(SedimSys.sediment_budget[t,n,:]) 
+                    # TODO: DD check this line 
+                    self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
                                                 
             """End of the reach loop"""
             
@@ -393,6 +391,8 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed,
                            'Node_el [m]': SedimSys.node_el,
                            'Fi_al': SedimSys.Fi_al,
+                           'AL depth [m]': SedimSys.al_depth,
+                           
                            }
         
         if self.time_lag_for_mobilised == True:

@@ -8,7 +8,7 @@ Created on Fri Jun 14 13:21:06 2024
 '''
 Reducing the slope for the transport capacity calculations enables to account for form roughness and drag in alpine streams
 
- The formula proposded by Rickenmann (2005) is based on the D90 and flow depth
+ The formula proposed by Rickenmann (2005) is based on the D90 and flow depth
     Rickenmann, D. (2005): Geschiebetransport bei steilen Gefällen. In: Mitteilungen der Versuchs- anstalt für Wasserbau, 
     Hydrologie und Glaziologie, ETH Zurich, Nr. 190, pp. 107–119.
     

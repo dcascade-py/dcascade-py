@@ -53,6 +53,7 @@ from pathlib import Path
 
 #-------River shape files 
 path_river_network = Path('Input/input_trial/')
+# Reach data file (shp, but can also be a csv)
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
@@ -87,12 +88,10 @@ eros_max = 10             # Maximum depth (threshold) that can be eroded in one 
 al_depth = None          # Active layer depth, if None, then it is 2.D90 by default
 
 #---Storing Deposit layer
-save_dep_layer = 'always' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
+save_dep_layer = 'never' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
 roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-
-
 
 ################ MAIN ###############
 
@@ -158,8 +157,12 @@ if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals() or 'in
 indx_velocity = 2 # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
 indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
 
-# Slope index:
+# Slope reduction index:
 indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
+
+# Width variation index: 
+indx_width_variation = 1 # None 
+    
 
 # Options for the cascade algorithm (by default, they are all True):        
 # If all these options are False, we are reproducing the algorithme of 
@@ -188,6 +191,7 @@ data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in,
                                              indx_velocity = indx_velocity, 
                                              indx_vel_partition = indx_vel_partition,
                                              indx_slope_red = indx_slope_red,
+                                             indx_width_variation = indx_width_variation,
                                              passing_cascade_in_outputs = op1,
                                              passing_cascade_in_trcap = op2,
                                              time_lag_for_mobilised = op3)

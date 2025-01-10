@@ -17,6 +17,12 @@ np.seterr(divide='ignore', invalid='ignore')
 
 from transport_capacity_computation import TransportCapacityCalculator 
 from supporting_functions import D_finder
+from constants import (
+    RHO_S,
+    RHO_W,
+    GRAV,
+    R_VAR,
+)
 
 
 
@@ -176,7 +182,7 @@ class SedimentarySystem:
         return np.zeros((self.timescale, self.n_reaches))
         
     def initialize_slopes(self):
-        self.min_slope = min(self.reach_data.slope)  # put a minimum value to guarantee movement 
+        self.min_slope = min(self.reach_data.slope)  # put a minimum value to guarantee movement  (DD: why min of the reach slopes ?)
         self.slope = self.create_2d_zero_array()
         self.slope[0,:] = np.maximum(self.reach_data.slope, self.min_slope)
         self.slope[1,:] = np.maximum(self.reach_data.slope, self.min_slope)
