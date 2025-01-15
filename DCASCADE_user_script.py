@@ -57,12 +57,12 @@ from line_profiler import profile
 
 
 #-------River shape files 
-path_river_network = Path('../RangitataFC_dH/')
-name_river_network = 'River_Network6.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
+path_river_network = Path('../Rangitata_FC_Hdatum/')
+name_river_network = 'River_Network7.shp' #has width hydraulic geometry a and b in form Bpred = a .* Q^b % [m from m3/s]
 filename_river_network = path_river_network / name_river_network
 
 #--------Discharge files
-path_q = Path('../RangitataFC_dH/')
+path_q = Path('../Rangitata_FC_Hdatum/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 name_q = 'q_2024_1Jan_1Jul.csv'
 filename_q = path_q / name_q
@@ -72,7 +72,7 @@ name_qs = 'qsand_40pct_2024_1Jan_1Jul.csv'
 filename_qs = path_q / name_qs
 
 #--------Path to the output folder
-path_results = Path("./Results/Rev5_Speedups/02_diag_wetted_nocompact_RP0_Q2d_LR/")
+path_results = Path("./Results/Rev8_HypsoHVQsVol/04-volwidthalignment_9hypso/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -86,14 +86,14 @@ n_classes = 7        # number of classes
 #---Timescale 
 timescale = 4369 # hours   #4369  2882
 ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
-nrepeats = 50 # number of times to repeat the hydrograph. think 'years' ?
+nrepeats = 0 # number of times to repeat the hydrograph. think 'years' ?
 #---Change slope or not
 update_slope = True # if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes #ccJR chaged this to a nominal width * depth. which is why 1000 didn't work, too wide for that!
 #what are the units now?
-deposit_layer = 1   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
-nlayers_init = 12 #ccJR split up deposit layers. best to have these a different number than n_classes
+deposit_layer = 1.0   # Initial deposit layer thickness [m]. Warning: will overwrite the deposit column in the reach_data file
+nlayers_init = 20 #ccJR split up deposit, considered as WIDTH. best to have these a different number than n_classes
 eros_max = .05             # Maximum depth (threshold) that can be eroded in one time step  in meters. 
 
 #---Storing Deposit layer
@@ -154,7 +154,7 @@ if add_Qbi:
     Qbi_input[:,4,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
     #Qbi_input[:,10,5:7] = Qs[0:timescale,5:7] * 25 #ccJR HARDCODED test below gorge
 
-# Define input sediment load in the deposit layer. JR making width explicit.
+# Define input sediment load in EACH deposit layer. JR making width explicit.
 deposit = reach_data.deposit * reach_data.length * reach_data.wac_bf
 # Define initial sediment fractions per class in each reaches, using a Rosin distribution
 Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi) 
@@ -162,17 +162,18 @@ Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
 #cJR I want NO sand coming in the source reaches, so I can specify it myself, distributed safely where I want it. 
 Fi_r[0,5:7] = 0
 Fi_r[1,5:7] = 0
+Fi_r[2,5:7] = 0
 
 # Initialise deposit layer 
 hypsolayers = True
 
-if hypsolayers == True:
+if hypsolayers == True:  #total Qbi_dep_in is deposit, times length, times width in meters. this is then split up by the # of width 'layers'
     Qbi_dep_in = np.zeros((reach_data.n_reaches, nlayers_init, n_classes))
     for n in range(reach_data.n_reaches):
         for nl in range(nlayers_init):
             Fi_r[n,5:7] = 0.01 #low sand IC : layer. initial condition testing. 0 is the bottom, nlayers_init-1 is the top (thalweg)
             Fi_r[n] /= Fi_r[n].sum()  # Renormalize  
-            Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:]
+            Qbi_dep_in[n,nl,:] = deposit[n] * Fi_r[n,:] * (1/nlayers_init) #each layer has an equal proportion of the width. so layer size accordions with wac_bf. 
             #diagnostic code. using coarse material to just do some orienting of myself. 
             #Qbi_dep_in[n,nl,0] = 111 * nl 
         
@@ -242,21 +243,22 @@ if vary_width:
 reach_hypsometry = np.zeros(reach_data.wac.shape,dtype = bool)
 #hard code which ones exist. could read from dir..
  
-reach_hypsometry[6:13] = True
+reach_hypsometry[5:14] = True
 
 reach_hypsometry_data = {}
 # Loop through each reach
 for i in range(len(reach_hypsometry)):
     
     if reach_hypsometry[i]:
-        qfilename = f"../RangitataFC_dH/Qsteps_Table.csv"
-        qdf = pd.read_csv(qfilename, header=0)  # assuming no header in the CSV files
+        ip1 = i+1 #naming convention for matlab exported reaches
+        qstepsfilename = path_q / "Qsteps_Table.csv"
+        #qstepsfilename = f"../Rangitata_FC_dH_MannThresh/Qsteps_Table.csv"
+        qdf = pd.read_csv(qstepsfilename, header=0)  # assuming no header in the CSV files
         Qindex = qdf.iloc[:, 0].astype(float).values
         Qsteps = qdf.iloc[:, 1].astype(float).values
         # file name from reach index
-        #filename = f"../RangitataFC_dH/Reach_Hypsometry_{i}.csv"
-        #filename = f"../RangitataFC_dH/Active_Hypsometry_{i}.csv"
-        filename = f"../RangitataFC_dH/Wet_Hypsometry_q1_23_{i}.csv"
+        filename = path_q / f"Active_Hypsometry_q1_23_{ip1}.csv"
+        #filename = path_q / f"Wet_Hypsometry_q1_23_{i}.csv"
         
     
         df = pd.read_csv(filename, header=0)  # assuming no header in the CSV files
@@ -306,7 +308,7 @@ pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named sa
 
 name_file = path_results / 'save_all_0.mat'
 # Save using scipy.io (MATLAB-style)
-scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': extended_output})
+scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': extended_output}, do_compression=True)
 
  
 ##
@@ -387,4 +389,4 @@ for NR in range(nrepeats):
 
     name_file = f"{path_results}/save_all_{NR+1}.mat"
     # Save using scipy.io (MATLAB-style)
-    scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': extended_output})
+    scipy.io.savemat(name_file, {'data_output': data_output, 'extended_output': extended_output}, do_compression=True)
