@@ -604,11 +604,14 @@ class SedimentarySystem:
         #thought - passing bedload could just be transported by the strongest widths first. 
         #but suspended could have a mixing coefficient or distribution across the width. 
         #final tuning parameter really, how 'spready' is the incoming volume. 
-        _,_,_, Fi_al_ = self.layer_search(Vdep, np.float32(self.al_vol[t,n]), roundpar, Qpass_volume = passing_volume)                   
+        
+        #2025: move this to the w loop below. Start from the deepest (vsave[0]) and slice off a volume corresponding to dX
+        #Then, Fi_al will be width-hypso-specific. 
+        #_,_,_, Fi_al_ = self.layer_search(Vdep, np.float32(self.al_vol[t,n]), roundpar, Qpass_volume = passing_volume)                   
         # In case the active layer is empty, I use the GSD of the previous timestep
-        if np.sum(Fi_al_) == 0:
-           Fi_al_ = self.Fi_al[t-1,n,:] 
-        D50_al_ = float(D_finder(Fi_al_, 50, self.psi))
+        #if np.sum(Fi_al_) == 0:
+        #   Fi_al_ = self.Fi_al[t-1,n,:] 
+        
        
             
         # Transport capacity in m3/s.
@@ -617,17 +620,57 @@ class SedimentarySystem:
         #loop through vsave and hsave
         subQ = np.zeros(len(vsave)) 
         h_tr_cap_per_s = np.zeros((len(vsave),len(self.psi)))
+        
+        Vdep_from_thalweg = np.flipud(Vdep) #the 'top' was the channel edge. flip it here to count from the thalweg.
+        Vdep_wet = np.zeros((1, 1+len(self.psi)), dtype=np.float32)
         for w in range(len(vsave)):
+            
             dX = Xwac[w+1] - Xwac[w]
             subQ[w] = dX * vsave[w] * hsave[w] #shoudl sum to Q
+            if passing_volume is None:
+                sub_passing_volume = None
+            else:
+                sub_passing_volume = passing_volume #fixed bug - was multiplying first column which is source ID! 
+                sub_passing_volume[:,1:] = (subQ[w] / Q[t,n]) * passing_volume[:,1:]  #I need to proportion the incoming volume somehow - use q this bin to Qtotal ratio
             
+            #slice off dX meters of bed to work with. This could be vanishingly small - in which case, let's not continue
+            slicevol = self.reach_data.deposit[n] * self.reach_data.length[n] * dX
+            #print(slicevol/  sum(sum(Vdep[:,1:])) )
+            
+            #handle tiny widths reasonably:
+            if slicevol < 10**roundpar or hsave[w] < 0.1 or dX < 1:
+                 
+                dQ_ratio = subQ[w] / subQ[w-1]
+                h_tr_cap_per_s[w, :] = dQ_ratio * h_tr_cap_per_s[w-1, :]
+                continue  # Skip the rest of the loop for this iteration
+            
+            
+            
+            _,Vdep_slice,Vdep_remaining, Fi_al_ = self.layer_search(Vdep_from_thalweg, np.float32(slicevol), roundpar, Qpass_volume = sub_passing_volume)
+            
+            Vdep_wet = Vdep_wet + Vdep_slice[:,:].sum(0) #store wetted bed composition. 
+            
+            D50_al_ = float(D_finder(Fi_al_, 50, self.psi))
+            #print(slicevol,D50_al_)
             calculator = TransportCapacityCalculator(Fi_al_ , D50_al_, self.slope[t,n], subQ[w],
                                                dX, vsave[w], hsave[w], self.psi)
         
             h_tr_cap_per_s[w,:], Qc = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
+            if np.any(np.isnan(h_tr_cap_per_s[w,:])):
+                print('NaN here',Fi_al_)
+            #next loop should have the slice removed:
+            Vdep_from_thalweg = Vdep_remaining
+            
         #print('Qw check: ',Q[t,n] / np.sum(subQ)) #check Qwater
         total_h_tr_cap_per_s = np.sum(h_tr_cap_per_s, axis=0)
-        return total_h_tr_cap_per_s, Fi_al_, D50_al_, Qc
+        Vdep_wet[0,0] = n
+        
+        total_sum = np.sum(Vdep_wet[:, 1:])
+        sum_per_class = np.sum(Vdep_wet[:, 1:], axis=0)
+        Fi_wet = sum_per_class / total_sum
+        D50_wet_ = float(D_finder(Fi_wet, 50, self.psi))
+         
+        return total_h_tr_cap_per_s, Fi_wet, D50_wet_, Qc
 
     @profile
     def compute_mobilised_volume(self, Vdep, tr_cap_per_s, n, roundpar,
@@ -660,6 +703,7 @@ class SedimentarySystem:
         if np.any(diff_pos): 
             # Search for layers to be put in the erosion max (e_max_vol_)
             V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar)
+            
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
             if np.all(V_mob[:,1:] == 0):
                 V_mob = None
@@ -710,8 +754,12 @@ class SedimentarySystem:
             tr_cap_remaining = tr_cap[under_capacity_classes] - sum_classes           
             # select columns in V_dep2act corresponding to under_capacity_classes
             V_dep2act_class = V_dep2act[:, np.append(False, under_capacity_classes)]
+            
             # Cumulate volumes from last to first row
-            # Reminder: Last row is the top layer
+            # Reminder: Last row is the top layer. 
+            #TODO once I have split up hypso transport cap with vdep slices? so that thalweg doesn't 'see' fines in the shallows?
+            #alter this routine so that EROSION happens from the thalweg out, and deposition happens at the other end of Vdep2act
+            #ccJR   - last row is the water's edge in width consideration. flip this test?
             csum = np.cumsum(V_dep2act_class[::-1], axis = 0)[::-1] 
                
             # Find the indexes of the lowermost layer falling within tr_cap_remaining, for each class.
