@@ -434,7 +434,7 @@ class SedimentarySystem:
     
     @profile
     def cascades_end_time_or_not(self, cascade_list, n):
-        ''' Fonction to decide if the traveling cascades in cascade list stop in 
+        ''' Function to decide if the traveling cascades in cascade list stop in 
         the reach or not, due to the end of the time step.
         Inputs:
             cascade_list:       list of traveling cascades
@@ -662,6 +662,7 @@ class SedimentarySystem:
             Vdep_from_thalweg = Vdep_remaining
             
         #print('Qw check: ',Q[t,n] / np.sum(subQ)) #check Qwater
+        #print('volume check',Vdep_wet.sum() / Vdep.sum()) #should be cloes to 1 as we step through volume. 
         total_h_tr_cap_per_s = np.sum(h_tr_cap_per_s, axis=0)
         Vdep_wet[0,0] = n
         
@@ -670,6 +671,9 @@ class SedimentarySystem:
         Fi_wet = sum_per_class / total_sum
         D50_wet_ = float(D_finder(Fi_wet, 50, self.psi))
          
+        if n==5 and int(t) % 306 == 0:  #should hit some low and the max flows
+            print(h_tr_cap_per_s*3600)
+            
         return total_h_tr_cap_per_s, Fi_wet, D50_wet_, Qc
 
     @profile
