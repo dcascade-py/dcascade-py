@@ -54,7 +54,7 @@ from scipy.optimize import fsolve
 from line_profiler import profile
 
 '''user defined input data'''
-
+np.set_printoptions(precision=3,suppress=True)
 
 #-------River shape files 
 path_river_network = Path('../Rangitata_FC_Hdatum/')
@@ -72,7 +72,7 @@ name_qs = 'qsand_40pct_2024_1Jan_1Jul.csv'
 filename_qs = path_q / name_qs
 
 #--------Path to the output folder
-path_results = Path("./Results/Rev8_HypsoHVQsVol/04-volwidthalignment_9hypso/")
+path_results = Path("./Results/Rev8_HypsoHVQsVol/05-noerosmax_dep_at075w_20lay/")
 name_file = path_results / 'save_all.p'
 
 #--------Parameters of the simulation
@@ -85,8 +85,8 @@ n_classes = 7        # number of classes
 
 #---Timescale 
 timescale = 4369 # hours   #4369  2882
-ts_length = 60 * 60 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
-nrepeats = 0 # number of times to repeat the hydrograph. think 'years' ?
+ts_length = 60 * 60 * 6 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
+nrepeats = 50 # number of times to repeat the hydrograph. think 'years' ?
 #---Change slope or not
 update_slope = True # if False: slope is constant, if True, slope changes according to sediment deposit
 
@@ -153,6 +153,11 @@ if add_Qbi:
     Qbi_input[:,3,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED 100% of half is 50% of the natural sand load.
     Qbi_input[:,4,5:7] = Qs[0:timescale,5:7] * (1/3) #ccJR HARDCODED I should probably nix the 0.5mm sand and just keep a 250.
     #Qbi_input[:,10,5:7] = Qs[0:timescale,5:7] * 25 #ccJR HARDCODED test below gorge
+
+#TEST SENSITIVIY of my width resolving code to changes in wac_bf ccJR 
+print(reach_data.wac_bf[:])
+reach_data.wac_bf[:] = max(reach_data.wac_bf[:])
+print(reach_data.wac_bf[:])
 
 # Define input sediment load in EACH deposit layer. JR making width explicit.
 deposit = reach_data.deposit * reach_data.length * reach_data.wac_bf
