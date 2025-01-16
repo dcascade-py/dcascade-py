@@ -56,8 +56,8 @@ class DCASCADE:
         #JR extra saving storage
         self.T_record_days = np.zeros(self.timescale) #time storage, days #ccJR
         self.wac_save = np.zeros((self.timescale, self.n_reaches)) #hydraulics storage,  #ccJR
-        self.h_save = np.zeros((self.timescale, self.n_reaches, 150)) #hydraulics storage,  #ccJR
-        self.v_save = np.zeros((self.timescale, self.n_reaches, 150)) #hydraulics storage,  #ccJR
+        self.h_save = np.zeros((self.timescale, self.n_reaches, 200)) #hydraulics storage,  #ccJR
+        self.v_save = np.zeros((self.timescale, self.n_reaches, 200)) #hydraulics storage,  #ccJR
         self.Vfracsave = np.zeros((self.timescale, self.n_reaches)) #hypso slicing storage,  #ccJR
         
     def set_transport_indexes(self, indx_tr_cap, indx_tr_partition):
@@ -122,9 +122,9 @@ class DCASCADE:
                     )
                     heights_at_flow.append(width_interp_func(SedimSys.Xgrid))  # Interpolate on self.Xgrid
                 heights_at_Xgrid[n] = (np.array(heights_at_flow))  # Save array for this reach
-                
+                qsteps_0 = SedimSys.qsteps; qsteps_0[0]=1 #need a lower minimum as was going out of bounds. 
                 interp_func = RegularGridInterpolator(
-                   (SedimSys.qsteps, SedimSys.Xgrid),
+                   (qsteps_0, SedimSys.Xgrid),
                    heights_at_Xgrid[n],  # Precomputed heights
                    bounds_error=False,
                    fill_value=10,
@@ -193,9 +193,9 @@ class DCASCADE:
             
                 # Solve for eta using fsolve. needed a higher guess for some reaches to converge - 4x Manning for now?
                     if t>1:
-                        hguess = max(self.h_save[t-1,n])
+                        hguess = etasave[n] # max(self.h_save[t-1,n])
                     else:
-                        hguess = 4*h[n] #eta is bigger by far than the average depth. 
+                        hguess = 3*h[n] #eta is bigger by far than the average depth. 
                     try:
                         eta, info, ier, msg = fsolve(func, hguess, full_output=True)  #13.5% of all time
                         if ier == 1:
@@ -224,6 +224,8 @@ class DCASCADE:
                         print(f"Vsave_trimmed shape: {Vsave_trimmed.shape}")
                         #error here? the 'floodplain 10m hypsometry' issue occurred when slope was reduced (unrealistically)
                         print(e)
+                    if len(Vsave_trimmed)>150:
+                        print(n,t,len(Vsave_trimmed))
                         
                     self.v_save[t,n,:len(Vsave_trimmed)] = Vsave_trimmed
                     self.h_save[t,n,:len(Hsave_trimmed)] = Hsave_trimmed
@@ -299,8 +301,13 @@ class DCASCADE:
 
                 if self.vary_width:
                     
-                    #wac has changed, reset erosmax
-                    SedimSys.set_erosion_maximum(SedimSys.eros_max_depth[n], roundpar)                           
+                    #wac has changed, reset erosmax. THIS proved limiting, never letting river access fines deposited at large widths.
+                    #SedimSys.set_erosion_maximum(SedimSys.eros_max_depth[n], roundpar)      
+                    #ccJR TESTING HARDCODED there is no eros max vol, is whole reach volume. 
+                    #Idea - limit this to competent width (of previous timestep I guess)
+                    #i could have hypso transport save that width as a bed volume. 
+                    self.eros_max_vol = np.round(Vdep_init.sum(), roundpar).astype(np.float32)     
+
                 ###------Step 1 : Cascades generated from the reaches upstream during 
                 # the present time step, are passing the inlet of the reach
                 # (stored in Qbi_pass[n]).
@@ -333,7 +340,7 @@ class DCASCADE:
                                                self.indx_tr_cap, self.indx_tr_partition)
 
                 
-                # Decides weather cascades, or parts of cascades, 
+                # Decides whether cascades, or parts of cascades, 
                 # finish the time step here or not.
                 # After this step, Qbi_pass[n] contains volume that do not finish
                 # the time step in this reach
@@ -488,7 +495,16 @@ class DCASCADE:
                 # Deposit the stopping cascades in Vdep - ccJR did negative occur here? 
                 if to_be_deposited is not None:                   
                     to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
-                    Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
+                    if n==5 and int(t) % 306 == 0:  #should hit some low and the max flows at 2448
+                        print(t, to_be_deposited)
+                    
+                    #ccJR - testing code to deposit NOT at the water's edge, which is sequestering too much stuff way out wide,
+                    #but at some intermediate slice. I can probably fix a lot of this flipping up and downas I understand things better
+                    #take off 1/4 of it for now, replace with something from hypso transport calc that's smart? where d50 goes incompetent?
+                    _,Vdep_act,Vdep_inact, Fi_slice = SedimSys.layer_search(Vdep_end, 0.75*slicevol, roundpar)
+                    #print(Vdep_act.sum(),to_be_deposited.sum(),Vdep_inact.sum(),Vdep_overburden.sum())
+                    Vdep_end = np.concatenate([Vdep_act, to_be_deposited, Vdep_inact], axis=0)
+                    #Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
                     
                 if np.any(Vdep_end < 0):
                     # debugging
