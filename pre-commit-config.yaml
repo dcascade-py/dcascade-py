@@ -1,0 +1,66 @@
+ci:
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
+  autofix_commit_msg: "style: pre-commit fixes"
+
+repos:
+# Standard hooks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.6.0
+  hooks:
+  - id: check-added-large-files
+    args: ['--maxkb=700']
+  - id: check-case-conflict
+  - id: check-merge-conflict
+  - id: check-symlinks
+  - id: check-yaml
+  - id: debug-statements
+  - id: requirements-txt-fixer
+  # - id: trailing-whitespace
+
+# # Sort imports in a standard form
+# - repo: https://github.com/PyCQA/isort
+  # rev: 5.13.2
+  # hooks:
+  # - id: isort
+    # exclude: |
+      # (?x)^(
+          # ^docs|
+          # .*/gcovr
+      # )$
+
+# # Upgrade older Python syntax
+# - repo: https://github.com/asottile/pyupgrade
+  # rev: v3.17.0
+  # hooks:
+  # - id: pyupgrade
+    # args: ["--py38-plus"]
+    # exclude: |
+      # (?x)^(
+          # ^docs|
+          # .*/gcovr
+      # )$
+
+# # Changes tabs to spaces
+# - repo: https://github.com/Lucas-C/pre-commit-hooks
+  # rev: v1.5.5
+  # hooks:
+  # - id: remove-tabs
+    # exclude: |
+      # (?x)^(
+          # ^docs|
+          # .*/gcovr
+      # )$
+
+# # Flake 8
+# - repo: https://github.com/PyCQA/flake8
+  # rev: 7.1.1
+  # hooks:
+  # - id: flake8
+    # additional_dependencies: [flake8-bugbear]
+    # args: ["--max-line-length=100", "--ignore=E712"]
+    # exclude: |
+      # (?x)^(
+          # ^docs|
+          # .*/gcovr
+      # )$
+
