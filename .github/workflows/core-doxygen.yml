@@ -22,7 +22,7 @@ jobs:
       - name: GH Pages Deployment
         uses: peaceiris/actions-gh-pages@v4
         with:
-          personal_token: ${{ secrets.GH_DOC_TOKEN }}   # Use the secret we added
+          personal_token: ${{ secrets.GH_TOKEN }}   # Use the secret we added
           external_repository: dcascade-py/dcascade-py-doc
           publish_dir: ./docs/html/
           enable_jekyll: false
