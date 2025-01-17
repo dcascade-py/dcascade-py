@@ -9,14 +9,9 @@ Different formula for the calculation of the tranport capacity and for the assig
 
 import numpy as np
 import numpy.matlib
-from supporting_functions import D_finder
-from constants import (
-    RHO_S,
-    RHO_W,
-    GRAV,
-    R_VAR,
-)
 
+from constants import GRAV, R_VAR, RHO_S, RHO_W
+from supporting_functions import D_finder
 
 
 class TransportCapacityCalculator:

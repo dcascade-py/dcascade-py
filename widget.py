@@ -7,7 +7,8 @@ Widget for selecting sediment transport capacity and partitioning formulas
 @author:Elisa Bozzolan
 """
 
-from tkinter import Label, Tk, StringVar, OptionMenu  # for widget
+from tkinter import Label, OptionMenu, StringVar, Tk  # for widget
+
 
 def read_user_input():
 

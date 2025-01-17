@@ -8,6 +8,7 @@ Created on Thu Mar 12 18:30:20 2020
 
 import numpy as np
 
+
 def tr_cap_junction( Fi_r_reach , psi , tr_cap_id , D50 ,  Slope, Q, Wac, v , h ):
     '''
     TR_CAP_JUNCTION refers to the transport capacity equation chose by the

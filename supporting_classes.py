@@ -4,26 +4,22 @@ Created on Tue Oct 29 10:58:54 2024
 
 @author: diane
 """
+import copy
+import os
+import sys
+from itertools import groupby
+
 # General imports
 import numpy as np
-from itertools import groupby
 import numpy.matlib
 import pandas as pd
 from tqdm import tqdm
-import copy
-import sys
-import os
+
 np.seterr(divide='ignore', invalid='ignore')
 
-from transport_capacity_computation import TransportCapacityCalculator
+from constants import GRAV, R_VAR, RHO_S, RHO_W
 from supporting_functions import D_finder
-from constants import (
-    RHO_S,
-    RHO_W,
-    GRAV,
-    R_VAR,
-)
-
+from transport_capacity_computation import TransportCapacityCalculator
 
 
 class Cascade:

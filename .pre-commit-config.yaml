@@ -17,16 +17,16 @@ repos:
   - id: requirements-txt-fixer
   - id: trailing-whitespace
 
-# # Sort imports in a standard form
-# - repo: https://github.com/PyCQA/isort
-  # rev: 5.13.2
-  # hooks:
-  # - id: isort
-    # exclude: |
-      # (?x)^(
-          # ^docs|
-          # .*/gcovr
-      # )$
+# sort imports in a standard form
+- repo: https://github.com/pycqa/isort
+  rev: 5.13.2
+  hooks:
+  - id: isort
+    exclude: |
+      (?x)^(
+          ^docs|
+          .*/gcovr
+      )$
 
 # # Upgrade older Python syntax
 # - repo: https://github.com/asottile/pyupgrade

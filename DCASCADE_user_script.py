@@ -28,25 +28,24 @@ This script was adapted from the Matlab version by Marco Tangi
 @author: Elisa Bozzolan
 """
 
+import copy
+import os
+import profile
+from pathlib import Path
+
 # import libraries
 import numpy as np
 # import geopandas as gpd
 import pandas as pd
-from plot_function import dynamic_plot
-import copy
 from numpy import random
 
+from DCASCADE_main_script import DCASCADE_main
 # import ad hoc functions
 from GSD import GSDcurvefit
-from preprocessing import read_network, extract_Q, graph_preprocessing
-from DCASCADE_main_script import DCASCADE_main
+from plot_function import dynamic_plot
+from preprocessing import extract_Q, graph_preprocessing, read_network
 from supporting_classes import ReachData
 from widget import read_user_input
-import profile
-import os
-from pathlib import Path
-
-
 
 '''user defined input data'''
 

@@ -12,12 +12,10 @@ This script was adapted from the Matlab version by Marco Tangi
 """ Libraries to import """
 
 
-from supporting_classes import ReachData, Cascade, SedimentarySystem
-from DCASCADE_class import DCASCADE
-
 import itertools
 
-
+from DCASCADE_class import DCASCADE
+from supporting_classes import Cascade, ReachData, SedimentarySystem
 
 """ MAIN FUNCTION SECTION """
 

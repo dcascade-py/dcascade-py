@@ -29,10 +29,12 @@ For estimating the flow depth in the reaches two options are given:
 
 """
 
-from constants import GRAV
 import numpy as np
 import numpy.matlib
+
+from constants import GRAV
 from supporting_functions import D_finder
+
 
 def h_manning(reach_data, SedimSys, Q, t):
     """

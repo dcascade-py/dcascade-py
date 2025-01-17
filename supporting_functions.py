@@ -32,10 +32,10 @@ This script was adapted from the Matlab version by Marco Tangi
 """
 
 
-import numpy as np
-import pandas as pd
 from itertools import groupby
 
+import numpy as np
+import pandas as pd
 
 # ignore divide by 0
 np.seterr(divide='ignore', invalid='ignore')

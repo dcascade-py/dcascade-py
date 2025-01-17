@@ -7,14 +7,15 @@ PLOT_NETWORK_DYN plots the river network and visualises continuos data.
 This script was adapted from the Matlab version by Marco Tangi
 @author: Elisa Bozzolan
 """
-import numpy as np
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-from matplotlib.widgets import Slider
+import numpy as np
 from IPython import get_ipython
 from matplotlib import cm
+from matplotlib.colors import LinearSegmentedColormap, ListedColormap
+from matplotlib.lines import Line2D
+from matplotlib.widgets import Slider
+
 get_ipython().run_line_magic('matplotlib', 'qt')
 
 

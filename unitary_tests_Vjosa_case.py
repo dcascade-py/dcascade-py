@@ -5,12 +5,14 @@ Created on Thu Sep  5 13:50:28 2024
 @author: Diane Doolaeghe
 """
 
-import numpy as np
-from DCASCADE_main_script import DCASCADE_main, ReachData
-from preprocessing import graph_preprocessing, extract_Q, read_network
 from pathlib import Path
+
 import geopandas as gpd
+import numpy as np
+
+from DCASCADE_main_script import DCASCADE_main, ReachData
 from GSD import GSDcurvefit
+from preprocessing import extract_Q, graph_preprocessing, read_network
 
 ''' List of tests performed here:
 

@@ -18,10 +18,9 @@ The formula by Lugo (2015) is developped on flume experiments and link the inste
 
 '''
 
-from constants import GRAV, R_VAR
 import numpy as np
 
-
+from constants import GRAV, R_VAR
 
 
 def dynamic_width_Lugo(width, D50, slopes, Q_t):

@@ -8,6 +8,7 @@ Created on Fri Dec 20 15:07:19 2019
 import numpy as np
 from scipy.optimize import curve_fit
 
+
 def GSDcurvefit(D16 , D50 , D84 , psi):
     '''
     %GSDcurvefit fits the Rosin curve to the D16, D50 and D84 values in ReachData to obtain the

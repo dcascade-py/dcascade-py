@@ -6,12 +6,12 @@ Created on Tue Mar 10 17:26:23 2020
 @author: Marco Tangi, Elisa Bozzolan and Diane Doolaeghe
 """
 
-import numpy as np
-import networkx as nx
 import os
-import pandas as pd
-import geopandas as gpd
 
+import geopandas as gpd
+import networkx as nx
+import numpy as np
+import pandas as pd
 
 
 def read_network(file_path):

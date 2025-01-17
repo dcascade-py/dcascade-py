@@ -10,12 +10,14 @@ This script was adapted from the Matlab version by Marco Tangi
 @author: Elisa Bozzolan
 """
 
-import numpy as np
-from supporting_plot_function import plot_network_dyn
-from supporting_plot_function import plot_network_stat
+from tkinter import Label, OptionMenu, StringVar, Tk  # for widget
+
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button
-from tkinter import Label, Tk, StringVar, OptionMenu  # for widget
+import numpy as np
+from matplotlib.widgets import Button, Slider
+
+from supporting_plot_function import plot_network_dyn, plot_network_stat
+
 
 def dynamic_plot(data_output, ReachData, psi, **kwargs):
     #plot input data and show reach features and sediment trasport processes by clicking on it

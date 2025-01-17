@@ -4,23 +4,24 @@ Created on Tue Oct 29 10:58:54 2024
 
 @author: diane
 """
+import copy
+import os
+import sys
+
 # General imports
 import numpy as np
 import numpy.matlib
 import pandas as pd
 from tqdm import tqdm
-import copy
-import sys
-import os
+
 np.seterr(divide='ignore', invalid='ignore')
 
 
 from flow_depth_calc import choose_flow_depth
 from slope_reduction import choose_slopeRed
-from width_variation import choose_widthVar
 from supporting_classes import Cascade, SedimentarySystem
-from supporting_functions import sortdistance, D_finder
-
+from supporting_functions import D_finder, sortdistance
+from width_variation import choose_widthVar
 
 
 class DCASCADE:

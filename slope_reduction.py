@@ -28,8 +28,10 @@ The formula by Nitsche et al. (2011) is based on the flow depth and the D84
 - change D values from Reach Data to values that D-Cascade calculates for each timestep
 '''
 
-from constants import GRAV
 import numpy as np
+
+from constants import GRAV
+
 exponent_a = 1.5 # exponent a between 1-2, typically 1.5
 
 def slopeRed_Rickenmann(slope, h, roughness):
