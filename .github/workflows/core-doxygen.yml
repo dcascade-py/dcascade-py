@@ -1,0 +1,31 @@
+name: Core Doxygen
+
+on:
+  push:
+    branches: [ Dcascade_v2.0 ]
+
+jobs:
+  build-doxygen:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build the HTML documentation
+      - name: Doxygen Action
+        uses: mattnotmitt/doxygen-action@v1.9.8
+        with:
+          doxyfile-path: ./Doxyfile
+          working-directory: ./docs
+
+      # Deploy the HTML documentation to GitHub Pages
+      - name: GH Pages Deployment
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.GH_DOC_TOKEN }}   # Use the secret we added
+          external_repository: dcascade-py/dcascade-py-doc
+          publish_dir: ./docs/html/
+          enable_jekyll: false
+          allow_empty_commit: false
+          force_orphan: true
+          publish_branch: main
