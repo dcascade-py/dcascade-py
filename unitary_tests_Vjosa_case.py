@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Sep  5 13:50:28 2024
 
@@ -56,7 +55,7 @@ Network = graph_preprocessing(reach_data)
 
 # Q file
 Q = extract_Q(filename_q)
-Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+Q_new = np.zeros(Q.shape) #reorganise Q file according to reachdata sorting
 for i, idx in enumerate(sorted_indices):
     Q_new[:,i] = Q.iloc[:,idx]
 Q = Q_new

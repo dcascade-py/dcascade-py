@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Sep  5 13:50:28 2024
 
@@ -67,7 +66,7 @@ def test_Po_Engelund_all_new_options_false():
 
     # Q file
     Q = extract_Q(filename_q)
-    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    Q_new = np.zeros(Q.shape) #reorganise Q file according to reachdata sorting
     for i, idx in enumerate(sorted_indices):
         Q_new[:,i] = Q.iloc[:,idx]
     Q = Q_new
@@ -216,7 +215,7 @@ def test_Po_Wilcock_all_new_options_false():
 
     # Q file
     Q = extract_Q(filename_q)
-    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    Q_new = np.zeros(Q.shape) #reorganise Q file according to reachdata sorting
     for i, idx in enumerate(sorted_indices):
         Q_new[:,i] = Q.iloc[:,idx]
     Q = Q_new
@@ -362,7 +361,7 @@ def test_Po_Engelund_all_true_no_tlag():
 
     # Q file
     Q = extract_Q(filename_q)
-    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    Q_new = np.zeros(Q.shape) #reorganise Q file according to reachdata sorting
     for i, idx in enumerate(sorted_indices):
         Q_new[:,i] = Q.iloc[:,idx]
     Q = Q_new
@@ -511,7 +510,7 @@ def test_Po_Wilcock_all_true_no_tlag():
 
     # Q file
     Q = extract_Q(filename_q)
-    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    Q_new = np.zeros(Q.shape) #reorganise Q file according to reachdata sorting
     for i, idx in enumerate(sorted_indices):
         Q_new[:,i] = Q.iloc[:,idx]
     Q = Q_new
@@ -659,7 +658,7 @@ def test_Po_Engelund_all_new_options_true():
 
     # Q file
     Q = extract_Q(filename_q)
-    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    Q_new = np.zeros(Q.shape) #reorganise Q file according to reachdata sorting
     for i, idx in enumerate(sorted_indices):
         Q_new[:,i] = Q.iloc[:,idx]
     Q = Q_new
@@ -783,7 +782,7 @@ def test_Po_Wilcock_all_new_options_true():
 
     # Q file
     Q = extract_Q(filename_q)
-    Q_new = np.zeros((Q.shape)) #reorganise Q file according to reachdata sorting
+    Q_new = np.zeros(Q.shape) #reorganise Q file according to reachdata sorting
     for i, idx in enumerate(sorted_indices):
         Q_new[:,i] = Q.iloc[:,idx]
     Q = Q_new

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Oct 29 10:58:54 2024
 
@@ -280,7 +279,7 @@ class SedimentarySystem:
 
     def set_erosion_maximum(self, eros_max_depth_, roundpar):
         # Set maximum volume in meters that can be eroded for each reach, for each time step.
-        self.eros_max_depth = np.ones((self.n_reaches)) * eros_max_depth_
+        self.eros_max_depth = np.ones(self.n_reaches) * eros_max_depth_
         self.eros_max_vol = np.round(self.eros_max_depth * self.reach_data.wac * self.reach_data.length, roundpar)
 
     def set_active_layer(self, input_AL_depth = None):
@@ -823,7 +822,7 @@ class SedimentarySystem:
             firstoverthresh[firstoverthresh == -1] = csum.shape[0] - 1
             # Finally, we obtain a binary matrix indicating the threshold layers:
             # (DD: maybe there is a more elegant way to find this matrix ?)
-            mapfirst = np.zeros((mapp.shape))
+            mapfirst = np.zeros(mapp.shape)
             mapfirst[firstoverthresh, np.arange(np.sum(under_capacity_classes*1))] = 1
             # Now compute the percentage to be lifted from the layer "on the threshold":
             sum_layers_above_threshold = np.sum(np.where(mapp == False, V_dep2act_class, 0), axis=0)
@@ -839,7 +838,7 @@ class SedimentarySystem:
 
             # The matrix V_dep2act_new contains the mobilized cascades from
             # the deposit layer, now corrected according to the tr_cap:
-            V_dep2act_new = np.zeros((V_dep2act.shape))
+            V_dep2act_new = np.zeros(V_dep2act.shape)
             V_dep2act_new[: , 0] = V_dep2act[: ,0]
             V_dep2act_new[:,np.append(False, under_capacity_classes)== True] = map_perc * V_dep2act_class
             # Round the volume:
@@ -848,7 +847,7 @@ class SedimentarySystem:
 
             # The matrix V_2dep contains the cascades that will be deposited into the deposit layer.
             # (the new volumes for the classes in under_capacity_classes and all the volumes in the remaining classes)
-            V_2dep = np.zeros((V_dep2act.shape))
+            V_2dep = np.zeros(V_dep2act.shape)
             V_2dep[: , np.append(True, ~under_capacity_classes) == True] = V_dep2act[: , np.append(True, ~under_capacity_classes) == True]
             V_2dep[: , np.append(False, under_capacity_classes) == True] = (1 - map_perc)* V_dep2act_class
             # Round the volume:
@@ -860,7 +859,7 @@ class SedimentarySystem:
         else:
             V_2dep = V_dep2act
             # V_dep2act_new is empty:
-            V_dep2act_new = np.zeros((V_dep2act.shape))
+            V_dep2act_new = np.zeros(V_dep2act.shape)
             V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
 
         # For the classes where V_inc2act is enough, I deposit the cascades
@@ -869,7 +868,7 @@ class SedimentarySystem:
         # percentage to mobilise from the above_capacity classes:
         perc_inc = tr_cap[~under_capacity_classes] / sum_classes_above_capacity
         perc_inc[np.isnan(perc_inc)] = 0 # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
-        class_perc_inc = np.zeros((under_capacity_classes.shape))
+        class_perc_inc = np.zeros(under_capacity_classes.shape)
         class_perc_inc[under_capacity_classes == False] = perc_inc
         # Incomimg volume that is effectively mobilised, according to tr_cap:
         V_inc2act_new = V_inc2act*(np.append(True,under_capacity_classes)) + V_inc2act*np.append(False, class_perc_inc)
@@ -882,7 +881,7 @@ class SedimentarySystem:
             V_mob[:,1:] = np.around(V_mob[:,1:], decimals = roundpar)
 
         # Compute what is to be added to V_dep from Q_incomimg:
-        class_residual = np.zeros((under_capacity_classes.shape));
+        class_residual = np.zeros(under_capacity_classes.shape);
         class_residual[under_capacity_classes==False] = 1 - perc_inc
         V_inc2dep = V_inc2act*np.hstack((1, class_residual))
 
@@ -1041,7 +1040,7 @@ class SedimentarySystem:
             volume_compacted = volume_compacted[np.sum(volume_compacted[:,1:], axis = 1) != 0]
 
         if volume_compacted.size == 0:
-            volume_compacted = (np.hstack((idx[0], np.zeros((volume[:,1:].shape[1]))))).reshape(1,-1)
+            volume_compacted = (np.hstack((idx[0], np.zeros(volume[:,1:].shape[1])))).reshape(1,-1)
 
         return volume_compacted
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Mon Oct 10 15:21:34 2022
 
@@ -106,7 +105,7 @@ Q = extract_Q(filename_q)
 
 # Sort reach_data according to the from_n, and organise the Q file accordingly
 sorted_indices = reach_data.sort_values_by(reach_data.from_n)
-Q_new = np.zeros((Q.shape))
+Q_new = np.zeros(Q.shape)
 for i, idx in enumerate(sorted_indices):
     Q_new[:,i] = Q.iloc[:,idx]
 Q = Q_new

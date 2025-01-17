@@ -1,4 +1,3 @@
-
 # CONSTANTS (MUST BE WRITTEN IN CAPITAL LETTERS)
 RHO_W = 1000               # water density [kg/m^3]
 RHO_S = 2650               # sediment density [kg/m^3]
