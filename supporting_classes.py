@@ -25,7 +25,7 @@ class Cascade:
     def __init__(self, provenance, elapsed_time, volume):
         """
         Initialyse a cascade.
-        
+
         @param provenance (...)
             Provenance
         @param elapsed_time (...)
