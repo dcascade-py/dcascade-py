@@ -23,6 +23,16 @@ from transport_capacity_computation import TransportCapacityCalculator
 
 class Cascade:
     def __init__(self, provenance, elapsed_time, volume):
+        """
+        Initialyse a cascade.
+        
+        @param provenance (...)
+            Provenance
+        @param elapsed_time (...)
+            Elapsed time
+        @param volume (...)
+            Volume
+        """
         self.provenance = provenance
         self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
         self.volume = volume # size = n_classes + 1, to include the original provenance in a first column
