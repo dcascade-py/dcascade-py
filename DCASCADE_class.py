@@ -316,7 +316,7 @@ class DCASCADE:
         """End of the time loop"""    
     
     
-    def output_processing_new(self, Q):
+    def output_processing(self, Q):
         SedimSys = self.sedim_sys
                 
         # Volume out            : total volume [m^3] leaving the reach per time step, including passing cascades
@@ -402,7 +402,7 @@ class DCASCADE:
         return data_output, extended_output
     
     
-    def output_processing(self, Q):
+    def output_processing_old(self, Q):
         
         SedimSys = self.sedim_sys
         # output processing
