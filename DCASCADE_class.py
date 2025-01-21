@@ -291,14 +291,21 @@ class DCASCADE:
                         SedimSys.Q_out[t, [cascade.volume[:,0].astype(int)], :] += cascade.volume[:,1:]
                 
                 # Store sediment budget:
-                SedimSys.sediment_budget[t,n,:] = np.sum(SedimSys.Qbi_dep_0[n][:, 1:], axis = 0) - np.sum(Qbi_dep_old[n][:, 1:], axis = 0)
+                vol_out = np.sum(SedimSys.Qbi_mob[t][:, n, :], axis = 0) # sum over provenance
+                vol_in = np.sum(SedimSys.Qbi_tr[t][:, n, :], axis = 0)
+                SedimSys.sediment_budget[t, n, :] = vol_in - vol_out
+                
+                # Check sediment volume mass balance:
+                delta_volume_reach = np.sum(SedimSys.Qbi_dep_0[n][:, 1:], axis = 0) - np.sum(Qbi_dep_old[n][:, 1:], axis = 0)    
+                SedimSys.check_mass_balance(t, n, delta_volume_reach) 
                 
                 # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
                 if self.update_slope == True:
                     sed_budg_t_n = np.sum(SedimSys.sediment_budget[t,n,:]) 
                     # TODO: DD check this line 
                     self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
-                                                
+                 
+                                              
             """End of the reach loop"""
             
             # Save Qbi_dep according to saving frequency
@@ -391,7 +398,8 @@ class DCASCADE:
                            'Fi_al': SedimSys.Fi_al,
                            'AL depth [m]': SedimSys.al_depth,
                            'Widths [m]': SedimSys.width,
-                           'Slopes': SedimSys.slope
+                           'Slopes': SedimSys.slope,
+                           'Mass balance [m^3]' : SedimSys.mass_balance
                            }
         
         if self.time_lag_for_mobilised == True:

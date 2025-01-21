@@ -161,6 +161,7 @@ class SedimentarySystem:
         self.al_vol = None
         self.al_depth = None 
         self.vl_height = self.create_2d_zero_array()
+        self.mass_balance = self.create_3d_zero_array()
         
         
         # temporary ?
@@ -371,7 +372,7 @@ class SedimentarySystem:
             volume_total = np.sum(volume_all_cascades[:,1:])            
             if volume_total < self.al_vol[t, n]:
                 _, Vdep_active, _, _ = self.layer_search(Vdep, self.al_vol[t, n],
-                                        roundpar, Qpass_volume = volume_all_cascades)
+                                        Qpass_volume = volume_all_cascades, roundpar = roundpar)
                 volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
 
             velocities = self.volume_velocities(volume_all_cascades, 
@@ -578,7 +579,7 @@ class SedimentarySystem:
                 
         # Compute fraction and D50 in the active layer
         # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
-        _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], roundpar, Qpass_volume = passing_volume)                   
+        _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], Qpass_volume = passing_volume, roundpar = roundpar)                   
         # In case the active layer is empty, I use the GSD of the previous timestep
         if np.sum(Fi_al_) == 0:
            Fi_al_ = self.Fi_al[t-1, n, :] 
@@ -623,7 +624,7 @@ class SedimentarySystem:
         diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)     
         if np.any(diff_pos): 
             # Search for layers to be put in the erosion max (e_max_vol_)
-            V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar)
+            V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
             if np.all(V_mob[:,1:] == 0):
                 V_mob = None
@@ -649,7 +650,7 @@ class SedimentarySystem:
     
     
     
-    def layer_search(self, V_dep_old, V_lim, roundpar, Qpass_volume = None):
+    def layer_search(self, V_dep_old, V_lim, Qpass_volume = None, roundpar = None):
         # This function searches uppermost layers from a volume of layers, 
         # to correspond to a maximum volume. Passing cascade can be integrated
         # to the top of the volume.
@@ -658,15 +659,17 @@ class SedimentarySystem:
         # or a maximum to be eroded per time step.
     
         # INPUTS:    
-        # V_dep_old :             the reach deposit layer
+        # V_dep_old :         the reach deposit layer
         # V_lim  :            is the total maximum volume to be selected
         # Qpass_volume :      is the traveling volume to be added at the top of the layers
+        # roundpar     :      number of decimals for rounding volumes  
         
         # RETURN:
         # V_inc2act    :      Layers of the incoming volume to be put in the maximum volume
         # V_dep2act    :      layers of the deposit volume to be put in the maximum volume
         # V_dep_new    :      remaining deposit layer
         # Fi_r_reach   :      fraction of sediment in the maximum volume
+        
         
         if Qpass_volume is None:
             # Put an empty layer (for computation)
@@ -723,12 +726,13 @@ class SedimentarySystem:
                 perc_layer = np.maximum(0, perc_layer)
                 
                 # Multiply the threshold layer by perc_layer
-                if ~np.isnan(roundpar): # round
+                if roundpar is not None: # round
                     threshold_layer_included = np.around(threshold_layer[1:] * perc_layer, decimals = roundpar)
-                    threshold_layer_excluded = np.around(threshold_layer[1:] * (1-perc_layer), decimals=roundpar)
+                    threshold_layer_excluded = threshold_layer[1:] - threshold_layer_included
                 else:
-                    threshold_layer_included = np.around(threshold_layer[1:] * perc_layer)
-                    threshold_layer_excluded = np.around(threshold_layer[1:] * (1-perc_layer))                    
+                    threshold_layer_included = threshold_layer[1:] * perc_layer
+                    threshold_layer_excluded = threshold_layer[1:] - threshold_layer_included  
+
                 # Re-add the provenance column:
                 threshold_layer_included = np.hstack((threshold_layer[0], threshold_layer_included)).reshape(1, -1)
                 threshold_layer_excluded = np.hstack((threshold_layer[0], threshold_layer_excluded)).reshape(1, -1)
@@ -746,7 +750,7 @@ class SedimentarySystem:
             perc_dep = V_lim / np.sum(Qpass_volume[:, 1:])
             
             # Volume from the incoming volume to be deposited:
-            if ~np.isnan(roundpar):
+            if roundpar is not None:
                 Qpass_dep = np.around(Qpass_volume[:, 1:] * (1 - perc_dep), decimals = roundpar)
             else:
                 Qpass_dep = Qpass_volume[:, 1:] * (1 - perc_dep)
@@ -986,6 +990,18 @@ class SedimentarySystem:
         # The returned cascade_list is directly modified by the operations on Vm
         return r_Vmob, cascade_list, V_remove
 
+
+    def check_mass_balance(self, t, n, delta_volume_reach):
+        ''' Definition to check the mass balance at time step t in reach n
+        '''
+        tot_out = np.sum(self.Qbi_mob[t][:, n, :], axis = 0)
+        tot_in = np.sum(self.Qbi_tr[t][:, n, :], axis = 0)
+        mass_balance_ = tot_in - tot_out - delta_volume_reach
+        if np.any(mass_balance_ != 0) == True:
+            self.mass_balance[t, n, :] = mass_balance_
+        if np.abs(np.sum(mass_balance_)) >= 100: 
+            # DD: 100 is what I consider as a big volume loss
+            print('Warning, the mass balance loss is higher than 100 m^3')
 
     def change_slope(self, Node_el_t, Lngt, Network , **kwargs):
         """"CHANGE_SLOPE modify the Slope vector according to the changing elevation of
