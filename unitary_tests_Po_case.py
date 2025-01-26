@@ -122,7 +122,7 @@ def test_Po_Engelund_all_new_options_false():
     
     
     # Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     expected_result = np.array([8.291000e+03, 4.564100e+04, 6.829700e+04, 5.932000e+04,
                                5.642600e+04, 7.451300e+04, 1.430240e+05, 3.254750e+05,
                                2.461390e+05, 2.819290e+05, 4.249720e+05, 2.852150e+05,
@@ -145,7 +145,7 @@ def test_Po_Engelund_all_new_options_false():
     np.testing.assert_array_equal(test_result, expected_result)
    
     # Test the total transported volume per reach
-    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
     expected_result = np.array([      0.,    8111.,   43773.,   64451.,   55923.,   56238.,
                                  70750.,  129194.,  270683.,  255217.,  270604.,  400946.,
                                 275245.,  158159.,  159241.,  321726.,  255577.,  230816.,
@@ -271,7 +271,7 @@ def test_Po_Wilcock_all_new_options_false():
     
         
     # Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     expected_result = np.array([2.37000e+02, 1.72400e+03, 3.57100e+03, 1.98000e+02, 6.20000e+01,
                                 2.29800e+03, 7.06000e+03, 7.10590e+04, 2.14120e+04, 3.32050e+04,
                                 1.43800e+04, 1.15600e+03, 1.20500e+03, 1.64500e+03, 1.02042e+05,
@@ -290,7 +290,7 @@ def test_Po_Wilcock_all_new_options_false():
     np.testing.assert_array_equal(test_result, expected_result)
    
     # Test the total transported volume per reach
-    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
     expected_result = np.array([0.00000e+00, 2.34000e+02, 1.52700e+03, 3.24200e+03, 1.56000e+02,
                                 8.10000e+01, 2.08300e+03, 6.54500e+03, 6.78770e+04, 1.88180e+04,
                                 3.14820e+04, 1.29750e+04, 1.19500e+03, 1.14300e+03, 1.56900e+03,
@@ -418,7 +418,7 @@ def test_Po_Engelund_all_true_no_tlag():
         
     
     # Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     expected_result = np.array([8.291000e+03, 4.564100e+04, 6.829700e+04, 5.932000e+04,
                                5.918400e+04, 7.451300e+04, 1.430240e+05, 3.523640e+05,
                                3.056510e+05, 2.985600e+05, 4.323130e+05, 2.914700e+05,
@@ -440,7 +440,7 @@ def test_Po_Engelund_all_true_no_tlag():
     np.testing.assert_array_equal(test_result, expected_result)
    
     # Test the total transported volume per reach
-    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
     expected_result = np.array([      0.,    8291.,   45641.,   68297.,   59496.,   62058.,
                                      74513.,  149213.,  352364.,  305651.,  298560.,  432313.,
                                     297064.,  170773.,  171104.,  339026.,  267688.,  241455.,
@@ -566,7 +566,7 @@ def test_Po_Wilcock_all_true_no_tlag():
     
         
     # Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     expected_result = np.array([2.37000e+02, 1.72400e+03, 3.57100e+03, 1.98000e+02, 6.20000e+01,
                                2.29800e+03, 7.06000e+03, 7.10590e+04, 2.14120e+04, 3.32050e+04,
                                1.43800e+04, 1.15600e+03, 1.20500e+03, 1.64500e+03, 1.02042e+05,
@@ -585,7 +585,7 @@ def test_Po_Wilcock_all_true_no_tlag():
     np.testing.assert_array_equal(test_result, expected_result)
    
     # Test the total transported volume per reach
-    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
     expected_result = np.array([0.00000e+00, 2.37000e+02, 1.72400e+03, 3.57100e+03, 1.98000e+02,
                                8.90000e+01, 2.29800e+03, 7.06900e+03, 7.10590e+04, 2.14120e+04,
                                3.32050e+04, 1.43800e+04, 1.33800e+03, 1.20500e+03, 1.65700e+03,
@@ -695,7 +695,7 @@ def test_Po_Engelund_all_new_options_true():
     print(end - start)
         
     # Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     expected_result = np.array([8.291000e+03, 4.564100e+04, 6.829700e+04, 5.932000e+04,
                                5.697500e+04, 7.451300e+04, 1.430240e+05, 3.370550e+05,
                                2.902820e+05, 2.856250e+05, 4.335030e+05, 2.911650e+05,
@@ -716,7 +716,7 @@ def test_Po_Engelund_all_new_options_true():
     np.testing.assert_array_equal(test_result, expected_result)
    
     # Test the total transported volume per reach
-    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
     expected_result = np.array([      0.,    8291.,   45641.,   68297.,   59496.,   59849.,
                                  74513.,  149213.,  337055.,  290282.,  285625.,  433503.,
                                 296759.,  169443.,  169705.,  338323.,  267070.,  241067.,
@@ -815,7 +815,7 @@ def test_Po_Wilcock_all_new_options_true():
                                                  indx_tr_cap , indx_tr_partition, indx_flo_depth)
         
     # Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Mobilized [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     expected_result = np.array([2.37000e+02, 1.72400e+03, 3.57100e+03, 1.98000e+02, 6.20000e+01,
                            2.29800e+03, 7.06000e+03, 7.10590e+04, 2.14120e+04, 3.32050e+04,
                            1.43800e+04, 1.15600e+03, 1.20500e+03, 1.64500e+03, 1.02042e+05,
@@ -833,7 +833,7 @@ def test_Po_Wilcock_all_new_options_true():
     np.testing.assert_array_equal(test_result, expected_result)
    
     # Test the total transported volume per reach
-    test_result = np.sum(data_output['Transported [m^3]'], axis = 0)
+    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
     expected_result = np.array([0.00000e+00, 2.37000e+02, 1.72400e+03, 3.57100e+03, 1.98000e+02,
                            8.90000e+01, 2.29800e+03, 7.06900e+03, 7.10590e+04, 2.14120e+04,
                            3.32050e+04, 1.43800e+04, 1.33800e+03, 1.20500e+03, 1.65700e+03,
