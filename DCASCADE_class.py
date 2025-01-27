@@ -315,7 +315,7 @@ class DCASCADE:
         """End of the time loop"""
 
 
-    def output_processing_new(self, Q):
+    def output_processing(self, Q):
         SedimSys = self.sedim_sys
 
         # Volume out            : total volume [m^3] leaving the reach per time step, including passing cascades
@@ -389,6 +389,7 @@ class DCASCADE:
                            'Node_el [m]': SedimSys.node_el,
                            'Fi_al': SedimSys.Fi_al,
                            'AL depth [m]': SedimSys.al_depth,
+                           'Velocity section height [m]': SedimSys.vl_height,
                            'Widths [m]': SedimSys.width,
                            'Slopes': SedimSys.slope
                            }
@@ -401,7 +402,7 @@ class DCASCADE:
         return data_output, extended_output
 
 
-    def output_processing(self, Q):
+    def output_processing_new(self, Q):
 
         SedimSys = self.sedim_sys
         # output processing
