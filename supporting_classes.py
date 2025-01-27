@@ -165,7 +165,7 @@ class SedimentarySystem:
         self.eros_max_depth = None
         self.al_vol = None
         self.al_depth = None
-        self.vl_height = self.create_2d_zero_array() 
+        self.vl_height = self.create_2d_zero_array()
 
 
         # temporary ?
@@ -315,7 +315,7 @@ class SedimentarySystem:
             al_depth_t = al_depth * np.ones(self.n_reaches)
         else:
             raise ValueError('As options for the AL depth, you can choose "2D90" or a fixed number')
-            
+
         # Compute the AL volumes (all reaches)
         al_vol_t = al_depth_t * self.reach_data.wac * self.reach_data.length
         # Store it for all time steps:
@@ -336,7 +336,7 @@ class SedimentarySystem:
                 reference_d = self.reach_data.D84
             # Multiply by two, + apply a minimum threshold of 1 cm
             vl_height_t = np.maximum(2 * reference_d, 0.01)
-            
+
         elif vel_section_height == '0.1_hw':
             vl_height_t = 0.1 * h
         elif isinstance(vel_section_height, (int, float)):
@@ -345,8 +345,8 @@ class SedimentarySystem:
             raise ValueError('Velocity height options are 2D90, 0.1_hw, or a number')
 
         # Store:
-        self.vl_height[t, :] = vl_height_t       
-        
+        self.vl_height[t, :] = vl_height_t
+
     def set_external_input(self, external_inputs, roundpar):
         # define Qbi_input in this sed_system
         self.external_inputs = external_inputs
@@ -380,7 +380,7 @@ class SedimentarySystem:
         # Second method: we consider the active layer volume, to complete, if needed,
         # the list of cascade by some reach material. If the cascade volume is more
         # than the active layer, we consider all the cascade volume.
-        
+
 
         if indx_velocity == 1:
             velocities_list = []

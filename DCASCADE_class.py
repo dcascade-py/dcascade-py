@@ -90,10 +90,10 @@ class DCASCADE:
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
             SedimSys.flow_depth[t] = h
-            
+
             # Compute velocity section height (may be dependant on the water depth)
             SedimSys.set_velocity_section_height(self.vel_height_option, h, t)
-            
+
             # Slope reduction functions
             SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys, Q, t, h, self.indx_slope_red)
 
@@ -104,7 +104,7 @@ class DCASCADE:
             # in this timestep, ready to go to the next reach in the same time step.
             # For each reach, stores list of Cascade objects.
             Qbi_pass = [[] for n in range(self.n_reaches)]
-            
+
             # loop for all reaches:
             for n in self.network['n_hier']:
 

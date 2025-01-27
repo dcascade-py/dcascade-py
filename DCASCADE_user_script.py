@@ -82,9 +82,9 @@ update_slope = False # if False: slope is constant, if True, slope changes accor
 
 #---Initial layer sizes
 deposit_layer = 100000      # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
-eros_max = 10               # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+eros_max = 10               # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters.
 al_depth = '2D90'              # Active layer depth (Possibilities: '2D90', or any fixed value)
-vel_height = '2D90'         # Section for velocity calculation 
+vel_height = '2D90'         # Section for velocity calculation
                             #Possibilities: '2D90', '0.1_hw' (10% of water height), or any fixed value)
 
 #---Storing Deposit layer
@@ -185,7 +185,7 @@ op3 = False
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                             roundpar, update_slope, eros_max, al_depth, 
+                                             roundpar, update_slope, eros_max, al_depth,
                                              save_dep_layer, ts_length,
                                              indx_tr_cap , indx_tr_partition, indx_flo_depth,
                                              vel_height = vel_height,

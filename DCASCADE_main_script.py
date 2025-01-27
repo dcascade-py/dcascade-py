@@ -19,7 +19,7 @@ from supporting_classes import Cascade, ReachData, SedimentarySystem
 """ MAIN FUNCTION SECTION """
 
 def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
-                  update_slope, eros_max, al_depth,  
+                  update_slope, eros_max, al_depth,
                   save_dep_layer, ts_length,
                   indx_tr_cap, indx_tr_partition, indx_flo_depth,
                   vel_height = '2D90',
