@@ -165,7 +165,7 @@ class SedimentarySystem:
         self.eros_max_depth = None
         self.al_vol = None
         self.al_depth = None
-        self.vl_height = self.create_2d_zero_array()
+        self.vl_height = self.create_2d_zero_array() 
 
 
         # temporary ?
@@ -292,7 +292,7 @@ class SedimentarySystem:
         self.eros_max_depth = np.ones(self.n_reaches) * eros_max_depth_
         self.eros_max_vol = np.round(self.eros_max_depth * self.reach_data.wac * self.reach_data.length, roundpar)
 
-    def set_active_layer(self, input_AL_depth = None):
+    def set_active_layer(self, al_depth):
         # Set active layer volume, i.e. the one used for calculating the tranport
         # capacity in [m3/s]. Corresponds to the depth that the river can see
         # every second (more like a continuum carpet ...)
@@ -302,7 +302,7 @@ class SedimentarySystem:
         self.al_vol = self.create_2d_zero_array()
         self.al_depth = self.create_2d_zero_array()
 
-        if input_AL_depth == None:
+        if al_depth == '2D90':
             # We take the input D90, or if not provided, the D84:
             if self.reach_data.D90 is not None:
                 reference_d = self.reach_data.D90
@@ -310,16 +310,43 @@ class SedimentarySystem:
                 reference_d = self.reach_data.D84
             # Multiply by two, + apply a minimum threshold
             al_depth_t = np.maximum(2 * reference_d, 0.01)
-
-        else:
+        elif isinstance(al_depth, (int, float)):
             # Apply the input AL depth
-            al_depth_t = input_AL_depth * np.ones(self.n_reaches)
+            al_depth_t = al_depth * np.ones(self.n_reaches)
+        else:
+            raise ValueError('As options for the AL depth, you can choose "2D90" or a fixed number')
+            
         # Compute the AL volumes (all reaches)
         al_vol_t = al_depth_t * self.reach_data.wac * self.reach_data.length
         # Store it for all time steps:
         self.al_vol = np.tile(al_vol_t, (self.timescale, 1))
         self.al_depth = np.tile(al_depth_t, (self.timescale, 1))
 
+    def set_velocity_section_height(self, vel_section_height, h, t):
+        '''Set section height, for estimating velocity [m/s] from sediment flux [m3/s]
+        Possibilities:  '2D90': twice the input D90.
+                        '0.1_hw': 10% of the water column.
+                        Or a fixed value.
+        '''
+        if vel_section_height == '2D90':
+            # We take the input D90, or if not provided, the D84:
+            if self.reach_data.D90 is not None:
+                reference_d = self.reach_data.D90
+            else:
+                reference_d = self.reach_data.D84
+            # Multiply by two, + apply a minimum threshold of 1 cm
+            vl_height_t = np.maximum(2 * reference_d, 0.01)
+            
+        elif vel_section_height == '0.1_hw':
+            vl_height_t = 0.1 * h
+        elif isinstance(vel_section_height, (int, float)):
+            vl_height_t = vel_section_height * np.ones(self.n_reaches)
+        else:
+            raise ValueError('Velocity height options are 2D90, 0.1_hw, or a number')
+
+        # Store:
+        self.vl_height[t, :] = vl_height_t       
+        
     def set_external_input(self, external_inputs, roundpar):
         # define Qbi_input in this sed_system
         self.external_inputs = external_inputs
@@ -353,7 +380,7 @@ class SedimentarySystem:
         # Second method: we consider the active layer volume, to complete, if needed,
         # the list of cascade by some reach material. If the cascade volume is more
         # than the active layer, we consider all the cascade volume.
-
+        
 
         if indx_velocity == 1:
             velocities_list = []

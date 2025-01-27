@@ -19,8 +19,10 @@ from supporting_classes import Cascade, ReachData, SedimentarySystem
 """ MAIN FUNCTION SECTION """
 
 def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
-                  update_slope, eros_max, al_depth, save_dep_layer, ts_length,
+                  update_slope, eros_max, al_depth,  
+                  save_dep_layer, ts_length,
                   indx_tr_cap, indx_tr_partition, indx_flo_depth,
+                  vel_height = '2D90',
                   external_inputs = None,
                   indx_velocity = 2,
                   indx_vel_partition = 1,
@@ -85,15 +87,13 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
 
 
 
-
     # Create DCASCADE solver
     dcascade = DCASCADE(sedimentary_system, indx_flo_depth, indx_slope_red, indx_width_calc)
 
     dcascade.set_transport_indexes(indx_tr_cap, indx_tr_partition)
-    dcascade.set_velocity_indexes(indx_velocity, indx_vel_partition)
+    dcascade.set_velocity_options(indx_velocity, indx_vel_partition, vel_height)
     dcascade.set_algorithm_options(passing_cascade_in_outputs, passing_cascade_in_trcap,
                                    time_lag_for_mobilised)
-
     # Run
     dcascade.run(Q, roundpar)
 

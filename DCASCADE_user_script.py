@@ -81,9 +81,11 @@ ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*
 update_slope = False # if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes
-deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
-eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters.
-al_depth = None          # Active layer depth, if None, then it is 2.D90 by default
+deposit_layer = 100000      # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
+eros_max = 10               # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+al_depth = '2D90'              # Active layer depth (Possibilities: '2D90', or any fixed value)
+vel_height = '2D90'         # Section for velocity calculation 
+                            #Possibilities: '2D90', '0.1_hw' (10% of water height), or any fixed value)
 
 #---Storing Deposit layer
 save_dep_layer = 'never' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
@@ -183,8 +185,10 @@ op3 = False
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                             roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
+                                             roundpar, update_slope, eros_max, al_depth, 
+                                             save_dep_layer, ts_length,
                                              indx_tr_cap , indx_tr_partition, indx_flo_depth,
+                                             vel_height = vel_height,
                                              external_inputs = external_inputs,
                                              indx_velocity = indx_velocity,
                                              indx_vel_partition = indx_vel_partition,

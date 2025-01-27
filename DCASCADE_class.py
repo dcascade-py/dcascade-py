@@ -56,9 +56,10 @@ class DCASCADE:
         self.indx_tr_cap = indx_tr_cap
         self.indx_tr_partition = indx_tr_partition
 
-    def set_velocity_indexes(self, indx_velocity, indx_vel_partition):
+    def set_velocity_options(self, indx_velocity, indx_vel_partition, vel_height_option):
         self.indx_velocity = indx_velocity
         self.indx_vel_partition = indx_vel_partition
+        self.vel_height_option = vel_height_option
 
     def set_algorithm_options(self, passing_cascade_in_outputs, passing_cascade_in_trcap,
                                    time_lag_for_mobilised):
@@ -89,7 +90,10 @@ class DCASCADE:
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
             SedimSys.flow_depth[t] = h
-
+            
+            # Compute velocity section height (may be dependant on the water depth)
+            SedimSys.set_velocity_section_height(self.vel_height_option, h, t)
+            
             # Slope reduction functions
             SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys, Q, t, h, self.indx_slope_red)
 
@@ -100,7 +104,7 @@ class DCASCADE:
             # in this timestep, ready to go to the next reach in the same time step.
             # For each reach, stores list of Cascade objects.
             Qbi_pass = [[] for n in range(self.n_reaches)]
-
+            
             # loop for all reaches:
             for n in self.network['n_hier']:
 
@@ -129,11 +133,6 @@ class DCASCADE:
 
                 # Compute the velocity of the cascades in this reach [m/s]
                 if Qbi_pass[n] != []:
-                    # Define the velocity section height:
-                    # coef_AL_vel = 0.1
-                    # SedimSys.vl_height[t,n] = coef_AL_vel * h[n]
-                    SedimSys.vl_height[t,n] = SedimSys.al_depth[t,n]    # the velocity height is the same as the active layer depth
-
                     SedimSys.compute_cascades_velocities(Qbi_pass[n], Vdep_init,
                                                Q[t,n], v[n], h[n], roundpar, t, n,
                                                self.indx_velocity, self.indx_vel_partition,
