@@ -40,16 +40,16 @@ repos:
           .*/gcovr
       )$
 
-# Changes tabs to spaces
-- repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: v1.5.5
-  hooks:
-  - id: remove-tabs
-    exclude: |
-      (?x)^(
-          ^docs|
-          .*/gcovr
-      )$
+# # Changes tabs to spaces
+# - repo: https://github.com/Lucas-C/pre-commit-hooks
+  # rev: v1.5.5
+  # hooks:
+  # - id: remove-tabs
+    # exclude: |
+      # (?x)^(
+          # ^docs|
+          # .*/gcovr
+      # )$
 
 # # Flake 8
 # - repo: https://github.com/PyCQA/flake8
