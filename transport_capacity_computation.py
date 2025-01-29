@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Feb  3 12:03:00 2023
 
@@ -9,14 +8,9 @@ Different formula for the calculation of the tranport capacity and for the assig
 
 import numpy as np
 import numpy.matlib
-from supporting_functions import D_finder
-from constants import (
-    RHO_S,
-    RHO_W,
-    GRAV,
-    R_VAR,
-)
 
+from constants import GRAV, R_VAR, RHO_S, RHO_W
+from supporting_functions import D_finder
 
 
 class TransportCapacityCalculator:
@@ -35,7 +29,7 @@ class TransportCapacityCalculator:
         self.total_D50 = total_D50
         self.slope = slope
         self.Q = Q
-        self.wac = wac 
+        self.wac = wac
         self.v = v
         self.h = h
         self.psi = psi
@@ -155,7 +149,7 @@ class TransportCapacityCalculator:
 
         # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
         tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
-        
+
         # tau_r50 after Mueller et al (2005) as presented in eqn 5 in Bizzi et al (2021)
         # tau_r50 = RHO_W * GRAV * R_VAR * self.D50 * (0.021 + 2.18 * self.slope)
 
