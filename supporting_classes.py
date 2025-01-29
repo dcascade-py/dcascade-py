@@ -174,7 +174,7 @@ class SedimentarySystem:
         ''' This type of matrice is made for including provenance (axis 0)
         Note: we add the time as a list, otherwise we can not look at the 4d matrix in spyder.               
         '''
-        return [np.zeros((self.n_reaches, self.n_reaches, self.n_classes), dtype=np.float32) for _ in range(self.timescale)]
+        return [np.zeros((self.n_reaches, self.n_reaches, self.n_classes)) for _ in range(self.timescale)]
         
     def create_3d_zero_array(self):
         return np.zeros((self.timescale, self.n_reaches, self.n_classes))
@@ -235,10 +235,10 @@ class SedimentarySystem:
             dep_save_number = int(self.timescale / 365) + 1  # +1 because we also keep t0.
         if self.save_dep_layer=='always':
             dep_save_number = self.timescale
-        self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_classes + 1, dtype=np.float32), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
+        self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
         
         # Initial Qbi_dep:
-        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1, dtype=np.float32), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches  
+        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches  
               
         # Moving sediments storing matrice        
         self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
@@ -277,7 +277,7 @@ class SedimentarySystem:
             if not q_bin.any(): #if all zeros 
                 self.Qbi_dep_0[n] = np.hstack((n, np.zeros(self.n_classes))).reshape(1,-1)
             else:           
-                self.Qbi_dep_0[n] = np.float32(np.hstack((np.ones(q_bin.shape[0]) * n, Qbi_dep_in[n, 0]))).reshape(1,-1)
+                self.Qbi_dep_0[n] = np.float64(np.hstack((np.ones(q_bin.shape[0]) * n, Qbi_dep_in[n, 0]))).reshape(1,-1)
                 self.Fi_al[0,n,:] = np.sum(q_bin, axis=0) / np.sum(q_bin)
                 self.D50_al[0,n] = D_finder(self.Fi_al[0,n,:], 50, self.psi)
     
@@ -788,14 +788,14 @@ class SedimentarySystem:
         return V_inc2act, V_dep2act, V_dep, Fi_r_reach
 
 
-    def tr_cap_deposit(self, V_inc2act, V_dep2act, V_dep, tr_cap, roundpar):
+    def tr_cap_deposit(self, V_inc2act, V_dep2act, V_dep_not_act, tr_cap, roundpar):
         ''' 
         INPUTS:
         V_inc2act :  incoming volume that is in the maximum mobilisable volume (active layer)
                     (n_layers x n_classes + 1) 
         V_dep2act :  deposit volume that is in the maximum mobilisable volume (active layer)
                     (n_layers x n_classes + 1) 
-        V_dep     :  remaining deposit volume
+        V_dep_not_act     :  remaining deposit volume
                     (n_layers x n_classes + 1)
         tr_cap    :  volume that can be mobilised during the time step according to transport capacity
                     (x n_classes) 
@@ -843,7 +843,7 @@ class SedimentarySystem:
             
             # Final matrix indicating the percentage we take from V_dep2act_class: 
             # (To multiply to V_dep2act_class)
-            map_perc = mapfirst*perc_dep + ~mapp*1   
+            map_perc = mapfirst * perc_dep + ~mapp*1   
             
             # The matrix V_dep2act_new contains the mobilized cascades from 
             # the deposit layer, now corrected according to the tr_cap:
@@ -857,8 +857,13 @@ class SedimentarySystem:
             # The matrix V_2dep contains the cascades that will be deposited into the deposit layer.
             # (the new volumes for the classes in under_capacity_classes and all the volumes in the remaining classes)
             V_2dep = np.zeros((V_dep2act.shape))
+            # add all volume in other (over capacity) classes
             V_2dep[: , np.append(True, ~under_capacity_classes) == True] = V_dep2act[: , np.append(True, ~under_capacity_classes) == True]
-            V_2dep[: , np.append(False, under_capacity_classes) == True] = (1 - map_perc)* V_dep2act_class
+            # add remaining volume in uncer capacity classe
+            V_2dep_class = V_dep2act_class - V_dep2act_new[:,np.append(False, under_capacity_classes)== True]
+            V_2dep[: , np.append(False, under_capacity_classes) == True] = V_2dep_class
+            #V_2dep[: , np.append(False, under_capacity_classes) == True] = (1 - map_perc) * V_dep2act_class
+            
             # Round the volume:
             if ~np.isnan(roundpar): 
                 V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
@@ -873,6 +878,7 @@ class SedimentarySystem:
     
         # For the classes where V_inc2act is enough, I deposit the cascades
         # proportionally  
+        # TODO : DD, now in this new version, there is never volume incoming in this function -> to be adapted
         sum_classes_above_capacity = np.sum(V_inc2act[: , np.append(False, ~under_capacity_classes) == True], axis = 0)
         # percentage to mobilise from the above_capacity classes:
         perc_inc = tr_cap[~under_capacity_classes] / sum_classes_above_capacity
@@ -890,6 +896,7 @@ class SedimentarySystem:
             V_mob[:,1:] = np.around(V_mob[:,1:], decimals = roundpar)
         
         # Compute what is to be added to V_dep from Q_incomimg:
+        # DD: again in V2, there in no Q_incoming in this function anymore -> to be adapted
         class_residual = np.zeros((under_capacity_classes.shape));
         class_residual[under_capacity_classes==False] = 1 - perc_inc
         V_inc2dep = V_inc2act*np.hstack((1, class_residual))
@@ -903,6 +910,7 @@ class SedimentarySystem:
         # Put the volume exceeding the transport capacity (V_2dep) back in the deposit:   
         # (If the upper layer in the deposit and the lower layer in the volume to be
         #deposited are from the same reach, i sum them)
+        V_dep = np.copy(V_dep_not_act)
         if (V_dep[-1,0] == V_2dep[0,0]):
             V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:]
             V_dep = np.vstack((V_dep, V_2dep[1:,:]))

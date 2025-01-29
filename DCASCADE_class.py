@@ -262,7 +262,7 @@ class DCASCADE:
                     to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
                     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
                 # Store Vdep for next time step
-                SedimSys.Qbi_dep_0[n] = np.float32(Vdep_end) 
+                SedimSys.Qbi_dep_0[n] = np.copy(Vdep_end)
                                   
                 # Store cascades in the mobilised volumes:
                 if self.passing_cascade_in_outputs == True:
