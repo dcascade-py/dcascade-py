@@ -262,7 +262,7 @@ class DCASCADE:
                     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
                 # Store Vdep for next time step
                 SedimSys.Qbi_dep_0[n] = np.copy(Vdep_end)
-                                  
+
                 # Store cascades in the mobilised volumes:
                 if self.passing_cascade_in_outputs == True:
                     # All cascades (passing + mobilised from reach)
@@ -293,19 +293,19 @@ class DCASCADE:
                 vol_out = np.sum(SedimSys.Qbi_mob[t][:, n, :], axis = 0) # sum over provenance
                 vol_in = np.sum(SedimSys.Qbi_tr[t][:, n, :], axis = 0)
                 SedimSys.sediment_budget[t, n, :] = vol_in - vol_out
-                
+
                 # Check sediment volume mass balance (correct only if passing_cascade_in_outputs = True):
                 if self.passing_cascade_in_outputs == True:
-                    delta_volume_reach = np.sum(SedimSys.Qbi_dep_0[n][:, 1:], axis = 0) - np.sum(Qbi_dep_old[n][:, 1:], axis = 0)    
-                    SedimSys.check_mass_balance(t, n, delta_volume_reach) 
-                
+                    delta_volume_reach = np.sum(SedimSys.Qbi_dep_0[n][:, 1:], axis = 0) - np.sum(Qbi_dep_old[n][:, 1:], axis = 0)
+                    SedimSys.check_mass_balance(t, n, delta_volume_reach)
+
                 # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
                 if self.update_slope == True:
                     sed_budg_t_n = np.sum(SedimSys.sediment_budget[t,n,:])
                     # TODO: DD check this line
                     self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
-                 
-                                              
+
+
             """End of the reach loop"""
 
             # Save Qbi_dep according to saving frequency
@@ -319,10 +319,10 @@ class DCASCADE:
             # In case of changing slope, change the slope accordingly to the bed elevation
             if self.update_slope == True:
                 self.slope[t+1,:], self.node_el[t+1,:] = SedimSys.change_slope(self.node_el[t+1,:], self.reach_data.length, self.network, s = self.min_slope)
-                    
-        """End of the time loop"""    
-    
-    
+
+        """End of the time loop"""
+
+
     def output_processing(self, Q):
         SedimSys = self.sedim_sys
 
@@ -409,10 +409,10 @@ class DCASCADE:
 
 
         return data_output, extended_output
-    
-    
+
+
     def output_processing_old(self, Q):
-        
+
         SedimSys = self.sedim_sys
         # output processing
         # aggregated matrixes
