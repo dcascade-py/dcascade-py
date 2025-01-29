@@ -185,10 +185,6 @@ class TransportCapacityCalculator:
         in the reach measured using the Engelund and Hansen equations.
         This function is for use in the D-CASCADE toolbox.
 
-        WARNING: Engelund and Hansen use a factor of 0.1 and but this function uses
-        a factor of 0.05 (corrected).The factor 0.05 seems to appear because of the
-        division by 2 in the friction coefficient.
-
         slope: All reaches' slopes
         h: All reaches' water heights
 
