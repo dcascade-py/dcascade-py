@@ -294,9 +294,10 @@ class DCASCADE:
                 vol_in = np.sum(SedimSys.Qbi_tr[t][:, n, :], axis = 0)
                 SedimSys.sediment_budget[t, n, :] = vol_in - vol_out
                 
-                # Check sediment volume mass balance:
-                delta_volume_reach = np.sum(SedimSys.Qbi_dep_0[n][:, 1:], axis = 0) - np.sum(Qbi_dep_old[n][:, 1:], axis = 0)    
-                SedimSys.check_mass_balance(t, n, delta_volume_reach) 
+                # Check sediment volume mass balance (correct only if passing_cascade_in_outputs = True):
+                if self.passing_cascade_in_outputs == True:
+                    delta_volume_reach = np.sum(SedimSys.Qbi_dep_0[n][:, 1:], axis = 0) - np.sum(Qbi_dep_old[n][:, 1:], axis = 0)    
+                    SedimSys.check_mass_balance(t, n, delta_volume_reach) 
                 
                 # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
                 if self.update_slope == True:
