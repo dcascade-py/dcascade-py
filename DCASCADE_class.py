@@ -325,7 +325,8 @@ class DCASCADE:
 
     def output_processing(self, Q):
         SedimSys = self.sedim_sys
-
+        
+        # Simulation parameters : dictionary to store the parameters used for the simulation
         # Volume out            : total volume [m^3] leaving the reach per time step, including passing cascades
         # Volume in             : total volume [m^3] entering the reach per time step, including passing cascades
         # Sediment budget       : budget between the total leaving the reach and entering the reach
@@ -337,8 +338,19 @@ class DCASCADE:
         # Direct connectivity   : volume connectivity per time step (axis 0). For a given cascade produce by a reach (axis 1), we see where it deposits (axis 2).
         # Transport capacity    : total transport capacity [m^3] per reach and per time step
         # Touch erosion max     : binary matrice indicating when the erosion maximum is reached
-
-
+        
+        # Create dictionary of the simulation parameters
+        simulation_param = {'psi': SedimSys.psi, 'ts length': self.ts_length, 'update slope': self.update_slope,
+                            'idx flow': self.indx_flo_depth, 'idx slope red': self.indx_slope_red,
+                            'idx width calc': self.indx_width_calc, 'idx tr cap': self.indx_tr_cap,
+                            'idx tr partition': self.indx_tr_partition, 'idx velocity': self.indx_velocity,
+                            'idx vel partition': self.indx_vel_partition, 
+                            'passing cascade in outputs': self.passing_cascade_in_outputs,
+                            'passing cascade in trcap': self.passing_cascade_in_trcap,
+                            'time lag for mobilised': self.time_lag_for_mobilised
+                            }
+        
+        # Sum quantities
         mobilised = SedimSys.create_2d_zero_array()
         transported = SedimSys.create_2d_zero_array()
         mobilised_from_reach = SedimSys.create_2d_zero_array()
@@ -368,7 +380,8 @@ class DCASCADE:
         # Total transport capacity, summed over sediment classes (axe 2):
         transport_capacity = np.sum(SedimSys.tr_cap, axis = 2)
 
-        data_output = {'Volume out [m^3]': mobilised,
+        data_output = {'Simulation parameters':  simulation_param,
+                       'Volume out [m^3]': mobilised,
                        'Volume in [m^3]': transported,
                        'Sediment budget [m^3]': volume_budget,
                        'Mobilised from reach [m^3]': mobilised_from_reach,
@@ -377,7 +390,7 @@ class DCASCADE:
                        'D50 volume out [m]': D50_mob,
                        'D50 active layer [m]': SedimSys.D50_al,
                        'Direct connectivity [m^3]': direct_connectivity,
-                       'Transport capacity [m^3]': transport_capacity
+                       'Transport capacity [m^3]': transport_capacity,                       
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
 
