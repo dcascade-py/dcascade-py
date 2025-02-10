@@ -161,13 +161,8 @@ class DCASCADE:
                 ###------Step 2 : Mobilise volumes from the reach considering the
                 # eventual passing cascades.
 
-
                 # Temporary container to store the mobilised cascades from the reach itself:
                 reach_mobilized_cascades = []
-
-                # TODO idea DD: Extract the layers in Vdep that can be eroded in this reach at this time step,
-                # according to the erosion maximum volume  ?
-                # Vdep_eros = SedimSys.layer_search(Vdep_init, SedimSys.eros_max_vol[n], roundpar)
 
                 # An optional time lag vector (x n_classes) is used to mobilise reach sediment
                 # before the eventual first passing cascade arrives at the outlet.
@@ -376,7 +371,7 @@ class DCASCADE:
 
         # Total sediment budget, summed over sediment classes (axe 2):
         volume_budget = np.sum(SedimSys.sediment_budget, axis = 2)
-
+        
         # Total transport capacity, summed over sediment classes (axe 2):
         transport_capacity = np.sum(SedimSys.tr_cap, axis = 2)
 

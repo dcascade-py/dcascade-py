@@ -144,7 +144,8 @@ class SedimentarySystem:
 
         # Storing matrices
         self.Qbi_dep = None
-        self.lateral_inputs = None
+        self.external_inputs = None
+        self.force_pass_external_inputs = None
         self.Qbi_tr = None
         self.Qbi_mob = None
         self.Qbi_mob_from_r = None
@@ -348,9 +349,10 @@ class SedimentarySystem:
         # Store:
         self.vl_height[t, :] = vl_height_t
 
-    def set_external_input(self, external_inputs, roundpar):
+    def set_external_input(self, external_inputs, force_pass_external_inputs, roundpar):
         # define Qbi_input in this sed_system
         self.external_inputs = external_inputs
+        self.force_pass_external_inputs = force_pass_external_inputs
 
 
     def extract_external_inputs(self, cascade_list, t, n):
@@ -493,14 +495,19 @@ class SedimentarySystem:
 
         depositing_volume_list = []
         cascades_to_be_completely_removed = []
+        
 
         for cascade in cascade_list:
             # Time in, time travel, and time out in time step unit (not seconds)
             t_in = cascade.elapsed_time
             if cascade.is_external == True and cascade.provenance == n:
-                # External sources coming from current reach,
-                # are starting halfway of the reach.
-                distance_to_reach_outlet = 0.5 * self.reach_data.length[n]
+                # Particular case where external cascades are passed to the next reach and excluded of the calculation
+                if self.force_pass_external_inputs == True:
+                    continue
+                else:
+                    # External sources coming from current reach,
+                    # are starting halfway of the reach. 
+                    distance_to_reach_outlet = 0 * self.reach_data.length[n]
             else:
                 distance_to_reach_outlet = self.reach_data.length[n]
             t_travel_n = distance_to_reach_outlet / (cascade.velocities * self.ts_length)
@@ -595,19 +602,25 @@ class SedimentarySystem:
 
         # The option "per second" put the passing cascades in m3/s instead of m3/ts_length
         # This option is by default False. Putting it True can create some
-        # strange behaviour (on and off mobilisation)
-
+        # strange behaviour (on and off mobilisation).
+                
         if passing_cascades == None or passing_cascades == []:
             passing_volume = None
+            
         else:
-            # Makes a single volume out of the passing cascade list:
-            passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
-            passing_volume = self.matrix_compact(passing_volume) #compact by original provenance
-
-            if per_second == True:
-                passing_volume = copy.deepcopy(passing_volume)
-                passing_volume[:,1:] = passing_volume[:,1:] / self.ts_length
-
+            # Particular case where external cascades are passed to the next reach and excluded of the calculation
+            if self.force_pass_external_inputs == True:                
+                passing_cascades = [cascade for cascade in passing_cascades 
+                                      if not (cascade.is_external == True and cascade.provenance == n)]
+            if passing_cascades == []:
+                passing_volume = None
+            else:
+                # Makes a single volume out of the passing cascade list:
+                passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
+                passing_volume = self.matrix_compact(passing_volume) #compact by original provenance
+                if per_second == True:
+                    passing_volume = copy.deepcopy(passing_volume)
+                    passing_volume[:,1:] = passing_volume[:,1:] / self.ts_length
 
         # Compute fraction and D50 in the active layer
         # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
@@ -641,12 +654,23 @@ class SedimentarySystem:
         # Erosion maximum during the time lag
         # (we take the mean time lag among the classes)
         e_max_vol_ = self.eros_max_vol[n] * np.mean(time_fraction)
+        
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0
+            passing_cascades_excluded = []
         else:
-            passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
-            sum_pass = np.sum(passing_volume[:,1:], axis=0)
+            # Particular case where external cascades are passed to the next reach and excluded of the calculation
+            if self.force_pass_external_inputs == True:                
+                passing_cascades_excluded = [cascade for cascade in passing_cascades 
+                                      if (cascade.is_external == True and cascade.provenance == n)]                
+                passing_cascades = [cascade for cascade in passing_cascades if cascade not in passing_cascades_excluded]        
+            
+            if  passing_cascades == []:
+                sum_pass = 0
+            else:
+                passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
+                sum_pass = np.sum(passing_volume[:,1:], axis=0)
 
 
         # Compare sum of passing cascade to the mobilisable volume (for each sediment class)
@@ -672,7 +696,11 @@ class SedimentarySystem:
             Vm_removed, passing_cascades, residual = self.deposit_from_passing_sediments(np.copy(diff_neg), passing_cascades, roundpar, n, t)
             # Deposit the Vm_removed:
             Vdep_new = np.concatenate([Vdep_new, Vm_removed], axis=0)
-
+        
+        # Re-add the external cascades, that were excluded from calculation
+        if self.force_pass_external_inputs == True and passing_cascades_excluded != []:
+            passing_cascades.extend(passing_cascades_excluded)
+        
         # If the new vdep is empty, put an empty layer for next steps
         if Vdep_new.size == 0:
             Vdep_new = np.hstack((n, np.zeros(self.n_classes)))
