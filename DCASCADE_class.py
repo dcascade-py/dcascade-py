@@ -374,18 +374,19 @@ class DCASCADE:
         
         # Total transport capacity, summed over sediment classes (axe 2):
         transport_capacity = np.sum(SedimSys.tr_cap, axis = 2)
-
-        data_output = {'Simulation parameters':  simulation_param,
-                       'Volume out [m^3]': mobilised,
-                       'Volume in [m^3]': transported,
-                       'Sediment budget [m^3]': volume_budget,
-                       'Mobilised from reach [m^3]': mobilised_from_reach,
-                       'Deposited [m^3]': deposited,
-                       'Volume outlet [m^3]': mobilised[:, SedimSys.outlet],
-                       'D50 volume out [m]': D50_mob,
-                       'D50 active layer [m]': SedimSys.D50_al,
-                       'Direct connectivity [m^3]': direct_connectivity,
-                       'Transport capacity [m^3]': transport_capacity,
+        
+        data_output = {'Simulation parameters': simulation_param,
+                       'Volume out [m^3]': mobilised.astype(np.float32),
+                       'Volume in [m^3]': transported.astype(np.float32),
+                       'Sediment budget [m^3]': volume_budget.astype(np.float32),
+                       'Mobilised from reach [m^3]': mobilised_from_reach.astype(np.float32),
+                       'Deposited [m^3]': deposited.astype(np.float32),
+                       'Volume outlet [m^3]': mobilised[:, SedimSys.outlet].astype(np.float32),
+                       'D50 volume out [m]': D50_mob.astype(np.float32),
+                       'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
+                       'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
+                       'Transport capacity [m^3]': transport_capacity.astype(np.float32),
+                       
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
 
@@ -398,17 +399,17 @@ class DCASCADE:
                            'Qbi_tr [m^3]': SedimSys.Qbi_tr,
                            'Qbi_mob_from_reach [m^3]': SedimSys.Qbi_mob_from_r,
                            'Qbi_dep [m^3]': SedimSys.Qbi_dep,
-                           'Qout per class [m^3]': SedimSys.Q_out,
-                           'Sediment budget per class [m^3]': SedimSys.sediment_budget,
-                           'Tr_cap per class [m^3]': SedimSys.tr_cap,
-                           'Velocities [m/s]': SedimSys.V_sed,
+                           'Qout per class [m^3]': SedimSys.Q_out.astype(np.float32),
+                           'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32),
+                           'Tr_cap per class [m^3]': SedimSys.tr_cap.astype(np.float32),
                            'Node_el [m]': SedimSys.node_el,
-                           'Fi_al': SedimSys.Fi_al,
-                           'AL depth [m]': SedimSys.al_depth,
-                           'Velocity section height [m]': SedimSys.vl_height,
-                           'Widths [m]': SedimSys.width,
-                           'Slopes': SedimSys.slope,
-                           'Mass balance [m^3]' : SedimSys.mass_balance
+                           'Fi_al': SedimSys.Fi_al.astype(np.float32),
+                           'AL depth [m]': SedimSys.al_depth.astype(np.float32),
+                           'Velocity section height [m]': SedimSys.vl_height.astype(np.float32),
+                           'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
+                           'Widths [m]': SedimSys.width.astype(np.float32),
+                           'Slopes': SedimSys.slope.astype(np.float32),
+                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
                            }
 
         if self.time_lag_for_mobilised == True:
