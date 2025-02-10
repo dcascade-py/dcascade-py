@@ -495,7 +495,7 @@ class SedimentarySystem:
 
         depositing_volume_list = []
         cascades_to_be_completely_removed = []
-        
+
 
         for cascade in cascade_list:
             # Time in, time travel, and time out in time step unit (not seconds)
@@ -506,7 +506,7 @@ class SedimentarySystem:
                     continue
                 else:
                     # External sources coming from current reach,
-                    # are starting halfway of the reach. 
+                    # are starting halfway of the reach.
                     distance_to_reach_outlet = 0 * self.reach_data.length[n]
             else:
                 distance_to_reach_outlet = self.reach_data.length[n]
@@ -603,14 +603,14 @@ class SedimentarySystem:
         # The option "per second" put the passing cascades in m3/s instead of m3/ts_length
         # This option is by default False. Putting it True can create some
         # strange behaviour (on and off mobilisation).
-                
+
         if passing_cascades == None or passing_cascades == []:
             passing_volume = None
-            
+
         else:
             # Particular case where external cascades are passed to the next reach and excluded of the calculation
-            if self.force_pass_external_inputs == True:                
-                passing_cascades = [cascade for cascade in passing_cascades 
+            if self.force_pass_external_inputs == True:
+                passing_cascades = [cascade for cascade in passing_cascades
                                       if not (cascade.is_external == True and cascade.provenance == n)]
             if passing_cascades == []:
                 passing_volume = None
@@ -654,18 +654,18 @@ class SedimentarySystem:
         # Erosion maximum during the time lag
         # (we take the mean time lag among the classes)
         e_max_vol_ = self.eros_max_vol[n] * np.mean(time_fraction)
-        
+
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0
             passing_cascades_excluded = []
         else:
             # Particular case where external cascades are passed to the next reach and excluded of the calculation
-            if self.force_pass_external_inputs == True:                
-                passing_cascades_excluded = [cascade for cascade in passing_cascades 
-                                      if (cascade.is_external == True and cascade.provenance == n)]                
-                passing_cascades = [cascade for cascade in passing_cascades if cascade not in passing_cascades_excluded]        
-            
+            if self.force_pass_external_inputs == True:
+                passing_cascades_excluded = [cascade for cascade in passing_cascades
+                                      if (cascade.is_external == True and cascade.provenance == n)]
+                passing_cascades = [cascade for cascade in passing_cascades if cascade not in passing_cascades_excluded]
+
             if  passing_cascades == []:
                 sum_pass = 0
             else:
@@ -696,11 +696,11 @@ class SedimentarySystem:
             Vm_removed, passing_cascades, residual = self.deposit_from_passing_sediments(np.copy(diff_neg), passing_cascades, roundpar, n, t)
             # Deposit the Vm_removed:
             Vdep_new = np.concatenate([Vdep_new, Vm_removed], axis=0)
-        
+
         # Re-add the external cascades, that were excluded from calculation
         if self.force_pass_external_inputs == True and passing_cascades_excluded != []:
             passing_cascades.extend(passing_cascades_excluded)
-        
+
         # If the new vdep is empty, put an empty layer for next steps
         if Vdep_new.size == 0:
             Vdep_new = np.hstack((n, np.zeros(self.n_classes)))

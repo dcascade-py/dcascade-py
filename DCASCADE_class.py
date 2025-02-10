@@ -371,10 +371,10 @@ class DCASCADE:
 
         # Total sediment budget, summed over sediment classes (axe 2):
         volume_budget = np.sum(SedimSys.sediment_budget, axis = 2)
-        
+
         # Total transport capacity, summed over sediment classes (axe 2):
         transport_capacity = np.sum(SedimSys.tr_cap, axis = 2)
-        
+
         data_output = {'Simulation parameters': simulation_param,
                        'Volume out [m^3]': mobilised.astype(np.float32),
                        'Volume in [m^3]': transported.astype(np.float32),
@@ -386,7 +386,7 @@ class DCASCADE:
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
-                       
+
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
 
