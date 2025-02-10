@@ -112,8 +112,12 @@ def Engelund_Hansen_formula( D50 , Slope , Wac, v , h):
     
     This function is for use in the D-CASCADE toolbox
     
-    References
-    Engelund, F., and E. Hansen (1967), A Monograph on Sediment Transport in Alluvial Streams, Tekniskforlag, Copenhagen."""
+    References:
+    Engelund, F., and E. Hansen (1967), A Monograph on Sediment Transport in
+    Alluvial Streams, Tekniskforlag, Copenhagen.
+    Stevens Jr., H. H. & Yang, C.T. Summary and use of selected fluvial sediment-discharge formulas. (1989).
+    Naito, K., Ma, H., Nittrouer, J. A., Zhang, Y., Wu, B., Wang, Y., … Parker, G. (2019).
+    Extended Engelund–Hansen type sediment transport relation for mixtures based on the sand-silt-bed Lower Yellow River, China. Journal of Hydraulic Research, 57(6), 770–785."""
     
     ##Transport capacity from Engelund-Hansen equations 
     rho_s = 2650 # sediment densit [kg/m^3]
@@ -126,7 +130,7 @@ def Engelund_Hansen_formula( D50 , Slope , Wac, v , h):
     #dimensionless shear stress
     tauEH = (Slope*h)/((rho_s/rho_w-1)*D50)
     #dimensionless transport capacity
-    qEH = 0.05/C* (tauEH)**(5/2)
+    qEH = 0.1/C* (tauEH)**(5/2)
     #dimensionful transport capacity per unit width  m3/(s*m )
     qEH_dim = qEH*np.sqrt((rho_s/rho_w-1)*g*(D50)**3) # m3/s 
     QS_EH = qEH_dim*Wac
@@ -625,7 +629,11 @@ def sed_velocity_OLD(Fi_r, Slope_t, Q_t, Wac_t, v, h, psi, minvel, phi, indx_tr_
             
         elif indx_tr_cap == 5: 
             tr_cap = Wong_Parker_formula( dmi ,Slope_t, Wac_t ,h ) 
-    
+
+        elif indx_tr_cap == 7: 
+            tr_cap = np.zeros((len(dmi), len(Slope_t)))
+            for i in range(len(Slope_t)):
+                tr_cap[:,i], _ = Rickenmann_formula(dmi, Slope_t[i], Q_t[i], Wac_t[i])    
         
         #calculate velocity
         multiply = (Wac_t * L_a * (1-phi)).to_numpy()

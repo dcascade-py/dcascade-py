@@ -153,10 +153,13 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
     # defined here as 2.D90 [Parker 2008]
     AL_vol_all=np.zeros((timescale, n_reaches)) #store the volumes
     AL_depth_all=np.zeros((timescale, n_reaches)) #store also the depths 
+    # We take the input D90, or if not provided, the D84:
+    if 'D90' in ReachData:
+        reference_D = 'D90'
+    elif 'D84' in ReachData:
+        reference_D = 'D84'
     for n in Network['NH']:
-        Fi_r = Fi_r_act[0,:,n]
-        D90 = D_finder(Fi_r, 90, psi)[0,0]
-        AL_depth = 2 * D90
+        AL_depth = np.maximum(2*ReachData[reference_D].values[n], 0.01)
         AL_vol = AL_depth * ReachData['Wac'].values[n] * ReachData['Length'].values[n]
         AL_vol_all[:,n] = np.repeat(AL_vol, timescale, axis=0)
         AL_depth_all[:,n] = np.repeat(AL_depth, timescale, axis=0)
@@ -164,7 +167,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
 
     # start waiting bar    
     for t in tqdm(range(timescale-1)):
-        
+                
         #FP: define flow depth and flow velocity from flow_depth_calc
         h, v = choose_flow_depth(ReachData, Slope, Q, t, indx_flo_depth)
         flow_depth[t] = h
@@ -180,6 +183,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
         
         # loop for all reaches:
         for n in Network['NH']:
+            
             #---1) Extracts the deposit layer from the storage matrix and load the incoming cascades, in [m3/d]
             V_dep_old = Qbi_dep_old[n]# extract the deposit layer of the reach 
 
@@ -222,7 +226,6 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             #calculate transport capacity using the Fi of the active layer, the resulting tr_cap is in m3/s and is converted in m3/day
             tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             tr_cap=tr_cap_per_s * ts_length
-            
             tr_cap_all[t,n,:] = tr_cap
             tr_cap_sum[t,n] = np.sum(tr_cap)
             
@@ -233,7 +236,7 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             # Compute velocity (in m/s) directly from tr_cap, using a section of height Hvel
             if indx_velocity == 1 or indx_velocity == 2:
                 # coef_AL_vel = 0.1
-                # hVel = coef_AL_vel * h                # the section height is proportional to the water height h
+                # hVel = coef_AL_vel * h[n]                # the section height is proportional to the water height h
                 hVel = AL_depth_all[t,n]                # the section height is the same as the active layer
                 v_sed_n = sed_velocity(hVel, ReachData['Wac'].values[n], tr_cap_per_s, phi, indx_velocity, minvel)
                 v_sed[:,n] = v_sed_n 
@@ -304,9 +307,9 @@ def DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, 
             # formula on the mobilised volume Vmob, and in each reach. 
             if indx_velocity == 3 or indx_velocity == 4:
                 # GSD of mobilized volume
-                Fi_mob = (np.sum(V_mob[:,1:],axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
+                Fi_mob = (np.sum(V_mob[:,1:], axis = 0)/np.sum(V_mob[:,1:]))[:,None] # EB: must be a column vector
                 if np.isnan(Fi_mob).any():
-                    Fi_mob = Fi_r_act[t,:,n]
+                    Fi_mob = Fi_r_act[t,:,n][:,None] # EB: must be a column vector
                 
                 v_sed = sed_velocity_OLD( np.matlib.repmat(Fi_mob, 1, n_reaches), Slope[t,:] , Q.iloc[t,:], ReachData['Wac'] , v , h ,psi,  minvel , phi , indx_tr_cap, indx_partition, indx_velocity )
             
