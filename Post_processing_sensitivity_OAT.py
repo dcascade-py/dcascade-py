@@ -7,25 +7,22 @@ Created on Thu Apr  4 12:32:50 2024
 import pickle
 import numpy as np
 from matplotlib import pyplot as plt
-import pandas as pd
+import pandas as pd 
 import geopandas as gpd
-import matplotlib
-from matplotlib.pyplot import text
-import copy
-from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
-# matplotlib.use('Qt5Agg')
+
+
 
 mobilized_volumes = {}  # List to store mobilized volumes from each file
 
 
-path = "C:\\Sahansila\\cascade\\cascade_results\\"
-name_output = "data_output_GSD_updated.p"
+path = "E:\\Sahansila\\cascade_results\\"
+name_output = "EH_new_inputs.p"
 
 data_output = pickle.load(open(path + name_output, "rb"))
 
 mobilized_volume_original = data_output['Mobilized [m^3]']
 
-path_river_network = "C:\\Sahansila\\cascade\\input\\shp_file_slopes_hydro_and_LR\\02-shp_trib_GSD_updated\\"
+path_river_network = "E:\\Sahansila\\input\\shp_file_slopes_hydro_and_LR\\02-shp_trib_GSD_updated\\"
 name_river_network = 'Po_river_network.shp'
 
 # figure_folder = "E:\\cascade\\figure\\"
@@ -48,10 +45,10 @@ mobilized_volumes = {}  # List to store mobilized volumes from each file
 output_data_dict = {}
 
 
-percentages = [-5, -10, -15, -20, -30, -50]
+percentages = [+5, +10, +20, +30, -5,-10, -20, -30]
 for percent in percentages:
     # Load the pickled file
-    path = "C:\\sahansila\\cascade\\Sensitivity_OAT\\ActiveWidth_GSD_updated\\"
+    path = "E:\\Sahansila\\cascade_results\\Slope_change\\"
     filename = f'output_change_{percent}percent.pkl'
     data_output = pickle.load(open(path + filename, "rb"))
     
@@ -108,104 +105,104 @@ for _, row in trib_data.iterrows():
     
     
     
-## plot along time for all the reach    
+# ## plot along time for all the reach    
     
-# Loop through each data_output file
-mobilized_volumes = {}  # List to store mobilized volumes from each file
-##change the name according to the choice of output that needs to be extracted##
+# # Loop through each data_output file
+# mobilized_volumes = {}  # List to store mobilized volumes from each file
+# ##change the name according to the choice of output that needs to be extracted##
 
-percentages = [-5, -10, -15, -20, -30, -50]
-for percent in percentages:
-    # Load the pickled file
-    path = "E:\\cascade\\sensitivity_analysis_results\\slope_decrease_modified_code\\"
-    filename = f'output_change_{percent}percent.pkl'
-    data_output = pickle.load(open(path + filename, "rb"))
+# percentages = [-5, -10, -15, -20, -30, -50]
+# for percent in percentages:
+#     # Load the pickled file
+#     path = "E:\\cascade\\sensitivity_analysis_results\\slope_decrease_modified_code\\"
+#     filename = f'output_change_{percent}percent.pkl'
+#     data_output = pickle.load(open(path + filename, "rb"))
 
-    # # Extract the mobilized volume from the current data_output
-    # mobilized_volume = data_output['Mobilized volume [m^3]']   #'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
-    # mobilized_volumes[percent] = mobilized_volume
+#     # # Extract the mobilized volume from the current data_output
+#     # mobilized_volume = data_output['Mobilized volume [m^3]']   #'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
+#     # mobilized_volumes[percent] = mobilized_volume
 
-    # Extract the transported volume from the current data_output
-    # 'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
-    mobilized_volume = data_output['Daily trasport capacity [m^3/day]']
-    mobilized_volumes[percent] = mobilized_volume
+#     # Extract the transported volume from the current data_output
+#     # 'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
+#     mobilized_volume = data_output['Daily trasport capacity [m^3/day]']
+#     mobilized_volumes[percent] = mobilized_volume
 
-selected_reaches = [7]
+# selected_reaches = [7]
 
-plt.figure(figsize=(10, 6))
-for percent, mobilized_volume in mobilized_volumes.items():
-    # Slice the mobilized volume array to consider only the selected reaches
-    mobilized_volume_selected_reaches = mobilized_volume[:, selected_reaches]
-    # Plot mobilized volume values along the timestep for selected reaches
-    for reach_idx in range(len(selected_reaches)):
-        # plt.plot(mobilized_volume_selected_reaches[:, reach_idx], label=f'Percent Increase: {percent}, Reach: {selected_reaches[reach_idx] + 1}')
-        plt.scatter(range(len(mobilized_volume_selected_reaches)), mobilized_volume_selected_reaches, label=f'Percent Decrease: {percent}')
-# # Create area plot
-#plt.fill_between(range(len(mobilized_volume_selected_reaches)), 0, mobilized_volume_selected_reaches[:, reach_idx], alpha=0.3)
-
-
-mobilized_volume_original_selected_reaches = mobilized_volume_original[:, selected_reaches]
-
-# Plot mobilized volume values along the timestep for selected reaches (original)
-for reach_idx in range(len(selected_reaches)):
-    plt.plot(mobilized_volume_original_selected_reaches[:, reach_idx], label=f'Original, Reach: {selected_reaches[reach_idx] + 1}', linestyle='--', color='black')
-
-plt.xlabel('Timestep')
-plt.ylabel('Daily trasport capacity [m^3/day]')
-plt.title('Daily trasport capacity [m^3/day] for Selected Reaches and Percentages')
-plt.legend()
-plt.grid(True)
-plt.show()
+# plt.figure(figsize=(10, 6))
+# for percent, mobilized_volume in mobilized_volumes.items():
+#     # Slice the mobilized volume array to consider only the selected reaches
+#     mobilized_volume_selected_reaches = mobilized_volume[:, selected_reaches]
+#     # Plot mobilized volume values along the timestep for selected reaches
+#     for reach_idx in range(len(selected_reaches)):
+#         # plt.plot(mobilized_volume_selected_reaches[:, reach_idx], label=f'Percent Increase: {percent}, Reach: {selected_reaches[reach_idx] + 1}')
+#         plt.scatter(range(len(mobilized_volume_selected_reaches)), mobilized_volume_selected_reaches, label=f'Percent Decrease: {percent}')
+# # # Create area plot
+# #plt.fill_between(range(len(mobilized_volume_selected_reaches)), 0, mobilized_volume_selected_reaches[:, reach_idx], alpha=0.3)
 
 
-## plot along time for all the reach    
+# mobilized_volume_original_selected_reaches = mobilized_volume_original[:, selected_reaches]
+
+# # Plot mobilized volume values along the timestep for selected reaches (original)
+# for reach_idx in range(len(selected_reaches)):
+#     plt.plot(mobilized_volume_original_selected_reaches[:, reach_idx], label=f'Original, Reach: {selected_reaches[reach_idx] + 1}', linestyle='--', color='black')
+
+# plt.xlabel('Timestep')
+# plt.ylabel('Daily trasport capacity [m^3/day]')
+# plt.title('Daily trasport capacity [m^3/day] for Selected Reaches and Percentages')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+
+
+# ## plot along time for all the reach    
     
-# Loop through each data_output file
-mobilized_volumes = {}  # List to store mobilized volumes from each file
-##change the name according to the choice of output that needs to be extracted##
+# # Loop through each data_output file
+# mobilized_volumes = {}  # List to store mobilized volumes from each file
+# ##change the name according to the choice of output that needs to be extracted##
 
-percentages = [-5, -10, -15, -20, -30, -50]
-for percent in percentages:
-    # Load the pickled file
-    path = "E:\\cascade\\sensitivity_analysis_results\\slope_decrease_modified_code\\"
-    filename = f'output_change_{percent}percent.pkl'
-    data_output = pickle.load(open(path + filename, "rb"))
+# percentages = [-5, -10, -15, -20, -30, -50]
+# for percent in percentages:
+#     # Load the pickled file
+#     path = "E:\\cascade\\sensitivity_analysis_results\\slope_decrease_modified_code\\"
+#     filename = f'output_change_{percent}percent.pkl'
+#     data_output = pickle.load(open(path + filename, "rb"))
 
-    # # Extract the mobilized volume from the current data_output
-    # mobilized_volume = data_output['Mobilized volume [m^3]']   #'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
-    # mobilized_volumes[percent] = mobilized_volume
+#     # # Extract the mobilized volume from the current data_output
+#     # mobilized_volume = data_output['Mobilized volume [m^3]']   #'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
+#     # mobilized_volumes[percent] = mobilized_volume
 
-    # Extract the transported volume from the current data_output
-    # 'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
-    mobilized_volume = data_output['Daily trasport capacity [m^3/day]']
-    mobilized_volumes[percent] = mobilized_volume
+#     # Extract the transported volume from the current data_output
+#     # 'D5O mobilised layer [m]', 'Mobilized volume [m^3]', 'Transported [m^3]'
+#     mobilized_volume = data_output['Daily trasport capacity [m^3/day]']
+#     mobilized_volumes[percent] = mobilized_volume
 
-selected_reaches = [7]
+# selected_reaches = [7]
 
-plt.figure(figsize=(10, 6))
-for percent, mobilized_volume in mobilized_volumes.items():
-    # Slice the mobilized volume array to consider only the selected reaches
-    mobilized_volume_selected_reaches = mobilized_volume[selected_reaches, :]
-    # Plot mobilized volume values along the timestep for selected reaches
-    for reach_idx in range(len(selected_reaches)):
-        # plt.plot(mobilized_volume_selected_reaches[:, reach_idx], label=f'Percent Increase: {percent}, Reach: {selected_reaches[reach_idx] + 1}')
-        plt.scatter(range(len(mobilized_volume_selected_reaches)), mobilized_volume_selected_reaches, label=f'Percent Decrease: {percent}')
-# # Create area plot
-#plt.fill_between(range(len(mobilized_volume_selected_reaches)), 0, mobilized_volume_selected_reaches[:, reach_idx], alpha=0.3)
+# plt.figure(figsize=(10, 6))
+# for percent, mobilized_volume in mobilized_volumes.items():
+#     # Slice the mobilized volume array to consider only the selected reaches
+#     mobilized_volume_selected_reaches = mobilized_volume[selected_reaches, :]
+#     # Plot mobilized volume values along the timestep for selected reaches
+#     for reach_idx in range(len(selected_reaches)):
+#         # plt.plot(mobilized_volume_selected_reaches[:, reach_idx], label=f'Percent Increase: {percent}, Reach: {selected_reaches[reach_idx] + 1}')
+#         plt.scatter(range(len(mobilized_volume_selected_reaches)), mobilized_volume_selected_reaches, label=f'Percent Decrease: {percent}')
+# # # Create area plot
+# #plt.fill_between(range(len(mobilized_volume_selected_reaches)), 0, mobilized_volume_selected_reaches[:, reach_idx], alpha=0.3)
 
 
-mobilized_volume_original_selected_reaches = mobilized_volume_original[selected_reaches,:]
+# mobilized_volume_original_selected_reaches = mobilized_volume_original[selected_reaches,:]
 
-# Plot mobilized volume values along the timestep for selected reaches (original)
-for reach_idx in range(len(selected_reaches)):
-    plt.plot(mobilized_volume_original_selected_reaches[reach_idx,:], label=f'Original, Reach: {selected_reaches[reach_idx] + 1}', linestyle='--', color='black')
+# # Plot mobilized volume values along the timestep for selected reaches (original)
+# for reach_idx in range(len(selected_reaches)):
+#     plt.plot(mobilized_volume_original_selected_reaches[reach_idx,:], label=f'Original, Reach: {selected_reaches[reach_idx] + 1}', linestyle='--', color='black')
 
-plt.xlabel('Timestep')
-plt.ylabel('Daily trasport capacity [m^3/day]')
-plt.title('Daily trasport capacity [m^3/day] for Selected Reaches and Percentages')
-plt.legend()
-plt.grid(True)
-plt.show()
+# plt.xlabel('Timestep')
+# plt.ylabel('Daily trasport capacity [m^3/day]')
+# plt.title('Daily trasport capacity [m^3/day] for Selected Reaches and Percentages')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
 
 
 

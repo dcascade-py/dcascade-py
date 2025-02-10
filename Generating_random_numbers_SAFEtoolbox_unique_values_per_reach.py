@@ -11,88 +11,68 @@ import geopandas as gpd
 import scipy.stats as st
 import pandas as pd
 
-from safepython.sampling import AAT_sampling, AAT_sampling_extend # module to perform the input sampling
-from safepython.util import aggregate_boot  # function to aggregate the bootstrap results
-
-
+from safepython.sampling import AAT_sampling# module to perform the input sampling
 
 
 #-------River shape files 
-path_river_network = "C:\\Sahansila\\cascade\\input\\shp_file_slopes_hydro_and_LR\\01-shp_corrected_names\\"
+path_river_network = "E:\\Sahansila\\shp_file_slopes_hydro_and_LR\\"
 name_river_network = 'Po_river_network.shp'
-ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefile from shp formatfrom safepython.sampling import AAT_sampling # module to perform the input sampling
+ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefile from shp format
+# Sort ReachData according to the FromN
+ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
 
     
 # Number of uncertain parameters subject to SA
 M = 2
 
 
+# Define distributions for each variable
+distr_fun = [st.uniform, st.norm]  # First variable is uniform, second is normal
+distr_par = [[0.5, 0.5], [1, 0.25]]  # Uniform(loc=0.5, scale=1), Normal(mean=0, std=1)
+
+
 # # Parameter ranges 
 # xmin = [0.5, 0.5] #uniform distribution
 # xmax = [1, 1.5] #uniform distrbution
 
-mean = [0, 0] # normal distribution
-sd = [0.25, 0.25] # normal distribution 
+# # Distribution parameters for normal distribution
+# distr_fun = st.norm  # Normal distribution
 
-# Name of parameters (will be used to customize plots):
-X_Labels = ['Wac', 'slope']
+# distr_par = [np.nan] * M
+# for i in range(M):
+#     distr_par[i] = [mean[i], sd[i]]
+    
+    
+# Sampling strategy and number of samples
+samp_strat = 'lhs'  # Latin Hypercube Sampling
+N = 10000 # Number of samples
 
-
-# Parameter distributions:
-distr_fun = st.uniform # uniform distribution
-# The shape parameters of the uniform distribution are the lower limit and the
-#difference between lower and upper limits:
-
-# distr_fun = st.norm # normal distribution    
-# The shape parameters of the normal distribution are the mean and standard deviation
-   
-distr_par = [np.nan] * M
-for i in range(M):
-    # distr_par[i] = [xmin[i], xmax[i] - xmin[i]]
-    distr_par[i] = [mean[i], sd[i]]
-
-
-#sampling inputs space
-samp_strat = 'lhs' # Latin Hypercube  
-#Options: 'rsu': random uniform
-         #'lhs': latin hypercube
-N = 200 #  Number of samples
+# Sampling inputs
 X = AAT_sampling(samp_strat, M, distr_fun, distr_par, N)
-# X contains the array of data with random nubers generated with which the parameters in reachdata will be multiplied, replaced or added
+
+# Display first few samples
+print("Generated Samples:\n", X [:5])
+
+# Parameter labels
+X_Labels = ['Wac (reduced by 50%)', 'Slope (±50%)']
+
+# Plot histograms for each parameter
+import matplotlib.pyplot as plt
+
+for i in range(M):
+    plt.figure()
+    plt.hist(X[:, i], bins=30, density=True, alpha=0.6, color='blue')
+
+    # Add labels and title
+    plt.title(f'Distribution of {X_Labels[i]}')
+    plt.xlabel('Value')
+    plt.ylabel('Density')
+    plt.show()
+
 
 #Give the location to save the reachdata modified
-path_ReachData = "C:\\sahansila\\cascade\\SAFE_output\\test\\"
+path_ReachData = "E:\\Sahansila\\SAFE_output\\test\\"
 
-# # Run the iterative loop for the range of number of samples and change the parameters using random numbers in X 
-# #and save the modified reach data for every loop
-# for i in range(N):
-#     ReachData_modified = ReachData.copy() 
-#     ReachData_modified['Wac'] = ReachData_modified['Wac'] * X[i, 0]
-#     ReachData_modified['Slope'] = ReachData_modified['Slope'] * X[i, 1]
-    
-#     # Save the modified Reachdata GeoDataFrame with a useful name
-#     output_filename = f"ReachData_modified_{i+1}.shp"
-#     ReachData_modified.to_file(path_ReachData + output_filename)
-
-#     print(f"Saved {output_filename}")
-    
-# # for check if the numbers in the X corresponds to the values in the modified reach data 
-# # read the specific shape file and check the values  
-# name_ReachData = "ReachData_modified_5.shp"
-# ReachData_5 = gpd.GeoDataFrame.from_file(path_ReachData + name_ReachData) #read shapefile from shp format
-
-
-# #Save the X values in excel file
-# path_reachdata = "E:\\cascade\\ReachData_Xvalues\\"
-
-# # Create an Excel writer object
-# output_excel_path = path_reachdata + "ReachData_Xvalues_test.xlsx"
-# with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-#     # Save the X array to a separate sheet
-#     X_df = pd.DataFrame(X, columns=X_Labels)
-#     # Add an index column starting from 1 to N
-#     X_df.insert(0, 'Index', range(1, len(X_df) + 1))
-#     X_df.to_excel(writer, sheet_name='Parameter_Values', index=False)
 
 # DataFrames to store the random values for each model run
 random_values_Wac = pd.DataFrame()  # For storing multipliers for 'Wac'
@@ -118,19 +98,28 @@ for i in range(N):
     random_values_Wac[f'Model_Run_{i+1}'] = Wac_random_values
     random_values_Slope[f'Model_Run_{i+1}'] = Slope_random_values
     
-    # Save the modified values in their respective DataFrames
     Wac_values_df[f'Model_Run_{i+1}'] = ReachData_modified['Wac'].values
+    # Save the modified values in their respective DataFrames
     Slope_values_df[f'Model_Run_{i+1}'] = ReachData_modified['Slope'].values
     
     # Save the modified ReachData as shapefiles or CSV
     output_filename = f"ReachData_modified_{i+1}.shp"
     ReachData_modified.to_file(path_ReachData + output_filename)
 
-# Save the random multipliers and modified data in Excel sheets
-with pd.ExcelWriter(path_ReachData + 'ReachData_modified.xlsx') as writer:
-    random_values_Wac.to_excel(writer, sheet_name='Random_Wac_Multipliers', index=False)
-    random_values_Slope.to_excel(writer, sheet_name='Random_Slope_Multipliers', index=False)
-    Wac_values_df.to_excel(writer, sheet_name='Modified_Wac', index=False)
-    Slope_values_df.to_excel(writer, sheet_name='Modified_Slope', index=False)
+
+with pd.ExcelWriter(path_ReachData + 'ReachData_modified_transposed.xlsx', engine='openpyxl') as writer:
+    if not writer.book.worksheets:  # Ensure there is at least one sheet
+        writer.book.create_sheet("Sheet1")
+    random_values_Wac.T.rename(columns=lambda x: f'Reach {x+1}').to_excel(writer, sheet_name='Random_Wac_Multipliers', index=True)
+    random_values_Slope.T.rename(columns=lambda x: f'Reach {x+1}').to_excel(writer, sheet_name='Random_Slope_Multipliers', index=True)
+    Wac_values_df.T.rename(columns=lambda x: f'Reach {x+1}').to_excel(writer, sheet_name='Modified_Wac', index=True)
+    Slope_values_df.T.rename(columns=lambda x: f'Reach {x+1}').to_excel(writer, sheet_name='Modified_Slope', index=True)
+    
+plt.figure()
+plt.hist(Wac_random_values, bins=10, density=True, alpha=0.6, color='blue')
 
 
+
+
+    
+    

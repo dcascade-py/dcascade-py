@@ -35,27 +35,25 @@ from numpy import random
 from GSD import GSDcurvefit
 from preprocessing import graph_preprocessing
 from DCASCADE_loop import DCASCADE_main
+from widget import read_user_input
 import profile
-import os
 import pickle
-
 
 
 
 '''user defined input data'''
 
-
 #-------River shape files 
-path_river_network = "C:\\Sahansila\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
-name_river_network = 'River_Network.shp'
+path_river_network = "E:\\Sahansila\\input\\shp_file_slopes_hydro_and_LR\\02-shp_trib_GSD_updated\\"
+name_river_network = 'Po_river_network.shp'
 
 #--------Q files
-path_q = 'C:\\Sahansila\\cascade\\input\\'
+path_q = 'E:\\Sahansila\\input\\Discharge\\'
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 name_q = 'Po_Qdaily_3y.csv' 
 
 #--------path to the output folder
-path_results = "C:\\Sahansila\\cascade\\cascade_results"
+path_results = "E:\\Sahansila\\cascade_results\\Slope_change\\"
 
 
 #--------Parameters of the simulation
@@ -63,12 +61,14 @@ path_results = "C:\\Sahansila\\cascade\\cascade_results"
 #---Sediment classes definition 
 # defines the sediment sizes considered in the simulation
 #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+sed_range = [-8, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
 n_classes = 6        # number of classes
 
-
 #---Timescale 
-timescale = 10 # days 
+timescale = 1096 # days 
+
+ts_length = 60*60*24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
+
 
 
 #---Change slope or not
@@ -76,7 +76,7 @@ update_slope = False #if False: slope is constant, if True, slope changes accord
 
 #---Initial layer sizes
 deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
-eros_max = 1             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+eros_max = 0.3             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'never' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
@@ -93,6 +93,8 @@ ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) 
 
 # Define the initial deposit layer per each reach in [m3/m]
 ReachData['deposit'] = np.repeat(deposit_layer, len(ReachData))
+
+
 
 # Read/define the water discharge 
 # but first, we check automatically the delimiter (; or ,) and if Q file has headers or not:
@@ -133,7 +135,7 @@ print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90,
 
 n_reaches = len(ReachData)
 # External sediment for all reaches, all classes and all timesteps 
-Qbi_input = [np.zeros((n_reaches,n_classes)) for _ in range(timescale)]
+Qbi_input = np.zeros((timescale,n_reaches,n_classes))
 
 # Define input sediment load in the deposit layer
 deposit = ReachData.deposit*ReachData.Length
@@ -142,57 +144,54 @@ deposit = ReachData.deposit*ReachData.Length
 Fi_r,_,_ = GSDcurvefit( ReachData.D16, ReachData.D50, ReachData.D84 , psi) 
 
 # Initialise deposit layer 
-Qbi_dep_in = [np.zeros((1,n_classes)) for _ in range(n_reaches)] 
+Qbi_dep_in = np.zeros((n_reaches,1,n_classes))
 for n in range(len(ReachData)):
     Qbi_dep_in[n] = deposit[n]*Fi_r[n,:]
+    
+# to add deposit layer at a given reach 
+#row = np.array(range(n_classes)).reshape(1,n_classes)
+#Qbi_dep_in[0] = np.append(Qbi_dep_in[0],row,axis= 0)
 
-import random
+# Formula selection
+# indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
+# If you want to fix indexes, comment the line above and fix manually the indexes
+indx_tr_cap = 3 # Wilkock and Crowe 2003
+indx_partition = 2 # Shear stress correction
+indx_flo_depth = 1 # Manning
+indx_slope_red = 1 # None
+indx_velocity = 1 # same velocity for all classes
 
+
+# Iterate over each percentage decrement in active width 
 # Define the list of percentage changes for sensitivity analysis
-activewidth_changes = [-5, -10, -15, -20]
-slope_changes = [+5, +10, +15, +20, -10, -20]
+#Depending on which input factor is going to be changed, comment the lines that are not going to be changed  
+# activewidth_changes = [-5,-10, -15, -20, -30, -50]
+slope_changes = [+5, +10, +20, +30, -5,-10, -20, -30]
 
-# Define the number of random samples 
-num_samples = 20
+# for activewidth_change in activewidth_changes:
 
-# Initialize a set to store unique combinations
-unique_combinations = set()
+for slope_change in slope_changes:    
+# Copy the original ReachData dataframe to avoid modifying the original data
+    ReachData_copy = ReachData.copy()
 
-# Generate random samples until the number of samples are reached
-while len(unique_combinations) < num_samples:
-    # Randomly select values for activewidth_change and slope_change
-    activewidth_change = random.choice(activewidth_changes)
-    slope_change = random.choice(slope_changes)
+ # Calculate the multiplier based on the percentage change 
+    # multiplier = 1 + activewidth_change / 100
+    multiplier = 1 + slope_change / 100
     
-    # Create a tuple representing the current combination
-    current_combination = (activewidth_change, slope_change)
-    
-    # Check if the combination is unique
-    if current_combination not in unique_combinations:
-        # Add the combination to the set of unique combinations
-        unique_combinations.add(current_combination)
-        
-        # Copy the original ReachData dataframe to avoid modifying the original data
-        ReachData_copy = ReachData.copy()
-
-        # Calculate the multiplier based on the percentage change
-        multiplier_width = 1 + activewidth_change / 100
-        multiplier_slope = 1 + slope_change / 100
-
-        # Adjust the active channel width and slope by the calculated multiplier
-        ReachData_copy['Wac'] = ReachData_copy['Wac'] * multiplier_width
-        ReachData_copy['Slope'] = ReachData_copy['Slope'] * multiplier_slope
-
-        # Call dcascade main
-        data_output, extended_output = DCASCADE_main(ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi, roundpar, update_slope, eros_max, save_dep_layer) 
-
-        
-        # Save the output data for each percentage change as pickled files
-        import pickle
-        output_file_name = f"output_change_width_{activewidth_change}_slope_{slope_change}.pkl"
-        output_file_path = path_results + output_file_name
-        pickle.dump(data_output, open(output_file_path, "wb"))
+    # Adjust the active channel width by the calculated multiplier
+    # ReachData_copy['Wac'] = ReachData_copy['Wac'] * multiplier
+    ReachData_copy['Slope'] = ReachData_copy['Slope'] * multiplier
 
 
+    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, indx_velocity,                            
+                                                ReachData_copy, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                roundpar, update_slope, eros_max, save_dep_layer, ts_length)
+
+
+
+   # Save the output data for each percentage change
+    output_file_name = f"output_change_{slope_change}percent.pkl"
+    output_file_path = path_results + output_file_name
+    pickle.dump(data_output, open(output_file_path, "wb"))
     
 

@@ -46,16 +46,13 @@ import pickle
 
 
 #-------River shape files 
-path_river_network = "C:\\Sahansila\\UNIPD\\shp_file_slopes_hydro_and_LR\\"
+path_river_network = "E:\\Sahansila\\input\\shp_file_slopes_hydro_and_LR\\02-shp_trib_GSD_updated\\"
 name_river_network = 'Po_river_network.shp'
 
 #--------Q files
-path_q = 'C:\\Sahansila\\cascade\\input\\'
+path_q = 'E:\\Sahansila\\input\\Discharge\\'
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Po_Qdaily_3y.csv' 
-
-#--------path to the output folder
-path_results = "C:\\Sahansila\\cascade\\cascade_results"
+name_q = 'Po_Qdaily_3y.csv'
 
 
 #--------Parameters of the simulation
@@ -68,7 +65,7 @@ n_classes = 6        # number of classes
 
 
 #---Timescale 
-timescale = 10 # days 
+timescale = 20# days 
 ts_length = 60*60*24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 
@@ -77,7 +74,7 @@ update_slope = False #if False: slope is constant, if True, slope changes accord
 
 #---Initial layer sizes
 deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the ReachData file
-eros_max = 1             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+eros_max = 0.3             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 
 #---Storing Deposit layer
 save_dep_layer = 'never' #'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
@@ -134,7 +131,7 @@ print(max(ReachData['D84'])*1000, ' must be lower than ',  np.percentile(dmi,90,
    
 
 n_reaches = len(ReachData)
-# External sediment for all reaches, all classes and all timesteps 
+# External sediment for all reaches, all classes and all timesteps +
 Qbi_input = np.zeros((timescale,n_reaches,n_classes))
 
 # Define input sediment load in the deposit layer
@@ -151,16 +148,16 @@ for n in range(len(ReachData)):
 # Formula selection
 # indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red = read_user_input()
 # If you want to fix indexes, comment the line above and fix manually the indexes
-indx_tr_cap = 2 # Wilkock and Crowe 2003
-indx_partition = 4 # Shear stress correction
+indx_tr_cap = 3 # Engulend and Hansen
+indx_partition = 2 # BMF
 indx_flo_depth = 1 # Manning
-indx_slope_red = 1 # None
-
+indx_slope_red = 1 # None 
+indx_velocity = 1 # same velocity for all classes
 
 ## Reading ReachData and running the model  iteratively against these ReachData 
-N = 20 #Number of samples (in this case number of Reach Data shape files with modified input parameters)
-path_ReachData = "C:\\Sahansila\\cascade\\ReachData_for_sensitivity\\ReachData_lhs_norm_dist\\"
-path_output = "C:\\Sahansila\\cascade\\SAFE_output\\Sensitivity_lhs_norm_dist\\"
+N = 1000 #Number of samples (in this case number of Reach Data shape files with modified input parameters)
+path_ReachData = "E:\\Sahansila\\SAFE_output\\test_sorted_reach\\"
+path_output = "E:\\Sahansila\\SAFE_output\\data_output_test\\"
 
 for i in range(N):
     # Construct the filename or variable name for ReachData
@@ -171,9 +168,9 @@ for i in range(N):
     ReachData_modified = gpd.GeoDataFrame.from_file(path_ReachData + reach_data_file) #read shapefine from shp format
 
     # call dcascade
-    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red,
-                                                 ReachData, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, save_dep_layer, ts_length)
+    data_output, extended_output = DCASCADE_main(indx_tr_cap , indx_partition, indx_flo_depth, indx_slope_red, indx_velocity,                            
+                                                ReachData_modified, Network, Q, Qbi_input, Qbi_dep_in, timescale, psi,
+                                                roundpar, update_slope, eros_max, save_dep_layer, ts_length)
     
 
     # Construct the output file name without the '.shp' extension
