@@ -22,6 +22,7 @@ from transport_capacity_computation import TransportCapacityCalculator
 
 
 class Cascade:
+    index_counter = 0
     def __init__(self, provenance, elapsed_time, volume):
         """
         Initialyse a cascade.
@@ -33,14 +34,28 @@ class Cascade:
         @param volume (...)
             Volume
         """
+        # Cascade index
+        self.index = Cascade.index_counter
+        Cascade.index_counter += 1
+        # Provenance for this time step
         self.provenance = provenance
+        # Elapsed time within this time step
         self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
+        # Sediment volume (Vmob)
         self.volume = volume # size = n_classes + 1, to include the original provenance in a first column
         # To be filled during the time step
         self.velocities = np.nan # in m/s
         # Flag to know if the cascade is from external source (default False)
         self.is_external = False
 
+    def update(self, provenance = None, elapsed_time = None, volume = None):
+        # Function to update the cascade attributes, without changing its index
+        if provenance is not None:
+            self.provenance = provenance
+        if elapsed_time is not None:
+            self.elapsed_time = elapsed_time
+        if volume is not None:
+            self.volume = volume
 
 
 class ReachData:
@@ -493,7 +508,7 @@ class SedimentarySystem:
         # Note: in the deposit layer matrix, first rows are the bottom layers
         cascade_list = sorted(cascade_list, key=lambda x: np.nanmean(x.elapsed_time))
 
-        depositing_volume_list = []
+        stopping_cascade_list = []
         cascades_to_be_completely_removed = []
 
 
@@ -507,7 +522,7 @@ class SedimentarySystem:
                 else:
                     # External sources coming from current reach,
                     # are starting halfway of the reach.
-                    distance_to_reach_outlet = 0 * self.reach_data.length[n]
+                    distance_to_reach_outlet = 0.5 * self.reach_data.length[n]
             else:
                 distance_to_reach_outlet = self.reach_data.length[n]
             t_travel_n = distance_to_reach_outlet / (cascade.velocities * self.ts_length)
@@ -517,7 +532,10 @@ class SedimentarySystem:
             Vm_stop, Vm_continue = self.stop_or_not(t_out, cascade.volume)
 
             if Vm_stop is not None:
-                depositing_volume_list.append(Vm_stop)
+                casc_stop = copy.deepcopy(cascade)
+                casc_stop.update(provenance = n, elapsed_time = np.zeros(self.n_classes), volume = Vm_stop)
+                stopping_cascade_list.append(casc_stop)
+
                 # Fill connectivity matrice:
                 self.direct_connectivity[t][cascade.provenance, n, :] += np.sum(Vm_stop[:,1:], axis = 0)
 
@@ -526,7 +544,7 @@ class SedimentarySystem:
                     cascades_to_be_completely_removed.append(cascade)
                 else:
                     # some part of the volume continues, we update the volume
-                    cascade.volume = Vm_continue
+                    cascade.update(volume = Vm_continue)
 
             if Vm_continue is not None:
                 # update time for continuing cascades
@@ -536,19 +554,10 @@ class SedimentarySystem:
                 cond_0 = np.all(cascade.volume[:,1:] == 0, axis = 0)
                 cascade.elapsed_time[cond_0] = np.nan
 
-
-        # If they are, remove complete cascades:
+        # If they are, remove complete cascades from the passing cascade list:
         cascade_list_new = [casc for casc in cascade_list if casc not in cascades_to_be_completely_removed]
 
-        # If they are, concatenate the deposited volumes
-        if depositing_volume_list != []:
-            depositing_volume = np.concatenate(depositing_volume_list, axis=0)
-            if np.all(depositing_volume[:,1:] == 0):
-                raise ValueError("DD check: we have an empty layer stopping ?")
-        else:
-            depositing_volume = None
-
-        return cascade_list_new, depositing_volume
+        return cascade_list_new, stopping_cascade_list
 
 
     def stop_or_not(self, t_new, Vm):

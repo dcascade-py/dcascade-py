@@ -31,7 +31,8 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
                   indx_width_calc = 1,
                   passing_cascade_in_outputs = True,
                   passing_cascade_in_trcap = True,
-                  time_lag_for_mobilised = True):
+                  time_lag_for_mobilised = True,
+                  t_track = None):
 
     """
     Main function of the D-CASCADE software.
@@ -96,7 +97,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
     dcascade.set_algorithm_options(passing_cascade_in_outputs, passing_cascade_in_trcap,
                                    time_lag_for_mobilised)
     # Run
-    dcascade.run(Q, roundpar)
+    dcascade.run(Q, roundpar, t_track)
 
     # Post process
     data_output, extended_output = dcascade.output_processing(Q)

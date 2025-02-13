@@ -77,9 +77,14 @@ class DCASCADE:
             raise ValueError("You can not use this combination of algorithm options")
 
 
-    def run(self, Q, roundpar):
+    def run(self, Q, roundpar, t_track):
 
         SedimSys = self.sedim_sys
+        
+        Qbi_stop = [[] for n in range(self.n_reaches)]
+
+        if t_track is not None:
+            track_cascade = {}
 
         # start waiting bar
         for t in tqdm(range(self.timescale - 1)):
@@ -100,10 +105,14 @@ class DCASCADE:
             # Deposit layer from previous timestep
             Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
 
-            # Matrix to store volumes of sediment passing through a reach
+            # Matrix to store volumes of sediment (cascades) passing through a reach
             # in this timestep, ready to go to the next reach in the same time step.
             # For each reach, stores list of Cascade objects.
             Qbi_pass = [[] for n in range(self.n_reaches)]
+            
+            # Matrix to store volumes of sediment (cascades) that had stopped at previous time step.
+            # That can be remobilised in this new time step.
+            Qbi_stop_old = copy.deepcopy(Qbi_stop)
 
             # loop for all reaches:
             for n in self.network['n_hier']:
@@ -144,16 +153,18 @@ class DCASCADE:
                 # finish the time step here or not.
                 # After this step, Qbi_pass[n] contains volume that do not finish
                 # the time step in this reach.
+                # Qbi_stop[n] contains the volume that will be pass to next time step.
                 if Qbi_pass[n] != []:
-                    Qbi_pass[n], to_be_deposited = SedimSys.cascades_end_time_or_not(Qbi_pass[n], n, t)
-                else:
-                    to_be_deposited = None
+                    Qbi_pass[n], Qbi_stop[n] = SedimSys.cascades_end_time_or_not(Qbi_pass[n], n, t)
+                # else:
+                #     to_be_deposited = None
 
                 # Temporary to reproduce v1. Stopping cascades are stored at next time step.
                 if self.passing_cascade_in_outputs == False:
-                    if to_be_deposited is not None:
-                        SedimSys.Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
-
+                    if Qbi_stop[n] is not []:
+                        for cascade in Qbi_stop[n]:
+                            SedimSys.Qbi_tr[t+1][[cascade[:,0].astype(int)], n, :] += cascade[:, 1:]
+                
                 # After this step, Qbi_pass[n] contains volume that do not finish
                 # the time step in this reach, i.e the passing cascades
 
@@ -167,27 +178,34 @@ class DCASCADE:
                 # An optional time lag vector (x n_classes) is used to mobilise reach sediment
                 # before the eventual first passing cascade arrives at the outlet.
                 # (NB: it is a proportion of the time step)
-
+                
+                # TODO: DD: how to deal with time lag and stopping cascades ? 
                 if self.time_lag_for_mobilised == True and Qbi_pass[n] != []:
                     time_lag = SedimSys.compute_time_lag(Qbi_pass[n])
                     # Transport capacity is only calculated on Vdep_init (plus possibly external cascades)
                     tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
-                                                                             self.indx_tr_cap, self.indx_tr_partition)
+                                                                             self.indx_tr_cap, self.indx_tr_partition, 
+                                                                             passing_cascades = Qbi_stop_old[n])
                     # Store values:
                     SedimSys.tr_cap_before_tlag[t, n, :] = tr_cap_per_s * time_lag * self.ts_length
                     SedimSys.Fi_al_before_tlag[t, n, :] = Fi_al
                     SedimSys.D50_al_before_tlag[t, n] = D50_al
 
                     # Mobilise during the time lag
-                    Vmob, _, Vdep = SedimSys.compute_mobilised_volume(Vdep_init, tr_cap_per_s,
+                    Vmob, Qbi_stop_old[n], Vdep = SedimSys.compute_mobilised_volume(Vdep_init, tr_cap_per_s,
                                                                       n, t, roundpar,
-                                                                      time_fraction = time_lag)
+                                                                      time_fraction = time_lag,
+                                                                      passing_cascades = Qbi_stop_old[n])
 
                     # Add the possible mobilised cascade to a temporary container
                     if Vmob is not None:
                         elapsed_time = np.zeros(self.n_classes) # it start its journey at the beginning of the time step
                         provenance = n
                         reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Vmob))
+                    if Qbi_stop_old[n] is not []:
+                        elapsed_time = np.zeros(self.n_classes) # it start its journey at the beginning of the time step
+                        provenance = n
+                        reach_mobilized_cascades.append(Cascade(provenance, elapsed_time, Qbi_stop_old[n]))
 
 
                     # Remaining time after time lag
@@ -202,9 +220,9 @@ class DCASCADE:
                 # To reproduce v1, we leave the option to consider passing cascades or not
                 # in the transport capacity and mobilisation calculation
                 if self.passing_cascade_in_trcap == True:
-                    passing_cascades = Qbi_pass[n]
+                    passing_cascades = Qbi_pass[n] + Qbi_stop_old[n]
                 else:
-                    passing_cascades = None
+                    passing_cascades = Qbi_stop_old[n]
 
                 # Now compute transport capacity and mobilise
                 # considering eventually the passing cascades during the remaining time:
@@ -251,10 +269,10 @@ class DCASCADE:
                 if reach_mobilized_cascades != []:
                     Qbi_pass[n].extend(reach_mobilized_cascades)
 
-                # Deposit the stopping cascades in Vdep
-                if to_be_deposited is not None:
-                    to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
-                    Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
+                # Deposit the stopping cascades in Vdep --> No
+                # if to_be_deposited is not None:
+                #     to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
+                #     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
                 # Store Vdep for next time step
                 SedimSys.Qbi_dep_0[n] = np.copy(Vdep_end)
 
@@ -300,6 +318,15 @@ class DCASCADE:
                     # TODO: DD check this line
                     self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
 
+                # Optional: record cascade information between chosen time steps
+                if t_track is not None:
+                    if t >= t_track[0] and t <= t_track[1]:
+                        for cascade in Qbi_pass[n]:
+                            if cascade.index not in track_cascade:
+                                track_cascade[cascade.index] = []
+                            else:
+                                print('ok')
+                            track_cascade[cascade.index].append((t , n, cascade.volume))
 
             """End of the reach loop"""
 
