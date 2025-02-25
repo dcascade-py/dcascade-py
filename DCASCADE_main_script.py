@@ -24,6 +24,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
                   indx_tr_cap, indx_tr_partition, indx_flo_depth,
                   vel_height = '2D90',
                   external_inputs = None,
+                  force_pass_external_inputs = False,
                   indx_velocity = 2,
                   indx_vel_partition = 1,
                   indx_slope_red = 1,
@@ -81,7 +82,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
     sedimentary_system.initialize_elevations()
     sedimentary_system.initialize_storing_matrices()
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
-    sedimentary_system.set_external_input(external_inputs, roundpar)
+    sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
     sedimentary_system.set_active_layer(al_depth)
 

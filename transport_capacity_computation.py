@@ -9,7 +9,7 @@ Different formula for the calculation of the tranport capacity and for the assig
 import numpy as np
 import numpy.matlib
 
-from constants import GRAV, R_VAR, RHO_S, RHO_W
+from constants import GRAV, R_VAR, RHO_S, RHO_W, SPE_GRAV
 from supporting_functions import D_finder
 
 
@@ -185,10 +185,6 @@ class TransportCapacityCalculator:
         in the reach measured using the Engelund and Hansen equations.
         This function is for use in the D-CASCADE toolbox.
 
-        WARNING: Engelund and Hansen use a factor of 0.1 and but this function uses
-        a factor of 0.05 (corrected).The factor 0.05 seems to appear because of the
-        division by 2 in the friction coefficient.
-
         slope: All reaches' slopes
         h: All reaches' water heights
 
@@ -280,64 +276,76 @@ class TransportCapacityCalculator:
         This function is for use in the D-CASCADE toolbox.
 
         References:
-        Stevens Jr., H. H. & Yang, C.T. Summary and use of selected fluvial sediment-discharge formulas. (1989).
+        Stevens Jr., H. H. & Yang, C.T. Summary and use of selected fluvial
+        sediment-discharge formulas. (1989).
         Ackers P., White W.R. Sediment transport: New approach and analysis (1973)
+        Ackers P., Sediment transport in open channels: Ackers and White update (1993)
         """
+        # Kinematic viscosity : CREATE A TABLE IN THE CONSTANTS?
+        # @ 20�C: http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
+        nu = 1.003*1E-6
 
-        #FR = v/np.sqrt(g*h)     #Froude number
+        # Dimensionless grain size (Eq. 59 of Stevens & Yang, 1989):
+        # EB change coding line if D_gr is different from a number
+        # TODO: Ackers - White suggest to use the D35 instead of the D50 (p. 21 of Stevens & Yang, 1989)
+        D_gr = self.D50 * (GRAV * R_VAR / nu**2)**(1/3)
 
-        # Ackers - White suggest to use the D35 instead of the D50
-        D_AW = self.D50
+        # Coefficients for dimensionless transport calculation:
+        # n - the transition exponent depending on sediment size.
+        # A - the value of the Froude number at nominal initial motion.
+        # m - the exponent in the sediment transport function.
+        # C - the coefficient in the sediment transport function.
 
-        nu = 1.003*1E-6 # kinematic viscosity @ 20�C: http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
-        #nu = 0.000011337  # kinematic viscosity (ft2/s)
+        # Values for the coarse size range with D_gr > 60 (2.5 mm sand size).
+        n_coarse = 0       # (Eq. 68 of Stevens & Yang, 1989)
+        A_coarse = 0.17    # (Eq. 69 of Stevens & Yang, 1989)
+        m_coarse = 1.50    # (Eq. 70 of Stevens & Yang, 1989)  (or 1.78 in Eq. 7 in Ackers (1993))
+        C_coarse = 0.025   # (Eq. 71 of Stevens & Yang, 1989)
 
-        alpha = 10 # coefficient in the rough turbulent equation with a value of 10;
+        n = np.full_like(D_gr, n_coarse)
+        A = np.full_like(D_gr, A_coarse)
+        m = np.full_like(D_gr, m_coarse)
+        C = np.full_like(D_gr, C_coarse)
 
-        #conv = 0.3048 #conversion 1 feet to meter
+        # Values for the intermediate size range with D_gr > 1 (0.04 mm silt
+        # size) to D_gr = 60 (2.5 mm sand size).
+        mask_inter = D_gr <= 60
+        if mask_inter.any():
+            D_gr_inter = D_gr[mask_inter]
+            n_inter = 1 - 0.56 * np.log10(D_gr_inter)     # (Eq. 64, S&Y,1989, and Eq. 9 in Ackers (1993))
+            A_inter = 0.14 + 0.23 / np.sqrt(D_gr_inter)   # (Eq. 65, S&Y,1989, and Eq. 10 in Ackers (1993))
+            m_inter = 1.67 + 6.83 / D_gr_inter            # (Eq. 11 in Ackers (1993)) (or 1.34 + 9.66 / D_gr_inter in Eq. 66, S&Y,1989)
+            C_inter = 10**(- 3.46 + 2.79 * np.log10(D_gr_inter)
+                           - 0.98 * np.log10(D_gr_inter)**2 )  # (Eq. 12 in Ackers (1993))  (or C_inter = 10**(2.86 * np.log10(D_gr_inter)
+                                                                                              # - np.log10(D_gr_inter)**2 - 3.53 in Eq. 67, S&Y,1989)
+            n[mask_inter] = n_inter
+            A[mask_inter] = A_inter
+            m[mask_inter] = m_inter
+            C[mask_inter] = C_inter
 
-        ## transition exponent depending on sediment size [n]
-
-        D_gr = D_AW * (GRAV * R_VAR / nu**2)**(1/3) #dimensionless grain size - EB change coding line if D_gr is different from a number
-
-        #shear velocity
+        # Shear velocity
         u_ast = np.sqrt(GRAV * self.h * self.slope)
+        # Coefficient in the rough turbulent equation
+        # (value of 10 in Stevens & Yang, 1989)
+        alpha = 10
+        # Dimensionless mobility number (Eq. 60 of Stevens & Yang, 1989)
+        F_gr = (u_ast**n / np.sqrt(GRAV * self.D50 * R_VAR)) * (self.v / (np.sqrt(32) * np.log10(alpha * self.h / self.D50)))**(1 - n)
 
-        ## Transport capacity
-
-        #coefficient for dimensionless transport calculation
-        C = 0.025
-        m = 1.50    # m = 1.78
-        A = 0.17
-        n = 0
-
-        C = np.matlib.repmat(C, 1, 1) #np.matlib.repmat(m, D_gr.shape[0],D_gr.shape[1])
-        m = np.matlib.repmat(m, 1, 1) #np.matlib.repmat(m, D_gr.shape[0],D_gr.shape[1])
-        A = np.matlib.repmat(A, 1, 1) #np.matlib.repmat(m, D_gr.shape[0],D_gr.shape[1])
-        n = np.matlib.repmat(n, 1, 1) #np.matlib.repmat(m, D_gr.shape[0],D_gr.shape[1])
-
-        if np.less(D_gr, 60).any():
-            C[D_gr < 60] = 10 ** (2.79 * np.log10(D_gr[D_gr < 60]) - 0.98 * np.log10(D_gr[D_gr < 60])**2 - 3.46)
-            m[D_gr < 60] = 6.83 / D_gr[D_gr < 60] + 1.67     # m = 9.66 / D_gr(D_gr < 60) + 1.34;
-            A[D_gr < 60] = 0.23 / np.sqrt(D_gr[D_gr < 60]) + 0.14
-            n[D_gr < 60] = 1 - 0.56 * np.log10(D_gr[D_gr < 60])
-
-        ## mobility factor
-        F_gr = u_ast**n / np.sqrt(GRAV * D_AW * R_VAR) * (self.v / (np.sqrt(32) * np.log10(alpha * self.h / D_AW)))**(1 - n)
-
-        # dimensionless transport
+        # Dimensionless sediment transport of Ackers and White
+        # (Eq. 63 of Stevens & Yang, 1989) TOCHECK: WHY THE MAXIMUM, HERE?
         G_gr = C * (np.maximum(F_gr / A - 1, 0) )**m
 
-        # weight concentration of bed material (Kg_sed / Kg_water)
-        QS_ppm = G_gr * (R_VAR + 1) * D_AW * (self.v / u_ast)**n / self.h
+        # Weight concentration of bed material discharge [Kg_sed / Kg_water]
+        # (Eq. 62 of Stevens & Yang, 1989)
+        C_s = G_gr * SPE_GRAV * self.D50 * (self.v / u_ast)**n / self.h
 
-        # transport capacity (Kg_sed / s)
-        QS_kg = RHO_W * self.Q * QS_ppm
+        # Total transport capacity [Kg_sed / s]
+        Q_kg = RHO_W * self.Q
+        QS_kg = Q_kg * C_s
 
-        # transport capacity [m3/s]
-        QS_AW = QS_kg / RHO_S
-
-        tr_cap = QS_AW
+        # Transport capacity [m3/s]
+        QS = QS_kg / RHO_S
+        tr_cap = QS
 
         return {"tr_cap": tr_cap}
 

@@ -144,7 +144,8 @@ class SedimentarySystem:
 
         # Storing matrices
         self.Qbi_dep = None
-        self.lateral_inputs = None
+        self.external_inputs = None
+        self.force_pass_external_inputs = None
         self.Qbi_tr = None
         self.Qbi_mob = None
         self.Qbi_mob_from_r = None
@@ -167,8 +168,8 @@ class SedimentarySystem:
         self.al_depth = None
         self.vl_height = self.create_2d_zero_array()
         self.mass_balance = self.create_3d_zero_array()
-        
-        
+
+
         # temporary ?
         self.Qbi_dep_0 = None
 
@@ -180,7 +181,7 @@ class SedimentarySystem:
         Note: we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
         '''
         return [np.zeros((self.n_reaches, self.n_reaches, self.n_classes)) for _ in range(self.timescale)]
-        
+
     def create_3d_zero_array(self):
         return np.zeros((self.timescale, self.n_reaches, self.n_classes))
 
@@ -241,11 +242,11 @@ class SedimentarySystem:
         if self.save_dep_layer=='always':
             dep_save_number = self.timescale
         self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
-        
+
         # Initial Qbi_dep:
-        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches  
-              
-        # Moving sediments storing matrice        
+        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches
+
+        # Moving sediments storing matrice
         self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
         self.Qbi_mob_from_r = self.create_4d_zero_array() # Volume mobilised from reach (gives also original provenance)
         # TODO: DD see if we keep Qbi_tr
@@ -281,7 +282,7 @@ class SedimentarySystem:
             q_bin = np.array(Qbi_dep_in[n])
             if not q_bin.any(): #if all zeros
                 self.Qbi_dep_0[n] = np.hstack((n, np.zeros(self.n_classes))).reshape(1,-1)
-            else:           
+            else:
                 self.Qbi_dep_0[n] = np.float64(np.hstack((np.ones(q_bin.shape[0]) * n, Qbi_dep_in[n, 0]))).reshape(1,-1)
                 self.Fi_al[0,n,:] = np.sum(q_bin, axis=0) / np.sum(q_bin)
                 self.D50_al[0,n] = D_finder(self.Fi_al[0,n,:], 50, self.psi)
@@ -348,9 +349,10 @@ class SedimentarySystem:
         # Store:
         self.vl_height[t, :] = vl_height_t
 
-    def set_external_input(self, external_inputs, roundpar):
+    def set_external_input(self, external_inputs, force_pass_external_inputs, roundpar):
         # define Qbi_input in this sed_system
         self.external_inputs = external_inputs
+        self.force_pass_external_inputs = force_pass_external_inputs
 
 
     def extract_external_inputs(self, cascade_list, t, n):
@@ -405,7 +407,7 @@ class SedimentarySystem:
             if volume_total < self.al_vol[t, n]:
                 _, Vdep_active, _, _ = self.layer_search(Vdep, self.al_vol[t, n],
                                         Qpass_volume = volume_all_cascades, roundpar = roundpar)
-                volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0) 
+                volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0)
 
             velocities = self.volume_velocities(volume_all_cascades,
                                                 Q_reach, v, h, t, n,
@@ -494,13 +496,18 @@ class SedimentarySystem:
         depositing_volume_list = []
         cascades_to_be_completely_removed = []
 
+
         for cascade in cascade_list:
             # Time in, time travel, and time out in time step unit (not seconds)
             t_in = cascade.elapsed_time
             if cascade.is_external == True and cascade.provenance == n:
-                # External sources coming from current reach,
-                # are starting halfway of the reach.
-                distance_to_reach_outlet = 0.5 * self.reach_data.length[n]
+                # Particular case where external cascades are passed to the next reach and excluded of the calculation
+                if self.force_pass_external_inputs == True:
+                    continue
+                else:
+                    # External sources coming from current reach,
+                    # are starting halfway of the reach.
+                    distance_to_reach_outlet = 0 * self.reach_data.length[n]
             else:
                 distance_to_reach_outlet = self.reach_data.length[n]
             t_travel_n = distance_to_reach_outlet / (cascade.velocities * self.ts_length)
@@ -595,23 +602,29 @@ class SedimentarySystem:
 
         # The option "per second" put the passing cascades in m3/s instead of m3/ts_length
         # This option is by default False. Putting it True can create some
-        # strange behaviour (on and off mobilisation)
+        # strange behaviour (on and off mobilisation).
 
         if passing_cascades == None or passing_cascades == []:
             passing_volume = None
+
         else:
-            # Makes a single volume out of the passing cascade list:
-            passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
-            passing_volume = self.matrix_compact(passing_volume) #compact by original provenance
-
-            if per_second == True:
-                passing_volume = copy.deepcopy(passing_volume)
-                passing_volume[:,1:] = passing_volume[:,1:] / self.ts_length
-
+            # Particular case where external cascades are passed to the next reach and excluded of the calculation
+            if self.force_pass_external_inputs == True:
+                passing_cascades = [cascade for cascade in passing_cascades
+                                      if not (cascade.is_external == True and cascade.provenance == n)]
+            if passing_cascades == []:
+                passing_volume = None
+            else:
+                # Makes a single volume out of the passing cascade list:
+                passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
+                passing_volume = self.matrix_compact(passing_volume) #compact by original provenance
+                if per_second == True:
+                    passing_volume = copy.deepcopy(passing_volume)
+                    passing_volume[:,1:] = passing_volume[:,1:] / self.ts_length
 
         # Compute fraction and D50 in the active layer
         # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
-        _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], Qpass_volume = passing_volume, roundpar = roundpar)                   
+        _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], Qpass_volume = passing_volume, roundpar = roundpar)
         # In case the active layer is empty, I use the GSD of the previous timestep
         if np.sum(Fi_al_) == 0:
            Fi_al_ = self.Fi_al[t-1, n, :]
@@ -641,12 +654,23 @@ class SedimentarySystem:
         # Erosion maximum during the time lag
         # (we take the mean time lag among the classes)
         e_max_vol_ = self.eros_max_vol[n] * np.mean(time_fraction)
+
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0
+            passing_cascades_excluded = []
         else:
-            passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
-            sum_pass = np.sum(passing_volume[:,1:], axis=0)
+            # Particular case where external cascades are passed to the next reach and excluded of the calculation
+            if self.force_pass_external_inputs == True:
+                passing_cascades_excluded = [cascade for cascade in passing_cascades
+                                      if (cascade.is_external == True and cascade.provenance == n)]
+                passing_cascades = [cascade for cascade in passing_cascades if cascade not in passing_cascades_excluded]
+
+            if  passing_cascades == []:
+                sum_pass = 0
+            else:
+                passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
+                sum_pass = np.sum(passing_volume[:,1:], axis=0)
 
 
         # Compare sum of passing cascade to the mobilisable volume (for each sediment class)
@@ -673,36 +697,40 @@ class SedimentarySystem:
             # Deposit the Vm_removed:
             Vdep_new = np.concatenate([Vdep_new, Vm_removed], axis=0)
 
+        # Re-add the external cascades, that were excluded from calculation
+        if self.force_pass_external_inputs == True and passing_cascades_excluded != []:
+            passing_cascades.extend(passing_cascades_excluded)
+
         # If the new vdep is empty, put an empty layer for next steps
         if Vdep_new.size == 0:
             Vdep_new = np.hstack((n, np.zeros(self.n_classes)))
             Vdep_new = np.expand_dims(Vdep_new, axis = 0)
 
         return V_mob, passing_cascades, Vdep_new
-    
-    
-    
+
+
+
     def layer_search(self, V_dep_old, V_lim, Qpass_volume = None, roundpar = None):
-        # This function searches uppermost layers from a volume of layers, 
+        # This function searches uppermost layers from a volume of layers,
         # to correspond to a maximum volume. Passing cascade can be integrated
         # to the top of the volume.
         # The maximum volume can represent for example the active layer,
         # i.e. what we consider as active during the transport process,
         # or a maximum to be eroded per time step.
-    
-        # INPUTS:    
+
+        # INPUTS:
         # V_dep_old :         the reach deposit layer
         # V_lim  :            is the total maximum volume to be selected
         # Qpass_volume :      is the traveling volume to be added at the top of the layers
-        # roundpar     :      number of decimals for rounding volumes  
-        
+        # roundpar     :      number of decimals for rounding volumes
+
         # RETURN:
         # V_inc2act    :      Layers of the incoming volume to be put in the maximum volume
         # V_dep2act    :      layers of the deposit volume to be put in the maximum volume
         # V_dep_new    :      remaining deposit layer
         # Fi_r_reach   :      fraction of sediment in the maximum volume
-        
-        
+
+
         if Qpass_volume is None:
             # Put an empty layer (for computation)
             empty_incoming_volume = np.hstack((0, np.zeros(self.n_classes)))
@@ -763,7 +791,7 @@ class SedimentarySystem:
                     threshold_layer_excluded = threshold_layer[1:] - threshold_layer_included
                 else:
                     threshold_layer_included = threshold_layer[1:] * perc_layer
-                    threshold_layer_excluded = threshold_layer[1:] - threshold_layer_included  
+                    threshold_layer_excluded = threshold_layer[1:] - threshold_layer_included
 
                 # Re-add the provenance column:
                 threshold_layer_included = np.hstack((threshold_layer[0], threshold_layer_included)).reshape(1, -1)
@@ -821,12 +849,12 @@ class SedimentarySystem:
 
 
     def tr_cap_deposit(self, V_inc2act, V_dep2act, V_dep_not_act, tr_cap, roundpar):
-        ''' 
+        '''
         INPUTS:
         V_inc2act :  incoming volume that is in the maximum mobilisable volume (active layer)
                     (n_layers x n_classes + 1)
         V_dep2act :  deposit volume that is in the maximum mobilisable volume (active layer)
-                    (n_layers x n_classes + 1) 
+                    (n_layers x n_classes + 1)
         V_dep_not_act     :  remaining deposit volume
                     (n_layers x n_classes + 1)
         tr_cap    :  volume that can be mobilised during the time step according to transport capacity
@@ -875,9 +903,9 @@ class SedimentarySystem:
 
             # Final matrix indicating the percentage we take from V_dep2act_class:
             # (To multiply to V_dep2act_class)
-            map_perc = mapfirst * perc_dep + ~mapp*1   
-            
-            # The matrix V_dep2act_new contains the mobilized cascades from 
+            map_perc = mapfirst * perc_dep + ~mapp*1
+
+            # The matrix V_dep2act_new contains the mobilized cascades from
             # the deposit layer, now corrected according to the tr_cap:
             V_dep2act_new = np.zeros(V_dep2act.shape)
             V_dep2act_new[: , 0] = V_dep2act[: ,0]
@@ -888,14 +916,14 @@ class SedimentarySystem:
 
             # The matrix V_2dep contains the cascades that will be deposited into the deposit layer.
             # (the new volumes for the classes in under_capacity_classes and all the volumes in the remaining classes)
-            V_2dep = np.zeros((V_dep2act.shape))
+            V_2dep = np.zeros(V_dep2act.shape)
             # add all volume in other (over capacity) classes
             V_2dep[: , np.append(True, ~under_capacity_classes) == True] = V_dep2act[: , np.append(True, ~under_capacity_classes) == True]
             # add remaining volume in uncer capacity classe
             V_2dep_class = V_dep2act_class - V_dep2act_new[:,np.append(False, under_capacity_classes)== True]
             V_2dep[: , np.append(False, under_capacity_classes) == True] = V_2dep_class
             #V_2dep[: , np.append(False, under_capacity_classes) == True] = (1 - map_perc) * V_dep2act_class
-            
+
             # Round the volume:
             if ~np.isnan(roundpar):
                 V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
@@ -909,7 +937,7 @@ class SedimentarySystem:
             V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
 
         # For the classes where V_inc2act is enough, I deposit the cascades
-        # proportionally  
+        # proportionally
         # TODO : DD, now in this new version, there is never volume incoming in this function -> to be adapted
         sum_classes_above_capacity = np.sum(V_inc2act[: , np.append(False, ~under_capacity_classes) == True], axis = 0)
         # percentage to mobilise from the above_capacity classes:
@@ -929,7 +957,7 @@ class SedimentarySystem:
 
         # Compute what is to be added to V_dep from Q_incomimg:
         # DD: again in V2, there in no Q_incoming in this function anymore -> to be adapted
-        class_residual = np.zeros((under_capacity_classes.shape));
+        class_residual = np.zeros(under_capacity_classes.shape);
         class_residual[under_capacity_classes==False] = 1 - perc_inc
         V_inc2dep = V_inc2act*np.hstack((1, class_residual))
 
@@ -1039,7 +1067,7 @@ class SedimentarySystem:
         mass_balance_ = tot_in - tot_out - delta_volume_reach
         if np.any(mass_balance_ != 0) == True:
             self.mass_balance[t, n, :] = mass_balance_
-        if np.abs(np.sum(mass_balance_)) >= 100: 
+        if np.abs(np.sum(mass_balance_)) >= 100:
             # DD: 100 is what I consider as a big volume loss
             print('Warning, the mass balance loss is higher than 100 m^3')
 
