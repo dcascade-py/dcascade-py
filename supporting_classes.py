@@ -139,8 +139,9 @@ class SedimentarySystem:
         self.phi = phi                          # sediment porosity
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
-        
+        #JR additions
         self.sand_indices = np.where(self.psi > -1)[0]
+        
         # Setted variables      
   
         
@@ -251,7 +252,15 @@ class SedimentarySystem:
         #TODO: (DD) better way to store Qbi_dep, Qbi_dep_0 etc ? 
         #ccJR - had do this here as i need nlayers and dep_save_number defined before
         self.n_layers = Qbi_dep_in.shape[1]  
-        self.Qbi_FiLayers = np.zeros((self.timescale,self.n_reaches,self.n_layers,self.n_classes)) 
+        if self.save_dep_layer == 'always':
+            t_y = self.timescale + 1  # Always save every timestep
+        
+        elif self.save_dep_layer == 'yearly':
+            t_y = int((self.timescale + 2) / 365)+1
+        
+        elif self.save_dep_layer == 'monthhour':
+            t_y = int((self.timescale + 2) / 720)+1
+        self.Qbi_FiLayers = np.zeros((t_y,self.n_reaches,self.n_layers,self.n_classes)) 
         
         if self.n_layers == 1:
             for n in self.network['n_hier']:  
@@ -297,18 +306,29 @@ class SedimentarySystem:
         # define reach hypsometry in this sed_system
         self.reach_hypsometry = reach_hypsometry    
         #do i need an n loop? yes.
-        self.nhypslayers = reach_hypsometry_data[12]['Hvec'].shape[0]
-        self.nqsteps = reach_hypsometry_data[12]['Qsteps'].shape[0]
-        self.qsteps = reach_hypsometry_data[12]['Qsteps']
-        self.Hvec = np.zeros((self.n_reaches, self.nhypslayers)) 
-        self.Wvec_q = np.zeros((self.n_reaches, self.nqsteps,self.nhypslayers)) #all Q hyps curves
-        self.Wvec = np.zeros((self.n_reaches, self.nhypslayers)) # define later #placeholder for single Q hyps curve
-        self.Zvec = np.zeros((self.n_reaches, self.nhypslayers))
-        for n in self.network['n_hier']:
-            if self.reach_hypsometry[n] == True:
-                self.Hvec[n] = reach_hypsometry_data[n]['Hvec']
-                self.Wvec_q[n,:,:] = np.transpose(reach_hypsometry_data[n]['Wvec'])
-                self.Zvec[n] = reach_hypsometry_data[n]['Zvec']
+        if any(reach_hypsometry==True):
+            for r in reach_hypsometry_data.keys(): 
+                if 'Hvec' in reach_hypsometry_data[r] and reach_hypsometry_data[r]['Hvec'].size > 0:
+                    first_hypso_r = r
+                    break
+    
+            self.nhypslayers = reach_hypsometry_data[first_hypso_r]['Hvec'].shape[0]
+            self.nqsteps = reach_hypsometry_data[first_hypso_r]['Qsteps'].shape[0]
+            self.qsteps = reach_hypsometry_data[first_hypso_r]['Qsteps']
+            self.Hvec = np.zeros((self.n_reaches, self.nhypslayers)) 
+            self.Wvec_q = np.zeros((self.n_reaches, self.nqsteps,self.nhypslayers)) #all Q hyps curves
+            self.Wvec = np.zeros((self.n_reaches, self.nhypslayers)) # define later #placeholder for single Q hyps curve
+            self.Zvec = np.zeros((self.n_reaches, self.nhypslayers))
+            for n in self.network['n_hier']:
+                if self.reach_hypsometry[n] == True:
+                    self.Hvec[n] = reach_hypsometry_data[n]['Hvec']
+                    self.Wvec_q[n,:,:] = np.transpose(reach_hypsometry_data[n]['Wvec'])
+                    self.Zvec[n] = reach_hypsometry_data[n]['Zvec']
+                
+    def set_transport_extras(self, SUSP_MULT, slope_h_red_fac):
+        #these are now accessible inside transport capacity routines which take a SedimSys
+        self.SUSP_MULT = SUSP_MULT
+        self.slope_h_red_fac = slope_h_red_fac
     
     @profile        
     def set_active_layer(self):       
@@ -404,11 +424,18 @@ class SedimentarySystem:
         sed_class_fraction = volume_total_per_class / volume_total
         D50 = float(D_finder(sed_class_fraction, 50, self.psi))
         
-        # Compute the transport capacity
-        calculator = TransportCapacityCalculator(sed_class_fraction, D50, 
+        # Compute the transport capacity. JR - don't use my hypsometric slope reducer on gorge etc!!!
+        if self.reach_hypsometry[n]:
+            calculator = TransportCapacityCalculator(sed_class_fraction, D50, 
                                                  self.slope[t, n], Q_reach, 
                                                  self.reach_data.wac[n],
-                                                 v, h, self.psi)
+                                                 v, h, self.psi,0.05,self.SUSP_MULT,self.slope_h_red_fac)
+        else:
+            calculator = TransportCapacityCalculator(sed_class_fraction, D50, 
+                                                     self.slope[t, n], Q_reach, 
+                                                     self.reach_data.wac[n],
+                                                     v, h, self.psi,0.05,self.SUSP_MULT,0) #self.slope_h_red_fac)
+
         [ tr_cap_per_s, pci ] = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         
         
@@ -559,7 +586,7 @@ class SedimentarySystem:
                 passing_volume = copy.deepcopy(passing_volume)
                 passing_volume[:,1:] = passing_volume[:,1:] / self.ts_length
             
-                
+        
         # Compute fraction and D50 in the active layer
         # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
         _,_,_, Fi_al_ = self.layer_search(Vdep, np.float32(self.al_vol[t,n]), roundpar, Qpass_volume = passing_volume)                   
@@ -571,7 +598,7 @@ class SedimentarySystem:
         # Transport capacity in m3/s
         calculator = TransportCapacityCalculator(Fi_al_ , D50_al_, self.slope[t,n], 
                                                Q[t,n], self.reach_data.wac[n], v[n],
-                                               h[n], self.psi)
+                                               h[n], self.psi,0.05,self.SUSP_MULT,0) #no slope reduction if no hypsometry.
         
         tr_cap_per_s, Qc = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
         
@@ -598,12 +625,10 @@ class SedimentarySystem:
             
                 
         # Compute fraction and D50 in the active layer
-        # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
+        
         # TODO JR - rewrite to slice up Vdep by width. once main trcap split working.
         # REQUIRES - some assumption about splitting up / distributing the passing volume. 
-        #thought - passing bedload could just be transported by the strongest widths first. 
-        #but suspended could have a mixing coefficient or distribution across the width. 
-        #final tuning parameter really, how 'spready' is the incoming volume. 
+        #CURRENTLY: distributed by section Q / total Q ratio. 
         
         #2025: move this to the w loop below. Start from the deepest (vsave[0]) and slice off a volume corresponding to dX
         #Then, Fi_al will be width-hypso-specific. 
@@ -621,7 +646,8 @@ class SedimentarySystem:
         subQ = np.zeros(len(vsave)) 
         h_tr_cap_per_s = np.zeros((len(vsave),len(self.psi)))
         
-        Vdep_from_thalweg = np.flipud(Vdep) #the 'top' was the channel edge. flip it here to count from the thalweg.
+        #Vdep_from_thalweg = np.flipud(Vdep) #the 'top' was the channel edge. flip it here to count from the thalweg.
+        Vdep_from_thalweg = Vdep #the 'top' was the channel edge. flip it here to count from the thalweg.
         Vdep_wet = np.zeros((1, 1+len(self.psi)), dtype=np.float32)
         for w in range(len(vsave)):
             
@@ -652,15 +678,25 @@ class SedimentarySystem:
             
             D50_al_ = float(D_finder(Fi_al_, 50, self.psi))
             #print(slicevol,D50_al_)
+            
+            #ccJR depth-Q slope reduction here? 
+            
             calculator = TransportCapacityCalculator(Fi_al_ , D50_al_, self.slope[t,n], subQ[w],
-                                               dX, vsave[w], hsave[w], self.psi)
+                                               dX, vsave[w], hsave[w], self.psi,0.05,self.SUSP_MULT,self.slope_h_red_fac)
         
             h_tr_cap_per_s[w,:], Qc = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
             if np.any(np.isnan(h_tr_cap_per_s[w,:])):
                 print('NaN here',Fi_al_)
+                print(w, self.slope[t,n], subQ[w],dX, vsave[w], hsave[w])
+                dQ_ratio = subQ[w] / subQ[w-1]
+                h_tr_cap_per_s[w, :] = dQ_ratio * h_tr_cap_per_s[w-1, :]
+                continue
             #next loop should have the slice removed:
             Vdep_from_thalweg = Vdep_remaining
-            
+        
+        #here - look for where in the width to deposit. Had deposited at 'waters edge' which blew up. tested 0.75_slicevol and is stable.
+        #better science would deposit where h_tr_cap_per_s of perhaps the D50 is just incompetent. 
+        
         #print('Qw check: ',Q[t,n] / np.sum(subQ)) #check Qwater
         #print('volume check',Vdep_wet.sum() / Vdep.sum()) #should be cloes to 1 as we step through volume. 
         total_h_tr_cap_per_s = np.sum(h_tr_cap_per_s, axis=0)
@@ -670,11 +706,19 @@ class SedimentarySystem:
         sum_per_class = np.sum(Vdep_wet[:, 1:], axis=0)
         Fi_wet = sum_per_class / total_sum
         D50_wet_ = float(D_finder(Fi_wet, 50, self.psi))
-         
-        if n==5 and int(t) % 306 == 0:  #should hit some low and the max flows
+        
+        #find the volume where X% of the transport is achieved; return it as the place to deposit. was 0.75 constsant before. 
+        cumu_vol_vec = np.sum(np.cumsum(h_tr_cap_per_s,0),1)
+        idx = np.argmax(cumu_vol_vec > 0.95 * np.sum(h_tr_cap_per_s))  # Find first index where condition is met
+        width_inactive_index = idx / len(cumu_vol_vec)  # Normalize by total width
+        width_inactive_index = min(width_inactive_index,1)
+        width_inactive_index = max(width_inactive_index,1 / len(cumu_vol_vec))
+        
+        if n==7 and int(t) > 450 == 0:  #should hit some low and the max flows
+            print('diag h_tr_cap m3/hr at n=',n,' t=',t)
             print(h_tr_cap_per_s*3600)
             
-        return total_h_tr_cap_per_s, Fi_wet, D50_wet_, Qc
+        return total_h_tr_cap_per_s, Fi_wet, D50_wet_, Qc, width_inactive_index
 
     @profile
     def compute_mobilised_volume(self, Vdep, tr_cap_per_s, n, roundpar,
@@ -979,7 +1023,11 @@ class SedimentarySystem:
         # RETURN:
         # volume_compacted: volume where layers have been summed by provenance
         
-        
+        try:
+            idx = np.unique(volume[:,0])  # Provenance reach indexes
+        except IndexError as e:
+                print(f"IndexError: {e}")
+                
         idx = np.unique(volume[:,0]) # Provenance reach indexes
         volume_compacted = np.empty((len(idx), volume.shape[1]))
         # sum elements with same ID 
