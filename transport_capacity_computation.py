@@ -21,7 +21,7 @@ from constants import (
 
 
 class TransportCapacityCalculator:
-    def __init__(self, fi_r_reach, total_D50, slope, Q, wac, v, h, psi, gamma=0.05):
+    def __init__(self, fi_r_reach, total_D50, slope, Q, wac, v, h, psi, gamma=0.05,SUSP_MULT=1.0,slope_h_red_fac_for_tau=0.00):
         # Dictionaries mapping indices to different formula
         self.index_to_formula = {
             1: self.Parker_Klingeman_formula,
@@ -43,11 +43,12 @@ class TransportCapacityCalculator:
         self.psi = psi
         self.class_D50 = 2**(-self.psi) / 1000 # sediment classes diameter [m]
         self.gamma = gamma # hiding factor
-        self.hiding_max = 200
+        self.hiding_max = 1000
         self.sand_indices = np.where(self.psi > -1)[0]
         self.sand_tf = (self.psi > - 1)[:,None]
-        self.SUSP_MULT = 0.75 #multiplier for suspended sediment transport rate. <1 due to dead space? replace with hypso solver? Or pass dead space frac?
+        self.SUSP_MULT = SUSP_MULT #0.75 #multiplier for suspended sediment transport rate. <1 due to dead space? replace with hypso solver? Or pass dead space frac?
         self.input = np.nan # D50 or dmi depending on the partitioning
+        self.slope_h_red_fac_for_tau = slope_h_red_fac_for_tau
         
     @profile    
     def tr_cap_function(self, indx_tr_cap, indx_partition):
@@ -498,7 +499,9 @@ class TransportCapacityCalculator:
             Fr_s = np.sum((self.psi > - 1)[:,None] * 1 * self.fi_r_reach, axis = 0)[None,:]
         ## Transport capacity from Wilcock-Crowe equations
     
-        tau = np.array(RHO_W * GRAV * self.h * self.slope) # bed shear stress [Kg m-1 s-1]
+        #JR attempting to reduce shear stress according to matching depth-tau relationships found in 2D model. 
+        #reasoning: 1D model does not see viscosity, flow expansion, 2d momentum... 
+        tau = np.array(RHO_W * GRAV * self.h * self.slope * (1-self.h*self.slope_h_red_fac_for_tau)) # bed shear stress [Kg m-1 s-1]
         if tau.ndim != 0:
             tau = tau[None,:] # add a dimension for computation
         
