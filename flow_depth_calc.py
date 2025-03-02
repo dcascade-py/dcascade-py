@@ -49,7 +49,7 @@ def h_ferguson(reach_data, slope, Q, t):
     """
     
     #calculate water depth and velocity with the Ferguson formula (2007)
-    q_star = Q.iloc[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
+    q_star = Q[t,:] / (reach_data.wac * np.sqrt(GRAV * slope[t] * reach_data.D84**3))
     
     #𝑝…𝑖𝑓 𝑞∗<100 → 𝑝=0.24, 𝑖𝑓 𝑞^∗>100 → 𝑝=0.31
     p = np.where(q_star < 100, 0.24, 0.31)
@@ -66,12 +66,15 @@ def choose_flow_depth(reach_data, slope, Q, t, flow_depth):
     elif flow_depth == 2:
         [h, v] = h_ferguson(reach_data, slope, Q, t)
     
+    elif flow_depth == 3:
+        [h, v] = h_ferguson(reach_data, slope, Q, t)
+        
     return h, v
 
 @profile
 def hypso_manning_Q(H, Hsec, dy, n, slope):
     #return a Q based on given H (water level) and height section ()
-    # Adapted from code by Marco Redolfi by JM Rogers
+    #Adapted from Marco Redolfi solver by JMR
     g = 9.81
     Npoints = len(Hsec)
     Qsec = 0
@@ -123,13 +126,133 @@ def hypso_manning_Q(H, Hsec, dy, n, slope):
     JS = {'Hsave': Hsave, 'Vsave': Vsave, 'Csave': Csave}
     return Qsec, bsec, JS
 
-# def hypso_manning(reach_data, slope, Q, t):
-#     #move things here eventually
-#     Hvec = reach_hypsometry_data[n]['Hvec']
-#     Wvec = reach_hypsometry_data[n]['Wvec']
-#     Xinterp_func = interp1d(Wvec, Hvec , bounds_error=False, fill_value="extrapolate")
-#     dX = 1
-#     Xgrid = Xinterp_func
+def hypso_ferguson_Q(H, Hsec, dy, D84, slope):
+    #return a Q based on given H (water level) and height section with D84
+    #Adapted from Marco Redolfi solver by JMR
+    g = 9.81
+    Npoints = len(Hsec)
+    Qsec = 0
+    bsec = 0
     
-#     #reinterpolate back on original dz?s
-#     return h,v,hvec,vvec
+    Hsave = np.zeros(Npoints - 1)
+    Vsave = np.zeros(Npoints - 1)
+
+    sqrt_g_slope = np.sqrt(g * slope)
+    
+    D84_ratio_factor = 6.5 * 2.5 / np.sqrt(6.2**2 * 2.5**2)
+    Hsec = Hsec - np.min(Hsec)
+    
+    for j_point in range(Npoints - 1):
+        hl = H - Hsec[j_point]
+        hr = H - Hsec[j_point + 1]
+        
+        if hl > 0 and hr > 0:
+            # Trapezoidal slice
+            hm = (hl + hr) / 2
+            Ai = hm * dy
+            s8f = (6.5 * 2.5 * (hm / D84)) / np.sqrt(6.5**2 + (2.5**2) * (hm / D84)**(5/3))
+            v_flow = s8f * sqrt_g_slope  # Ferguson's C * sqrt(S)
+#            v_flow = sqrt_g_slope * hm * D84_ratio_factor / np.sqrt((hm / D84) ** (5/3))
+            Qi = v_flow * Ai
+            
+            bsec += dy
+            Qsec += Qi
+            Hsave[j_point] = hm
+            Vsave[j_point] = v_flow
+            
+        elif hl > 0 or hr > 0:
+            # Triangular slice
+            hmax = max(hl, hr)
+            bi = dy * hmax / abs(hr - hl)
+            Ai = hmax * bi / 2
+            s8f = (6.5 * 2.5 * (hmax / D84)) / np.sqrt(6.5**2 + (2.5**2) * (hmax / D84)**(5/3))
+            v_flow = s8f * sqrt_g_slope  # Ferguson's C * sqrt(S)
+            Qi = v_flow * Ai
+            
+            bsec += bi
+            Qsec += Qi
+            Hsave[j_point] = hmax
+            Vsave[j_point] = v_flow
+        
+    JS = {'Hsave': Hsave, 'Vsave': Vsave}
+    return Qsec, bsec, JS
+
+def hypso_ferguson_Q_vec(H, Hsec, dy, D84, slope):
+    """Compute flow rate Q using Ferguson's 2007 roughness model, vectorized with clarity."""
+    g = 9.81
+    sqrt_g_slope = np.sqrt(g * slope)
+    Hsec -= np.min(Hsec)  # Normalize elevation
+
+    # Compute depths relative to H
+    hl = H - Hsec[:-1]  # Left depth
+    hr = H - Hsec[1:]   # Right depth
+
+    # Identify trapezoidal and triangular sections
+    is_trapezoid = (hl > 0) & (hr > 0)  # Both points submerged
+    is_triangle = (hl > 0) ^ (hr > 0)   # Only one point submerged
+
+    # Compute hydraulic depth
+    h_wet = np.zeros_like(hl)
+    h_wet[is_trapezoid] = (hl[is_trapezoid] + hr[is_trapezoid]) / 2  # Mean depth for trapezoidal sections
+    h_wet[is_triangle] = np.maximum(hl[is_triangle], hr[is_triangle])  # Max depth for triangular sections
+
+    # Ferguson roughness factor
+    s8f = (6.5 * 2.5 * (h_wet / D84)) / np.sqrt(6.5**2 + (2.5**2) * (h_wet / D84)**(5/3))
+
+    # Compute wetted area
+    A_wet = np.zeros_like(hl)
+    A_wet[is_trapezoid] = h_wet[is_trapezoid] * dy  # Trapezoidal area
+    A_wet[is_triangle] = (h_wet[is_triangle]**2 * dy) / (2 * np.abs(hr[is_triangle] - hl[is_triangle]))  # Triangular area
+
+    # Wetted width
+    b_wet = np.zeros_like(hl)
+    b_wet[is_trapezoid] = dy  # Full section width for trapezoidal slices
+    b_wet[is_triangle] = 2 * A_wet[is_triangle] / h_wet[is_triangle]  # Base width for triangular sections
+
+    # Compute discharge Todo: move s8f * sqrt_g_slope from twice-calced below.
+    Q_wet = s8f * sqrt_g_slope * A_wet  # Velocity * Area
+
+    # Sum total discharge and wetted width
+    return np.sum(Q_wet), np.sum(b_wet), {'Hsave': h_wet, 'Vsave': s8f * sqrt_g_slope}
+
+
+def hypso_ferguson_Q_vec_srhfac(H, Hsec, dy, D84, slope, srhfac):
+    """Compute flow rate Q using Ferguson's 2007 roughness model, vectorized with clarity."""
+    g = 9.81
+    Hsec -= np.min(Hsec)  # Normalize elevation
+
+    # Compute depths relative to H
+    hl = H - Hsec[:-1]  # Left depth
+    hr = H - Hsec[1:]   # Right depth
+
+    # Identify trapezoidal and triangular sections
+    is_trapezoid = (hl > 0) & (hr > 0)  # Both points submerged
+    is_triangle = (hl > 0) ^ (hr > 0)   # Only one point submerged
+
+    # Compute hydraulic depth
+    h_wet = np.zeros_like(hl)
+    h_wet[is_trapezoid] = (hl[is_trapezoid] + hr[is_trapezoid]) / 2  # Mean depth for trapezoidal sections
+    h_wet[is_triangle] = np.maximum(hl[is_triangle], hr[is_triangle])  # Max depth for triangular sections
+
+    # Ferguson roughness factor
+    s8f = (6.5 * 2.5 * (h_wet / D84)) / np.sqrt(6.5**2 + (2.5**2) * (h_wet / D84)**(5/3))
+    
+    #implement slope reduction based on depth
+    sqrt_g_slope = np.sqrt(g * slope * (1-h_wet*srhfac))
+    
+    # Compute wetted area
+    A_wet = np.zeros_like(hl)
+    A_wet[is_trapezoid] = h_wet[is_trapezoid] * dy  # Trapezoidal area
+    A_wet[is_triangle] = (h_wet[is_triangle]**2 * dy) / (2 * np.abs(hr[is_triangle] - hl[is_triangle]))  # Triangular area
+
+    # Wetted width
+    b_wet = np.zeros_like(hl)
+    b_wet[is_trapezoid] = dy  # Full section width for trapezoidal slices
+    b_wet[is_triangle] = 2 * A_wet[is_triangle] / h_wet[is_triangle]  # Base width for triangular sections
+
+    # Compute discharge  
+    V_wet = s8f * sqrt_g_slope
+    Q_wet = V_wet * A_wet  # Velocity * Area
+
+    # Sum total discharge and wetted width
+    return np.sum(Q_wet), np.sum(b_wet), {'Hsave': h_wet, 'Vsave': V_wet}
