@@ -143,7 +143,7 @@ for n in range(reach_data.n_reaches):
 
 # Compulsory indexes to choose:
 # Indexes for the transport capacity:
-indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
+indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen; 6: Ackers and White
 indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
 
 # Index for the flow calculation:
