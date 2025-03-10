@@ -251,7 +251,9 @@ class SedimentarySystem:
         self.Qbi_mob_from_r = self.create_4d_zero_array() # Volume mobilised from reach (gives also original provenance)
         # TODO: DD see if we keep Qbi_tr
         self.Qbi_tr = self.create_4d_zero_array() # Volume entering the reach (gives also original provenance)
-        self.direct_connectivity = self.create_4d_zero_array() # Direct connectivity matrice
+        # Direct connectivity matrice (an extra reach column is added to consider sediment leaving the system)
+        self.direct_connectivity = [np.zeros((self.n_reaches, self.n_reaches + 1, self.n_classes)) for _ in range(self.timescale)] 
+
 
         # 3D arrays
         self.Q_out = self.create_3d_zero_array()  # amount of material delivered outside the network in each timestep

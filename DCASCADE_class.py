@@ -280,9 +280,10 @@ class DCASCADE:
                     Qbi_pass[n_down].extend(copy.deepcopy(Qbi_pass[n]))
                 else:
                     n_down = None
-                    # If it is the outlet, we add the cascades to Qout
+                    # If it is the outlet, we add the cascades to Qout and to the last column of the connectivity matrix
                     for cascade in Qbi_pass[n]:
                         SedimSys.Q_out[t, [cascade.volume[:,0].astype(int)], :] += cascade.volume[:,1:]
+                        SedimSys.direct_connectivity[t][cascade.provenance, -1, :] += np.sum(cascade.volume[:,1:], axis = 0)
 
                 # Store sediment budget:
                 vol_out = np.sum(SedimSys.Qbi_mob[t][:, n, :], axis = 0) # sum over provenance
@@ -349,7 +350,7 @@ class DCASCADE:
         mobilised = SedimSys.create_2d_zero_array()
         transported = SedimSys.create_2d_zero_array()
         mobilised_from_reach = SedimSys.create_2d_zero_array()
-        direct_connectivity = np.zeros((self.timescale, self.n_reaches, self.n_reaches))
+        direct_connectivity = np.zeros((self.timescale, self.n_reaches, self.n_reaches + 1)) # + 1 to consider sediment going to the outlet
         deposited = SedimSys.create_2d_zero_array()
 
         for t in range(self.timescale - 1):
@@ -359,8 +360,8 @@ class DCASCADE:
             mobilised_from_reach[t,:] = np.sum(SedimSys.Qbi_mob_from_r[t], axis = (0,2))
             # Sum direct connectivity over sediment classes (axe 2)
             direct_connectivity[t,:,:] = np.sum(SedimSys.direct_connectivity[t], axis = 2)
-            # Deposited is the connectivity volumes summed by provenance (axe 0) and classes (axe 2)
-            deposited[t,:] = np.sum(SedimSys.direct_connectivity[t], axis = (0,2))
+            # Deposited is the connectivity volumes summed by provenance (axe 0) and classes (axe 2) (excluding outlet)
+            deposited[t,:] = np.sum(SedimSys.direct_connectivity[t][:, :-1, :], axis = (0,2))
 
         # Compute D50 mobilised (over sediment classes and provenance):
         D50_mob = SedimSys.create_2d_zero_array()
