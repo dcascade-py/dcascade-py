@@ -252,7 +252,7 @@ class SedimentarySystem:
         # TODO: DD see if we keep Qbi_tr
         self.Qbi_tr = self.create_4d_zero_array() # Volume entering the reach (gives also original provenance)
         # Direct connectivity matrice (an extra reach column is added to consider sediment leaving the system)
-        self.direct_connectivity = [np.zeros((self.n_reaches, self.n_reaches + 1, self.n_classes)) for _ in range(self.timescale)] 
+        self.direct_connectivity = [np.zeros((self.n_reaches, self.n_reaches + 1, self.n_classes)) for _ in range(self.timescale)]
 
 
         # 3D arrays
