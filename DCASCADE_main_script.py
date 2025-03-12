@@ -31,7 +31,8 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
                   indx_width_calc = 1,
                   passing_cascade_in_outputs = True,
                   passing_cascade_in_trcap = True,
-                  time_lag_for_mobilised = True):
+                  time_lag_for_mobilised = True,
+                  t_track = None):
 
     """
     Main function of the D-CASCADE software.
@@ -80,7 +81,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
     sedimentary_system.initialize_slopes()
     sedimentary_system.initialize_widths(indx_width_calc)
     sedimentary_system.initialize_elevations()
-    sedimentary_system.initialize_storing_matrices()
+    sedimentary_system.initialize_storing_matrices(t_track)
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
@@ -96,10 +97,10 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
     dcascade.set_algorithm_options(passing_cascade_in_outputs, passing_cascade_in_trcap,
                                    time_lag_for_mobilised)
     # Run
-    dcascade.run(Q, roundpar)
+    dcascade.run(Q, roundpar, t_track)
 
     # Post process
-    data_output, extended_output = dcascade.output_processing(Q)
+    data_output, extended_output = dcascade.output_processing(Q, t_track)
 
     return data_output, extended_output
 
