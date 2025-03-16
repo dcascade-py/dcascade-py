@@ -52,43 +52,44 @@ from pathlib import Path
 
 
 #-------River shape files 
-path_river_network = Path('Input/input_trial/')
-# Reach data file (shp, but can also be a csv)
-name_river_network = 'River_Network.shp'
+path_river_network = Path('C:\\VirtualBoxShared\\outputs_rect\\')
+name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok.shp'
+#name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok_PS.shp' # Only PS reach - For test tr_cap
 filename_river_network = path_river_network / name_river_network
 
 #--------Discharge files
-path_q = Path('Input/input_trial/')
+path_q = Path('C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\DischargeSims\\')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Q_Vjosa.csv'
+#name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29.csv'
+name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29_1Yinit.csv' # 365 days of initiation - same as 2014
+#name_q = 'Sims_2014-22_v2\\discharges_reach28_PS.csv' # Only PS reach - For test tr_cap
 filename_q = path_q / name_q
 
 #--------Path to the output folder
-path_results = Path("../cascade_results/")
-name_file = path_results / 'save_all.p'
+path_results = Path("C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\dCascade_Results\\Simualtions\\2014-22_daily_v1Feb25\\")
 
 #--------Parameters of the simulation
 
 #---Sediment classes definition 
 # defines the sediment sizes considered in the simulation
 #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
-n_classes = 6        # number of classes
+sed_range = [-10, -1]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+n_classes = 10       # number of classes
 
 #---Timescale 
-timescale = 20 # days 
+timescale = 3652 # days 
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Change slope or not
 update_slope = False # if False: slope is constant, if True, slope changes according to sediment deposit
 
 #---Initial layer sizes
-deposit_layer = 100000   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
-eros_max = 10             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
+deposit_layer = 0.1   # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
+eros_max = 0.3             # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters. 
 al_depth = None          # Active layer depth, if None, then it is 2.D90 by default
 
 #---Storing Deposit layer
-save_dep_layer = 'never' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
+save_dep_layer = 'always' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 #---Others
 roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
@@ -101,6 +102,28 @@ reach_data = ReachData(network)
 
 # Define the initial deposit layer per each reach in [m3/m]
 reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
+
+# FromN for reaches with depositions
+deposit_nodes = np.array([
+    # Solda
+    1, 3, 4, 5, 7, 8,
+    # Trafoi
+    29, 31, 32, 34, 36, 37,
+
+    # for transport limited in PS
+    #28
+])  
+
+reach_data.deposit[deposit_nodes-1] = 100000
+
+#reach_data.D84 = reach_data.D84 - (reach_data.D84 * 0.2)
+#reach_data.D90 = reach_data.D90 - (reach_data.D90 * 0.2)
+
+# Change wac for sensitivity analysis
+#reach_data.wac = reach_data.wac + (reach_data.wac * 0.2)
+#reach_data.wac = reach_data.wac_bf + (reach_data.wac_bf * 0.2)
+
+reach_data.wac = reach_data.wac_bf
 
 # Read/define the water discharge  
 Q = extract_Q(filename_q)
@@ -143,11 +166,11 @@ for n in range(reach_data.n_reaches):
 
 # Compulsory indexes to choose:
 # Indexes for the transport capacity:
-indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen.
+indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen; 7: Rickenmann 2001
 indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
 
 # Index for the flow calculation: 
-indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
+indx_flo_depth = 2 # Manning (alternatives where developed for accounting for mountain stream roughness); 2: Ferguson
 
 # If these variable are not chosen manually: 
 if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals() or 'indx_flo_depth' not in globals():
@@ -158,10 +181,10 @@ indx_velocity = 2 # method for calculating velocity (1: computed on each cascade
 indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
 
 # Slope reduction index:
-indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
+indx_slope_red = 1 # 1: None (alternatives where developed for accounting for mountain stream roughness); 2:Rickenmann
 
 # Width variation index: 
-indx_width_calc = 1 # None 
+indx_width_calc = 1 # 1: wac = static and defined in reach_data; 2: wac after Lugo et al. 2015; 3: wac multiplied with factor defined in module 
     
 
 # Options for the cascade algorithm (by default, they are all True):        
@@ -210,6 +233,7 @@ import pickle
 if not os.path.exists(path_results):   #does the output folder exist ?   
     os.makedirs(path_results)          # if not, create it.
 
+name_file = path_results / 'Solda_14-22_WC_SSC_hFerg_S_op1t2t3f_1Yinit_highFlo_newOut.p'
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
 #name_file_ext = path_results + 'save_all_ext.p'

@@ -154,10 +154,10 @@ class TransportCapacityCalculator:
             tau = tau[None,:] # add a dimension for computation
 
         # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
-        tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
+        #tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
         
         # tau_r50 after Mueller et al (2005) as presented in eqn 5 in Bizzi et al (2021)
-        # tau_r50 = RHO_W * GRAV * R_VAR * self.D50 * (0.021 + 2.18 * self.slope)
+        tau_r50 = RHO_W * GRAV * R_VAR * self.D50 * (0.021 + 2.18 * self.slope)
 
         b = 0.67 / (1 + np.exp(1.5 - self.class_D50 / self.D50)) # hiding factor
 
@@ -399,9 +399,10 @@ class TransportCapacityCalculator:
         Qunit = self.Q / self.wac
 
         exponent_e = 1.5
+        exponent_k = -0.859
         # critical unit discharge
         Qc_Rickenmann = 0.065 * (R_VAR ** 1.67) * (GRAV ** 0.5) * (self.D50 ** exponent_e) * (self.slope ** (-1.12))
-        # Qc_Lenzi = (GRAV ** 0.5) * (self.D50 ** exponent_e) * (0.745 * (self.D50 / self.roughness) ** exponent_k)
+        Qc_Lenzi = (GRAV ** 0.5) * (self.D50 ** exponent_e) * (0.745 * (self.D50 / self.roughness) ** exponent_k)
         Qc = Qc_Rickenmann
 
         #Check if Q is smaller than Qc

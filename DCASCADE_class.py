@@ -361,16 +361,28 @@ class DCASCADE:
         # Total transport capacity, summed over sediment classes (axe 2):
         transport_capacity = np.sum(SedimSys.tr_cap, axis = 2)   
         
+        Qout_total = np.sum(SedimSys.Q_out, axis=2)
+        
         data_output = {'Volume out [m^3]': mobilised,
                        'Volume in [m^3]': transported,
                        'Sediment budget [m^3]': volume_budget,
                        'Mobilised from reach [m^3]': mobilised_from_reach,
                        'Deposited [m^3]': deposited,
                        'Volume outlet [m^3]': mobilised[:, SedimSys.outlet],
+                       'Qout per class [m^3]': SedimSys.Q_out,
+                       'Qout total per reach [m^3]': Qout_total,
+                       'Qbi_mob [m^3]': SedimSys.Qbi_mob,
+                       'Qbi_tr [m^3]': SedimSys.Qbi_tr,
                        'D50 volume out [m]': D50_mob,
                        'D50 active layer [m]': SedimSys.D50_al,
                        'Direct connectivity [m^3]': direct_connectivity,
-                       'Transport capacity [m^3]': transport_capacity                      
+                       'Transport capacity [m^3]': transport_capacity,
+                       'Tr_cap per class [m^3]': SedimSys.tr_cap,
+                       'Velocities [m/s]': SedimSys.V_sed,
+                       'Fi_al': SedimSys.Fi_al,
+                       'AL depth [m]': SedimSys.al_depth,
+                       'Widths [m]': SedimSys.width,
+                       'Slopes': SedimSys.slope
                        # TODO: 'Touch erosion max': touch_eros_max, 
                         }
         
