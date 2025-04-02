@@ -24,7 +24,7 @@ per class of sediments. This variable is defined by Qbi_input
 
 This script was adapted from the Matlab version by Marco Tangi
 
-@author: Elisa Bozzolan
+@author: Elisa Bozzolan, Diane Doolaeghe, Anne Laure Argentin
 """
 
 import copy
@@ -41,7 +41,7 @@ from numpy import random
 from DCASCADE_main_script import DCASCADE_main
 # import ad hoc functions
 from GSD import GSDcurvefit
-from plot_function import dynamic_plot
+# from plot_function import dynamic_plot
 from preprocessing import extract_Q, graph_preprocessing, read_network
 from supporting_classes import ReachData
 from widget import read_user_input
@@ -49,23 +49,25 @@ from widget import read_user_input
 '''user defined input data'''
 
 
-#-------River shape files
+#--------------------1) Pathes
+
+#---River shape files
 path_river_network = Path('Input/input_trial/')
 # Reach data file (shp, but can also be a csv)
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
-#--------Discharge files
+#---Discharge files
 path_q = Path('Input/input_trial/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q
 
-#--------Path to the output folder
+#---Path to the output folder
 path_results = Path("../cascade_results/")
 name_file = path_results / 'save_all.p'
 
-#--------Parameters of the simulation
+#-------------------2) User-defined main parameters of the simulation
 
 #---Sediment classes definition
 # defines the sediment sizes considered in the simulation
@@ -77,23 +79,52 @@ n_classes = 6        # number of classes
 timescale = 20 # days
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
-#---Change slope or not
-update_slope = False # if False: slope is constant, if True, slope changes according to sediment deposit
+#---Transport capacity formula and partitioning
+indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen; 6: Ackers and White
+indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
 
 #---Initial layer sizes
 deposit_layer = 100000      # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
-eros_max = 10               # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters.
-al_depth = '2D90'              # Active layer depth (Possibilities: '2D90', or any fixed value)
-vel_height = '2D90'         # Section for velocity calculation
-                            #Possibilities: '2D90', '0.1_hw' (10% of water height), or any fixed value)
+al_depth = 0.3              # Active layer depth [m] (Possibilities: '2D90', or any fixed value)
 
 #---Storing Deposit layer
-save_dep_layer = 'never' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
+save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to save the deposit layer matrix
 
-#---Others
-roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+
+#-------------------2) List of optional defined parameters of the simulation
+# These parameter are setted by default in the model with the following values
+# But they can also be changed by the user
+
+# eros_max = al_depth           # Maximum depth that can be eroded in one time step from the reach, in meters. 
+                                # It is by default equal to the active layer, but can be larger for some case study 
+
+# vel_height = '2D90'           # Section height for velocity calculation. 
+                                # Options: '2D90', '0.1_hw' (10% of water height), or any fixed value)
+                                
+# indx_flo_depth = 1            # Index for the flow calculation, default 1 = Manning 
+                                # (alternatives where developed for accounting for mountain stream roughness)
+
+
+# indx_velocity = 2             # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
+# indx_vel_partition = 1        # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
+
+
+# indx_slope_red = 1            # Slope reduction index, default 1 = None 
+                                # (alternatives where developed for accounting for mountain stream roughness)
+
+# indx_width_calc = 1           # Index for varying the width, default None
+
+# update_slope = False          # if False: slope is constant, if True, slope changes according to sediment deposit
+
+# roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+
+
+
 
 ################ MAIN ###############
+# If the transport capacity formula is not chosen manually:
+if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
+    indx_tr_cap, indx_tr_partition, indx_flo_depth = read_user_input()
 
 # Read the network
 network = read_network(filename_river_network)
@@ -141,62 +172,45 @@ for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
 
 
-# Compulsory indexes to choose:
-# Indexes for the transport capacity:
-indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen; 6: Ackers and White
-indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
-
-# Index for the flow calculation:
-indx_flo_depth = 1 # Manning (alternatives where developed for accounting for mountain stream roughness)
-
-# If these variable are not chosen manually:
-if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals() or 'indx_flo_depth' not in globals():
-    indx_tr_cap, indx_tr_partition, indx_flo_depth = read_user_input()
-
-# Velocity indexes:
-indx_velocity = 2 # method for calculating velocity (1: computed on each cascade individually, 2: on whole active layer)
-indx_vel_partition = 1 # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
-
-# Slope reduction index:
-indx_slope_red = 1 # None (alternatives where developed for accounting for mountain stream roughness)
-
-# Width variation index:
-indx_width_calc = 1 # None
 
 
-# Options for the cascade algorithm (by default, they are all True):
-# If all these options are False, we are reproducing the algorithme of
-# the old version. Which means that cascades are all passing if the time step
-# is not finished for them (= based on their velocities) + overpassing cascades are
-# not considered in the mobilised volume nor transported
+# Prepare optionnal paramaters for calling the DCASCADE_main function
+kwargs = {}
 
-# Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
-# But this does not change the way sediment move.
-op1 = True
+if 'eros_max' in globals():
+    kwargs['eros_max'] = eros_max
 
-# Option 2: If True, we now include present cascades from upstream + reach material
-# in the transport capacity calculation, to check if they should pass or not.
-op2 = True
+if 'vel_height' in globals():
+    kwargs['vel_height'] = vel_height
+    
+if 'indx_flo_depth' in globals():
+    kwargs['indx_flo_depth'] = indx_flo_depth
+    
+if 'indx_velocity' in globals():
+    kwargs['indx_velocity'] = indx_velocity
+    
+if 'indx_vel_partition' in globals():
+    kwargs['indx_vel_partition'] = indx_vel_partition
+    
+if 'indx_slope_red' in globals():
+    kwargs['indx_slope_red'] = indx_slope_red
+    
+if 'indx_width_calc' in globals():
+    kwargs['indx_width_calc'] = indx_width_calc
+    
+if 'update_slope' in globals():
+    kwargs['update_slope'] = update_slope
+    
+if 'roundpar' in globals():
+    kwargs['roundpar'] = roundpar
 
-# Option 3: If True, we consider a time lag between the beginning of the time step,
-# and the arrival of the first cascade to the ToN of the reach,
-# during which we are able to mobilise from the reach itself
-op3 = False
+
 
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                             roundpar, update_slope, eros_max, al_depth,
-                                             save_dep_layer, ts_length,
-                                             indx_tr_cap , indx_tr_partition, indx_flo_depth,
-                                             vel_height = vel_height,
-                                             external_inputs = external_inputs,
-                                             indx_velocity = indx_velocity,
-                                             indx_vel_partition = indx_vel_partition,
-                                             indx_slope_red = indx_slope_red,
-                                             indx_width_calc = indx_width_calc,
-                                             passing_cascade_in_outputs = op1,
-                                             passing_cascade_in_trcap = op2,
-                                             time_lag_for_mobilised = op3)
+data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length, al_depth,
+                                             indx_tr_cap , indx_tr_partition, Qbi_dep_in,
+                                             save_dep_layer = 'never',
+                                             **kwargs)
 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)

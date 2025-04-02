@@ -875,8 +875,8 @@ def test_Po_Wilcock_all_new_options_true():
 
 
 if __name__ == "__main__":
-    test_Po_Engelund_all_new_options_false()
-    test_Po_Wilcock_all_new_options_false()
+    # test_Po_Engelund_all_new_options_false()
+    # test_Po_Wilcock_all_new_options_false()
     test_Po_Engelund_all_true_no_tlag()
     test_Po_Wilcock_all_true_no_tlag()
     test_Po_Engelund_all_new_options_true()

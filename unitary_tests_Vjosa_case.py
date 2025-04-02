@@ -342,9 +342,9 @@ def test_Vjosa_Wilcock_all_new_options_true():
 
 
 if __name__ == "__main__":
-    test_Vjosa_Engelund_all_new_options_false()
-    test_Vjosa_Wilcock_all_new_options_false()
-    test_Vjosa_Engelund_all_true_no_tlag()
+    # test_Vjosa_Engelund_all_new_options_false()
+    # test_Vjosa_Wilcock_all_new_options_false()
+    # test_Vjosa_Engelund_all_true_no_tlag()
     test_Vjosa_Wilcock_all_true_no_tlag()
     test_Vjosa_Engelund_all_new_options_true()
     test_Vjosa_Wilcock_all_new_options_true()

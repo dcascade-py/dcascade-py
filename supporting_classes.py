@@ -598,7 +598,7 @@ class SedimentarySystem:
 
     def compute_transport_capacity(self, Vdep, roundpar, t, n, Q, v, h,
                                    indx_tr_cap, indx_tr_partition,
-                                   passing_cascades = None, per_second = False):
+                                   passing_cascades = None):
         # Compute the transport capacity in m3/s using the active layer
         # on the deposit layer (Vdep) and passing cascades (if they are).
 
@@ -620,13 +620,20 @@ class SedimentarySystem:
                 # Makes a single volume out of the passing cascade list:
                 passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
                 passing_volume = self.matrix_compact(passing_volume) #compact by original provenance
-                if per_second == True:
-                    passing_volume = copy.deepcopy(passing_volume)
-                    passing_volume[:,1:] = passing_volume[:,1:] / self.ts_length
 
         # Compute fraction and D50 in the active layer
-        # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
-        _,_,_, Fi_al_ = self.layer_search(Vdep, self.al_vol[t,n], Qpass_volume = passing_volume, roundpar = roundpar)
+        # TODO: warning when the AL is very small, we can have Fi_r is 0 due to roundpar
+        
+        if passing_volume is None:
+            AL_volume = self.al_vol[t,n]
+        else:
+            # if there are passing cascades, their total volume is added to the user-defined active volume
+            sum_pass = np.sum(passing_volume[:,1:])
+            AL_volume = self.al_vol[t,n] + sum_pass
+            
+        _,_,_, Fi_al_ = self.layer_search(Vdep, AL_volume, Qpass_volume = passing_volume, roundpar = roundpar)
+        
+        
         # In case the active layer is empty, I use the GSD of the previous timestep
         if np.sum(Fi_al_) == 0:
            Fi_al_ = self.Fi_al[t-1, n, :]

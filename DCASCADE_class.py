@@ -1,7 +1,7 @@
 """
 Created on Tue Oct 29 10:58:54 2024
 
-@author: diane
+@author: Diane Doolaeghe, Elisa Bozzolan, Anne Laure Argentin 
 """
 import copy
 import os
@@ -170,7 +170,8 @@ class DCASCADE:
 
                 if self.time_lag_for_mobilised == True and Qbi_pass[n] != []:
                     time_lag = SedimSys.compute_time_lag(Qbi_pass[n])
-                    # Transport capacity is only calculated on Vdep_init (plus possibly external cascades)
+                    # Transport capacity is only calculated on Vdep_init 
+                    # TODO: plus possibly external cascades
                     tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                              self.indx_tr_cap, self.indx_tr_partition)
                     # Store values:
