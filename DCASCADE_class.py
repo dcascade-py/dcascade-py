@@ -55,7 +55,7 @@ class DCASCADE:
 
     def sediments(self, matrix):
         '''
-        Add access to the sediment part of the matrix.
+        Access the sediment columns of the matrix.
         @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!!!
         '''
         return matrix[:, self.n_metadata:]

@@ -180,7 +180,7 @@ class SedimentarySystem:
 
     def sediments(self, matrix):
         '''
-        Add access to the sediment part of the matrix.
+        Access the sediment columns of the matrix.
         @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!!!
         '''
         return matrix[:, self.n_metadata:]
@@ -756,15 +756,15 @@ class SedimentarySystem:
 
         # 1) If, considering the incoming volume, I am still under the threshold of the maximum volume,
         # I put sediment from the deposit layer into the maximum volume.
-        if (V_lim - np.sum(Qpass_volume[:, 1:])) > 0:
+        if (V_lim - np.sum(self.sediments(Qpass_volume))) > 0:
 
             V_inc2act = Qpass_volume # All the passing volume is in the active layer (maximum volume)
 
             # Find what needs to be added from V_dep_old in the active layer :
-            V_lim_dep = V_lim - np.sum(Qpass_volume[:, 1:]) # Remaining active layer volume after considering incoming sediment cascades
+            V_lim_dep = V_lim - np.sum(self.sediments(Qpass_volume)) # Remaining active layer volume after considering incoming sediment cascades
 
             # Sum classes in V_dep_old
-            sum_class = np.sum(V_dep_old[:, 1:], axis=1)
+            sum_class = np.sum(self.sediments(V_dep_old), axis=1)
             # Cumulate volumes from last to first row
             # Reminder: Last row is the top layer
             csum_Vdep = np.cumsum(sum_class[::-1])[::-1]
@@ -794,7 +794,7 @@ class SedimentarySystem:
                 # (DD ?) if i have multiple deposit layers, put the upper layers into the active layer until i reach the threshold.
 
                 # The layer on the threshold (defined by index) gets divided according to perc_layer:
-                sum_above_threshold_layer = np.sum(Vdep_above_index[:, 1:])
+                sum_above_threshold_layer = np.sum(self.sediments(Vdep_above_index))
                 threshold_layer_residual = V_lim_dep - sum_above_threshold_layer
                 threshold_layer_sum = sum(threshold_layer[1:])
                 perc_layer = threshold_layer_residual/threshold_layer_sum
@@ -824,23 +824,23 @@ class SedimentarySystem:
         # NB: we deposit a same percentage of all cascades
         else:
             # Percentage of the volume to put in the active layer for all the cascades
-            perc_dep = V_lim / np.sum(Qpass_volume[:, 1:])
+            perc_dep = V_lim / np.sum(self.sediments(Qpass_volume))
 
             # Volume from the incoming volume to be deposited:
             if roundpar is not None:
-                Qpass_dep = np.around(Qpass_volume[:, 1:] * (1 - perc_dep), decimals = roundpar)
+                Qpass_dep = np.around(self.sediments(Qpass_volume) * (1 - perc_dep), decimals = roundpar)
             else:
-                Qpass_dep = Qpass_volume[:, 1:] * (1 - perc_dep)
+                Qpass_dep = self.sediments(Qpass_volume) * (1 - perc_dep)
 
             # Volume from the incoming volume to be kept in the active layer:
-            Qpass_act = Qpass_volume[:, 1:] - Qpass_dep
+            Qpass_act = self.sediments(Qpass_volume) - Qpass_dep
             # Re add the provenance column:
             V_inc2act = np.hstack((Qpass_volume[:, 0][:,None], Qpass_act))
             V_inc2dep = np.hstack((Qpass_volume[:, 0][:,None], Qpass_dep))
 
             # Add V_inc2dep to Vdep:
             # If, given the round, the deposited volume of the incoming cascades is not 0:
-            if any(np.sum(Qpass_volume[:, 1:] * (1 - perc_dep), axis = 0)):
+            if any(np.sum(self.sediments(Qpass_volume) * (1 - perc_dep), axis = 0)):
                 V_dep = np.vstack((V_dep_old, V_inc2dep))
             else:
                 # Otherwise, I leave the deposit volume as it was.
@@ -852,12 +852,12 @@ class SedimentarySystem:
                 V_dep2act = V_dep2act[None, :]
 
         # Remove empty rows (if the matrix is not already empty)
-        if (np.sum(V_dep2act[:, 1:], axis = 1) != 0).any():
-            V_dep2act = V_dep2act[np.sum(V_dep2act[:, 1:], axis = 1) != 0, :]
+        if (np.sum(self.sediments(V_dep2act), axis = 1) != 0).any():
+            V_dep2act = V_dep2act[np.sum(self.sediments(V_dep2act), axis = 1) != 0, :]
 
         # Find the GSD of the active layer, for the transport capacity calculation:
-        total_sum = np.sum(V_dep2act[:, 1:]) + np.sum(V_inc2act[:, 1:])
-        sum_per_class = np.sum(V_dep2act[:, 1:], axis=0) + np.sum(V_inc2act[:, 1:], axis=0)
+        total_sum = np.sum(self.sediments(V_dep2act)) + np.sum(self.sediments(V_inc2act))
+        sum_per_class = np.sum(self.sediments(V_dep2act), axis=0) + np.sum(self.sediments(V_inc2act), axis=0)
         Fi_r_reach = sum_per_class / total_sum
         # If V_act is empty, I put Fi_r equal to 0 for all classes
         Fi_r_reach[np.isinf(Fi_r_reach) | np.isnan(Fi_r_reach)] = 0
@@ -881,7 +881,7 @@ class SedimentarySystem:
 
         # Identify classes for which the incoming volume in the active layer
         # is under the transport capacity:
-        under_capacity_classes = tr_cap > np.sum(V_inc2act[:, 1:], axis=0)
+        under_capacity_classes = tr_cap > np.sum(self.sediments(V_inc2act), axis=0)
 
         # If they are any, sediment will have to be mobilised from V_dep2act,
         # taking into consideration the sediment stratigraphy
@@ -929,7 +929,7 @@ class SedimentarySystem:
             V_dep2act_new[:,np.append(False, under_capacity_classes)== True] = map_perc * V_dep2act_class
             # Round the volume:
             if ~np.isnan(roundpar):
-                V_dep2act_new[: , 1:]  = np.around(V_dep2act_new[: , 1:] , decimals = roundpar )
+                self.sediments(V_dep2act_new)[:]  = np.around(self.sediments(V_dep2act_new), decimals=roundpar)
 
             # The matrix V_2dep contains the cascades that will be deposited into the deposit layer.
             # (the new volumes for the classes in under_capacity_classes and all the volumes in the remaining classes)
@@ -943,7 +943,7 @@ class SedimentarySystem:
 
             # Round the volume:
             if ~np.isnan(roundpar):
-                V_2dep[: , 1: ]  = np.around(V_2dep[: ,1:] , decimals = roundpar )
+                self.sediments(V_2dep)[:]  = np.around(self.sediments(V_2dep), decimals=roundpar)
 
         # If they are no sediment to be mobilised from V_dep2act,
         # I re-deposit all the matrix V_dep2act into the deposit layer:
@@ -1062,7 +1062,7 @@ class SedimentarySystem:
                         if np.any(V_remove[col_idx] < -10**(-roundpar)) == True:
                             raise ValueError("Negative value in V_remove is strange")
             # Round and store removed volumes
-            removed_Vm[:, 1:] = np.round(removed_Vm[:, 1:], decimals = roundpar)
+            self.sediments(removed_Vm)[:] = np.round(self.sediments(removed_Vm), decimals=roundpar)
             removed_Vm_all.append(removed_Vm)
         # Concatenate all removed quantities into a single matrix
         r_Vmob = np.vstack(removed_Vm_all) if removed_Vm_all else np.array([])
@@ -1070,7 +1070,7 @@ class SedimentarySystem:
         r_Vmob = self.matrix_compact(r_Vmob)
 
         # Delete cascades that are now only 0 in input cascade list
-        cascade_list = [cascade for cascade in cascade_list if not np.all(cascade.volume[:, 1:] == 0)]
+        cascade_list = [cascade for cascade in cascade_list if not np.all(self.sediments(cascade.volume) == 0)]
 
         # The returned cascade_list is directly modified by the operations on Vm
         return r_Vmob, cascade_list, V_remove
