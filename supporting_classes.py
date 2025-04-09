@@ -187,7 +187,16 @@ class SedimentarySystem:
             return matrix[self.n_metadata:]
         elif matrix.ndim == 2:
             return matrix[:, self.n_metadata:]
-
+    
+    def metadata(self, matrix):
+        '''
+        Access the metadata columns of the matrix.
+        @warning: Use self.metadata(matrix) for access, but use self.metadata(matrix)[:] for assignment!!!
+        '''
+        if matrix.ndim == 1:
+            return matrix[:self.n_metadata]
+        elif matrix.ndim == 2:
+            return matrix[:, :self.n_metadata]
 
     def provenance(self, matrix):
         '''
@@ -824,9 +833,9 @@ class SedimentarySystem:
                     threshold_layer_included = self.sediments(threshold_layer) * perc_layer
                     threshold_layer_excluded = self.sediments(threshold_layer) - threshold_layer_included
 
-                # Re-add the provenance column:
-                threshold_layer_included = np.hstack((self.provenance(threshold_layer), threshold_layer_included)).reshape(1, -1)
-                threshold_layer_excluded = np.hstack((self.provenance(threshold_layer), threshold_layer_excluded)).reshape(1, -1)
+                # Re-add the metadata columns:
+                threshold_layer_included = np.hstack((self.metadata(threshold_layer), threshold_layer_included)).reshape(1, -1)
+                threshold_layer_excluded = np.hstack((self.metadata(threshold_layer), threshold_layer_excluded)).reshape(1, -1)
                 # Stack vertically the threshold layer included to the above layers (V_dep2act):
                 V_dep2act = np.vstack((threshold_layer_included, Vdep_above_index))
                 # Stack vertically the threshold layer excluded to the below layers (V_dep):
@@ -848,9 +857,9 @@ class SedimentarySystem:
 
             # Volume from the incoming volume to be kept in the active layer:
             Qpass_act = self.sediments(Qpass_volume) - Qpass_dep
-            # Re add the provenance column:
-            V_inc2act = np.hstack((self.provenance(Qpass_volume)[:,None], Qpass_act))
-            V_inc2dep = np.hstack((self.provenance(Qpass_volume)[:,None], Qpass_dep))
+            # Re add the metadata columns:
+            V_inc2act = np.hstack((self.metadata(Qpass_volume)[:,None], Qpass_act))
+            V_inc2dep = np.hstack((self.metadata(Qpass_volume)[:,None], Qpass_dep))
 
             # Add V_inc2dep to Vdep:
             # If, given the round, the deposited volume of the incoming cascades is not 0:
