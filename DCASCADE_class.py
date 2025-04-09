@@ -189,7 +189,7 @@ class DCASCADE:
                 # Temporary to reproduce v1. Stopping cascades are stored at next time step.
                 if self.passing_cascade_in_outputs == False:
                     if to_be_deposited is not None:
-                        SedimSys.Qbi_tr[t+1][[self.provenance(to_be_deposited).astype(int)], n, :] += to_be_deposited[:, 1:]
+                        SedimSys.Qbi_tr[t+1][[self.provenance(to_be_deposited).astype(int)], n, :] += self.sediments(to_be_deposited)
 
                 # After this step, Qbi_pass[n] contains volume that do not finish
                 # the time step in this reach, i.e the passing cascades
