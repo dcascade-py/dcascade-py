@@ -31,6 +31,7 @@ class DCASCADE:
         self.network = sedim_sys.network
         self.n_reaches = sedim_sys.n_reaches
         self.n_classes = sedim_sys.n_classes
+        self.n_metadata = sedim_sys.n_metadata
 
         # Simulation attributes
         self.timescale = sedim_sys.timescale   # time step number
@@ -51,6 +52,13 @@ class DCASCADE:
         self.passing_cascade_in_outputs = None
         self.passing_cascade_in_trcap = None
         self.time_lag_for_mobilised = None
+
+    def sediments(self, matrix):
+        '''
+        Add access to the sediment part of the matrix.
+        @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!!!
+        '''
+        return matrix[:, self.n_metadata:]
 
     def set_transport_indexes(self, indx_tr_cap, indx_tr_partition):
         self.indx_tr_cap = indx_tr_cap
@@ -129,7 +137,7 @@ class DCASCADE:
                     if t >= t_track[0] and t <= t_track[1]:
                         Vdep_init_track = Qbi_dep_old_track[n]
                         # Check if Vdep_init and Vdep_init_track remain the same:
-                        if np.array_equal(Vdep_init[:,1:], Vdep_init_track[:,1:]) == False:
+                        if np.array_equal(self.sediments(Vdep_init), self.sediments(Vdep_init_track)) == False:
                             print('problem Vdep not equal')
                             
 
@@ -335,8 +343,8 @@ class DCASCADE:
                     n_down = None
                     # If it is the outlet, we add the cascades to Qout and to the last column of the connectivity matrix
                     for cascade in Qbi_pass[n]:
-                        SedimSys.Q_out[t, [cascade.volume[:,0].astype(int)], :] += cascade.volume[:,1:]
-                        SedimSys.direct_connectivity[t][cascade.provenance, -1, :] += np.sum(cascade.volume[:,1:], axis = 0)
+                        SedimSys.Q_out[t, [cascade.volume[:,0].astype(int)], :] += self.sediments(cascade.volume)
+                        SedimSys.direct_connectivity[t][cascade.provenance, -1, :] += np.sum(self.sediments(cascade.volume), axis = 0)
 
                 # Store sediment budget:
                 vol_out = np.sum(SedimSys.Qbi_mob[t][:, n, :], axis = 0) # sum over provenance
@@ -507,9 +515,9 @@ class DCASCADE:
             for n in range(len(SedimSys.Qbi_dep[t])):
                 q_t = SedimSys.Qbi_dep[t][n]
                 #total material in the deposit layer
-                V_dep_sum[t,n] = np.sum(q_t[:,1:])
+                V_dep_sum[t,n] = np.sum(self.sediments(q_t))
                 # total volume in the deposit layer for each timestep, divided by sed.class
-                V_class_dep[t][n] = np.sum(q_t[:,1:], axis = 0)
+                V_class_dep[t][n] = np.sum(self.sediments(q_t), axis = 0)
 
         #--Total material in a reach in each timestep (both in the deposit layer and mobilized layer)
         if self.save_dep_layer=='always':

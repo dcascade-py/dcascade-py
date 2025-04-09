@@ -138,6 +138,8 @@ class SedimentarySystem:
         self.phi = phi                          # sediment porosity
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
+        
+        self.n_metadata = 1
 
         # Setted variables
 
@@ -175,6 +177,13 @@ class SedimentarySystem:
 
         self.Qc_class_all = None        # DD: can it be optional ?
 
+
+    def sediments(self, matrix):
+        '''
+        Add access to the sediment part of the matrix.
+        @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!!!
+        '''
+        return matrix[:, self.n_metadata:]
 
     def create_4d_zero_array(self):
         ''' This type of matrice is made for including provenance (axis 0)
@@ -411,7 +420,7 @@ class SedimentarySystem:
             volume_all_cascades = np.concatenate([cascade.volume for cascade in cascades_list], axis=0)
             volume_all_cascades = self.matrix_compact(volume_all_cascades)
 
-            volume_total = np.sum(volume_all_cascades[:,1:])
+            volume_total = np.sum(self.sediments(volume_all_cascades))
             if volume_total < self.al_vol[t, n]:
                 _, Vdep_active, _, _ = self.layer_search(Vdep, self.al_vol[t, n],
                                         Qpass_volume = volume_all_cascades, roundpar = roundpar)
@@ -445,8 +454,8 @@ class SedimentarySystem:
 
         '''
         # Find volume sediment class fractions and D50
-        volume_total = np.sum(volume[:,1:])
-        volume_total_per_class = np.sum(volume[:,1:], axis = 0)
+        volume_total = np.sum(self.sediments(volume))
+        volume_total_per_class = np.sum(self.sediments(volume), axis = 0)
         sed_class_fraction = volume_total_per_class / volume_total
         D50 = float(D_finder(sed_class_fraction, 50, self.psi))
 
@@ -527,7 +536,7 @@ class SedimentarySystem:
             if Vm_stop is not None:
                 depositing_volume_list.append(Vm_stop)
                 # Fill connectivity matrice:
-                self.direct_connectivity[t][cascade.provenance, n, :] += np.sum(Vm_stop[:,1:], axis = 0)
+                self.direct_connectivity[t][cascade.provenance, n, :] += np.sum(self.sediments(Vm_stop), axis = 0)
 
                 if Vm_continue is None:
                     # no part of the volume continues, we remove the entire cascade
@@ -541,7 +550,7 @@ class SedimentarySystem:
                 cascade.elapsed_time = t_out
                 # put to np.nan the elapsed time of the empty sediment classes
                 # (Necessary for the time lag calculation later in the code)
-                cond_0 = np.all(cascade.volume[:,1:] == 0, axis = 0)
+                cond_0 = np.all(self.sediments(cascade.volume) == 0, axis = 0)
                 cascade.elapsed_time[cond_0] = np.nan
 
 
@@ -551,7 +560,7 @@ class SedimentarySystem:
         # If they are, concatenate the deposited volumes
         if depositing_volume_list != []:
             depositing_volume = np.concatenate(depositing_volume_list, axis=0)
-            if np.all(depositing_volume[:,1:] == 0):
+            if np.all(self.sediments(depositing_volume) == 0):
                 raise ValueError("DD check: we have an empty layer stopping ?")
         else:
             depositing_volume = None
@@ -575,9 +584,9 @@ class SedimentarySystem:
         Vm_continue = np.zeros_like(Vm)
         Vm_continue[:, cond_continue] = Vm[:, cond_continue]
 
-        if np.all(Vm_stop[:,1:] == 0) == True:
+        if np.all(self.sediments(Vm_stop) == 0) == True:
             Vm_stop = None
-        if np.all(Vm_continue[:,1:] == 0) == True:
+        if np.all(self.sediments(Vm_continue) == 0) == True:
             Vm_continue = None
 
         return Vm_stop, Vm_continue
@@ -628,7 +637,7 @@ class SedimentarySystem:
                 passing_volume = self.matrix_compact(passing_volume) #compact by original provenance
                 if per_second == True:
                     passing_volume = copy.deepcopy(passing_volume)
-                    passing_volume[:,1:] = passing_volume[:,1:] / self.ts_length
+                    self.sediments(passing_volume)[:] = self.sediments(passing_volume) / self.ts_length
 
         # Compute fraction and D50 in the active layer
         # TODO: warning when the AL is very small, we will have Fi_r is 0 due to roundpar
@@ -678,7 +687,7 @@ class SedimentarySystem:
                 sum_pass = 0
             else:
                 passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
-                sum_pass = np.sum(passing_volume[:,1:], axis=0)
+                sum_pass = np.sum(self.sediments(passing_volume), axis=0)
 
 
         # Compare sum of passing cascade to the mobilisable volume (for each sediment class)
@@ -690,7 +699,7 @@ class SedimentarySystem:
             # Search for layers to be put in the erosion max (e_max_vol_)
             V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
-            if np.all(V_mob[:,1:] == 0):
+            if np.all(self.sediments(V_mob) == 0):
                 V_mob = None
         else:
             Vdep_new  = Vdep
@@ -961,7 +970,7 @@ class SedimentarySystem:
         V_mob = self.matrix_compact(V_mob)
         # Round:
         if ~np.isnan(roundpar):
-            V_mob[:,1:] = np.around(V_mob[:,1:], decimals = roundpar)
+            self.sediments(V_mob)[:] = np.around(self.sediments(V_mob), decimals = roundpar)
 
         # Compute what is to be added to V_dep from Q_incomimg:
         # DD: again in V2, there in no Q_incoming in this function anymore -> to be adapted
@@ -973,7 +982,7 @@ class SedimentarySystem:
         V_2dep = np.vstack((V_2dep, V_inc2dep))
         # Round:
         if ~np.isnan( roundpar ):
-            V_2dep[:,1:]  = np.around( V_2dep[:,1:] , decimals = roundpar)
+            self.sediments(V_2dep)[:] = np.around(self.sediments(V_2dep), decimals=roundpar)
 
         # Put the volume exceeding the transport capacity (V_2dep) back in the deposit:
         # (If the upper layer in the deposit and the lower layer in the volume to be
@@ -986,8 +995,8 @@ class SedimentarySystem:
             V_dep = np.vstack((V_dep, V_2dep))
 
         # Remove empty rows:
-        if not np.sum(V_dep2act[:,1:]) == 0:
-            V_dep = V_dep[np.sum(V_dep[:,1:], axis = 1) != 0]
+        if not np.sum(self.sediments(V_dep2act)) == 0:
+            V_dep = V_dep[np.sum(self.sediments(V_dep), axis = 1) != 0]
 
         return V_mob, V_dep
 
@@ -1021,13 +1030,13 @@ class SedimentarySystem:
         # Loop over the sorted and grouped cascades
         for cascades in sorted_and_grouped_cascade_list:
             Vm_same_time = np.concatenate([casc.volume for casc in cascades], axis=0)
-            if np.any(Vm_same_time[:,1:]) == False: #In case Vm_same_time is full of 0
+            if np.any(self.sediments(Vm_same_time)) == False: #In case Vm_same_time is full of 0
                 del cascades
                 continue
             # Storing matrix for removed volumes
             removed_Vm = np.zeros_like(Vm_same_time)
             removed_Vm[:,0] = Vm_same_time[:,0] # same first col with initial provenance
-            for col_idx in range(Vm_same_time[:,1:].shape[1]):  # Loop over sediment classes
+            for col_idx in range(self.sediments(Vm_same_time).shape[1]):  # Loop over sediment classes
                 if V_remove[col_idx] > 0:
                     col_sum = np.sum(Vm_same_time[:, col_idx+1])
                     if col_sum > 0:
@@ -1131,13 +1140,13 @@ class SedimentarySystem:
         # sum elements with same ID
         for ind, i in enumerate(idx):
             vect = volume[volume[:,0] == i,:]
-            volume_compacted[ind,:] = np.append(idx[ind], np.sum(vect[:,1:], axis = 0))
+            volume_compacted[ind,:] = np.append(idx[ind], np.sum(self.sediments(vect), axis = 0))
 
         if volume_compacted.shape[0]>1:
-            volume_compacted = volume_compacted[np.sum(volume_compacted[:,1:], axis = 1) != 0]
+            volume_compacted = volume_compacted[np.sum(self.sediments(volume_compacted), axis = 1) != 0]
 
         if volume_compacted.size == 0:
-            volume_compacted = (np.hstack((idx[0], np.zeros(volume[:,1:].shape[1])))).reshape(1,-1)
+            volume_compacted = (np.hstack((idx[0], np.zeros(self.sediments(volume).shape[1])))).reshape(1,-1)
 
         return volume_compacted
 
