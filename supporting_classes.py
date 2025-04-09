@@ -139,7 +139,7 @@ class SedimentarySystem:
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
         
-        self.n_metadata = 2
+        self.n_metadata = 1
 
         # Setted variables
 
@@ -231,7 +231,10 @@ class SedimentarySystem:
         else:
             gsd = np.zeros(self.n_classes)
         
-        volume = np.hstack((metadata_list, gsd)).reshape(1,-1)
+        volume = np.hstack((metadata_list, gsd))
+        is_single = gsd.ndim == 1
+        if is_single:
+            volume = volume.reshape(1,-1)
         
         return volume
 
@@ -883,8 +886,8 @@ class SedimentarySystem:
             # Volume from the incoming volume to be kept in the active layer:
             Qpass_act = self.sediments(Qpass_volume) - Qpass_dep
             # Re add the metadata columns:
-            V_inc2act = self.create_volume(metadata=self.metadata(Qpass_volume)[:,None], gsd=Qpass_act)
-            V_inc2dep = self.create_volume(metadata=self.metadata(Qpass_volume)[:,None], gsd=Qpass_dep)
+            V_inc2act = self.create_volume(metadata=self.metadata(Qpass_volume), gsd=Qpass_act)
+            V_inc2dep = self.create_volume(metadata=self.metadata(Qpass_volume), gsd=Qpass_dep)
 
             # Add V_inc2dep to Vdep:
             # If, given the round, the deposited volume of the incoming cascades is not 0:
