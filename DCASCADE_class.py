@@ -164,7 +164,7 @@ class DCASCADE:
                     # Store the arriving cascades in the transported matrix (Qbi_tr)
                     # Note: we store the volume by original provenance
                     for cascade in Qbi_pass[n]:
-                        SedimSys.Qbi_tr[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_tr[t][[self.provenance(cascade.volume).astype(int)], n, :] += self.sediments(cascade.volume)
                         # DD: If we want to store instead the direct provenance
                         # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
 
@@ -323,22 +323,22 @@ class DCASCADE:
                         Qbi_dep_0_track[n] = np.copy(Vdep_end_track)
                         # Store in compacted matrix (no layers)
                         compacted = SedimSys.matrix_compact(Vdep_end_track)
-                        SedimSys.Qbi_dep_track2[t][[self.provenance(compacted).astype(int)], n, :] += compacted[:, 1:]
+                        SedimSys.Qbi_dep_track2[t][[self.provenance(compacted).astype(int)], n, :] += self.sediments(compacted)
             
 
                 # Store cascades in the mobilised volumes:
                 if self.passing_cascade_in_outputs == True:
                     # All cascades (passing + mobilised from reach)
                     for cascade in Qbi_pass[n]:
-                        SedimSys.Qbi_mob[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_mob[t][[self.provenance(cascade.volume).astype(int)], n, :] += self.sediments(cascade.volume)
                     # Cascades from reach only:
                     for cascade in reach_mobilized_cascades:
-                        SedimSys.Qbi_mob_from_r[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_mob_from_r[t][[self.provenance(cascade.volume).astype(int)], n, :] += self.sediments(cascade.volume)
                 else:
                     # to reproduce v1, we only store the cascade mobilised from the reach
                     for cascade in reach_mobilized_cascades:
-                        SedimSys.Qbi_mob[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
-                        SedimSys.Qbi_mob_from_r[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_mob[t][[self.provenance(cascade.volume).astype(int)], n, :] += self.sediments(cascade.volume)
+                        SedimSys.Qbi_mob_from_r[t][[self.provenance(cascade.volume).astype(int)], n, :] += self.sediments(cascade.volume)
 
 
                 # Finally, pass these cascades to the next reach (if we are not at the outlet)
@@ -360,7 +360,7 @@ class DCASCADE:
 
                 # Check sediment volume mass balance (correct only if passing_cascade_in_outputs = True):
                 if self.passing_cascade_in_outputs == True:
-                    delta_volume_reach = np.sum(SedimSys.Qbi_dep_0[n][:, 1:], axis = 0) - np.sum(Qbi_dep_old[n][:, 1:], axis = 0)
+                    delta_volume_reach = np.sum(self.sediments(SedimSys.Qbi_dep_0[n]), axis = 0) - np.sum(self.sediments(Qbi_dep_old[n]), axis = 0)
                     SedimSys.check_mass_balance(t, n, delta_volume_reach)
 
                 # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
