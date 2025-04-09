@@ -516,7 +516,7 @@ class DCASCADE:
 
 
         V_dep_sum = np.zeros((len(SedimSys.Qbi_dep)-1, self.n_reaches ))  # EB : last time step would be equal to 0 - delete to avoid confusion
-        V_class_dep = [[np.expand_dims(np.zeros(self.n_classes+1), axis = 0) for _ in range(self.n_reaches)] for _ in range(len(SedimSys.Qbi_dep))]
+        V_class_dep = [[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(len(SedimSys.Qbi_dep))]
 
         for t in (np.arange(len(SedimSys.Qbi_dep)-1)):
             for n in range(len(SedimSys.Qbi_dep[t])):

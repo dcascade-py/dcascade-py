@@ -257,16 +257,16 @@ class SedimentarySystem:
             dep_save_number = int(self.timescale / 365) + 1  # +1 because we also keep t0.
         if self.save_dep_layer=='always':
             dep_save_number = self.timescale
-        self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
+        self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
         
         # For t_track
         if t_track is not None:
             # n_time_track = t_track[1]-t_track[0]+1
-            self.Qbi_dep_track = [[np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] for _ in range(self.timescale)]
+            self.Qbi_dep_track = [[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(self.timescale)]
             self.Qbi_dep_track2 = self.create_4d_zero_array()
         
         # Initial Qbi_dep:
-        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_classes + 1), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches
+        self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches
 
         # Moving sediments storing matrice
         self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
