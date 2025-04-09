@@ -207,6 +207,30 @@ class SedimentarySystem:
             return matrix[0]
         elif matrix.ndim == 2:
             return matrix[:, 0]
+        
+    def create_volume(self, provenance=None, etime=None, metadata=None, gsd=None):
+        '''
+        Create a volume of sediment with a set provenance, a possible erosion time and a grain size distribution.
+        '''
+        # Setting the metadata
+        if provenance is not None:
+            metadata_list = [provenance]
+        if etime is not None:
+            metadata_list.append(etime)
+        if metadata is not None:
+            assert provenance is None
+            assert etime is None
+            metadata_list = metadata
+        
+        # Grain size distribution data
+        if gsd is not None:
+            gsd = gsd
+        else:
+            gsd = np.zeros(self.n_classes)
+        
+        volume = np.hstack((metadata_list, gsd)).reshape(1,-1)
+        
+        return volume
 
     def create_4d_zero_array(self):
         ''' This type of matrice is made for including provenance (axis 0)
@@ -317,13 +341,21 @@ class SedimentarySystem:
 
     def set_sediment_initial_deposit(self, Qbi_dep_in):
         #TODO: (DD) better way to store Qbi_dep, Qbi_dep_0 etc ?
+        erosion_time = np.nan
         for n in self.network['n_hier']:
             # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
             q_bin = np.array(Qbi_dep_in[n])
             if not q_bin.any(): #if all zeros
-                self.Qbi_dep_0[n] = np.hstack((n, np.zeros(self.n_classes))).reshape(1,-1)
+                if self.n_metadata == 1:
+                    self.Qbi_dep_0[n] = self.create_volume(provenance=n)
+                elif self.n_metadata == 2:
+                    self.Qbi_dep_0[n] = self.create_volume(provenance=n, etime=erosion_time)
             else:
-                self.Qbi_dep_0[n] = np.float64(np.hstack((np.ones(q_bin.shape[0]) * n, Qbi_dep_in[n, 0]))).reshape(1,-1)
+                assert q_bin.shape[0] == 1
+                if self.n_metadata == 1:
+                    self.Qbi_dep_0[n] = self.create_volume(provenance=n, gsd=Qbi_dep_in[n, 0])
+                elif self.n_metadata == 2:
+                    self.Qbi_dep_0[n] = self.create_volume(provenance=n, etime=erosion_time, gsd=Qbi_dep_in[n, 0])
                 self.Fi_al[0,n,:] = np.sum(q_bin, axis=0) / np.sum(q_bin)
                 self.D50_al[0,n] = D_finder(self.Fi_al[0,n,:], 50, self.psi)
 
@@ -743,8 +775,7 @@ class SedimentarySystem:
 
         # If the new vdep is empty, put an empty layer for next steps
         if Vdep_new.size == 0:
-            Vdep_new = np.hstack((n, np.zeros(self.n_classes)))
-            Vdep_new = np.expand_dims(Vdep_new, axis = 0)
+            Vdep_new = self.create_volume(provenance=n)
 
         return V_mob, passing_cascades, Vdep_new
 
@@ -770,13 +801,11 @@ class SedimentarySystem:
         # V_dep_new    :      remaining deposit layer
         # Fi_r_reach   :      fraction of sediment in the maximum volume
 
-        reach_provenance_idx = V_dep_old[0, 0]
+        reach_metadata = V_dep_old[0, :self.n_metadata]
 
         if Qpass_volume is None:
             # Put an empty layer (for computation)
-            empty_incoming_volume = np.hstack((0, np.zeros(self.n_classes)))
-            empty_incoming_volume = np.expand_dims(empty_incoming_volume, axis = 0)
-            Qpass_volume = empty_incoming_volume
+            Qpass_volume = self.create_volume(provenance=0)
 
         # 1) If, considering the incoming volume, I am still under the threshold of the maximum volume,
         # I put sediment from the deposit layer into the maximum volume.
@@ -800,7 +829,7 @@ class SedimentarySystem:
                 print(' reach the bottom ....')
                 V_dep2act = V_dep_old
                 # Leave an empty layer in Vdep
-                V_dep = np.c_[reach_provenance_idx, np.zeros((1, self.n_classes))]
+                V_dep = np.c_[reach_metadata, np.zeros((1, self.n_classes))]
 
             # Otherwise I must select the uppermost layers from V_dep_old to be
             # put in the active layer
@@ -834,8 +863,8 @@ class SedimentarySystem:
                     threshold_layer_excluded = self.sediments(threshold_layer) - threshold_layer_included
 
                 # Re-add the metadata columns:
-                threshold_layer_included = np.hstack((self.metadata(threshold_layer), threshold_layer_included)).reshape(1, -1)
-                threshold_layer_excluded = np.hstack((self.metadata(threshold_layer), threshold_layer_excluded)).reshape(1, -1)
+                threshold_layer_included = self.create_volume(metadata=self.metadata(threshold_layer), gsd=threshold_layer_included)
+                threshold_layer_excluded = self.create_volume(metadata=self.metadata(threshold_layer), gsd=threshold_layer_excluded)
                 # Stack vertically the threshold layer included to the above layers (V_dep2act):
                 V_dep2act = np.vstack((threshold_layer_included, Vdep_above_index))
                 # Stack vertically the threshold layer excluded to the below layers (V_dep):
@@ -858,8 +887,8 @@ class SedimentarySystem:
             # Volume from the incoming volume to be kept in the active layer:
             Qpass_act = self.sediments(Qpass_volume) - Qpass_dep
             # Re add the metadata columns:
-            V_inc2act = np.hstack((self.metadata(Qpass_volume)[:,None], Qpass_act))
-            V_inc2dep = np.hstack((self.metadata(Qpass_volume)[:,None], Qpass_dep))
+            V_inc2act = self.create_volume(metadata=self.metadata(Qpass_volume)[:,None], gsd=Qpass_act)
+            V_inc2dep = self.create_volume(metadata=self.metadata(Qpass_volume)[:,None], gsd=Qpass_dep)
 
             # Add V_inc2dep to Vdep:
             # If, given the round, the deposited volume of the incoming cascades is not 0:
@@ -870,7 +899,7 @@ class SedimentarySystem:
                 V_dep = V_dep_old
 
             # Create an empty layer for the deposit volume to be put in the active layer:
-            V_dep2act = np.append(reach_provenance_idx, np.zeros((1, self.n_classes)))
+            V_dep2act = np.append(reach_metadata, np.zeros((1, self.n_classes)))
             if V_dep2act.ndim == 1:
                 V_dep2act = V_dep2act[None, :]
 
@@ -1158,18 +1187,18 @@ class SedimentarySystem:
         # volume_compacted: volume where layers have been summed by provenance
 
 
-        idx = np.unique(self.provenance(volume)) # Provenance reach indexes
-        volume_compacted = np.empty((len(idx), volume.shape[1]))
+        provenance_ids = np.unique(self.provenance(volume)) # Provenance reach indexes
+        volume_compacted = np.empty((len(provenance_ids), volume.shape[1]))
         # sum elements with same ID
-        for ind, i in enumerate(idx):
+        for ind, i in enumerate(provenance_ids):
             vect = volume[self.provenance(volume) == i,:]
-            volume_compacted[ind,:] = np.append(idx[ind], np.sum(self.sediments(vect), axis = 0))
+            volume_compacted[ind,:] = np.append(provenance_ids[ind], np.sum(self.sediments(vect), axis = 0))
 
         if volume_compacted.shape[0]>1:
             volume_compacted = volume_compacted[np.sum(self.sediments(volume_compacted), axis = 1) != 0]
 
         if volume_compacted.size == 0:
-            volume_compacted = (np.hstack((idx[0], np.zeros(self.sediments(volume).shape[1])))).reshape(1,-1)
+            volume_compacted = self.create_volume(provenance=provenance_ids[0])
 
         return volume_compacted
 
