@@ -60,6 +60,13 @@ class DCASCADE:
         '''
         return matrix[:, self.n_metadata:]
 
+    def provenance(self, matrix):
+        '''
+        Access the provenance column of the matrix.
+        @warning: Use self.provenance(matrix) for access, but use self.provenance(matrix)[:] for assignment!!!
+        '''
+        return matrix[:, 0]
+
     def set_transport_indexes(self, indx_tr_cap, indx_tr_partition):
         self.indx_tr_cap = indx_tr_cap
         self.indx_tr_partition = indx_tr_partition
@@ -157,7 +164,7 @@ class DCASCADE:
                     # Store the arriving cascades in the transported matrix (Qbi_tr)
                     # Note: we store the volume by original provenance
                     for cascade in Qbi_pass[n]:
-                        SedimSys.Qbi_tr[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_tr[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
                         # DD: If we want to store instead the direct provenance
                         # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
 
@@ -182,7 +189,7 @@ class DCASCADE:
                 # Temporary to reproduce v1. Stopping cascades are stored at next time step.
                 if self.passing_cascade_in_outputs == False:
                     if to_be_deposited is not None:
-                        SedimSys.Qbi_tr[t+1][[to_be_deposited[:,0].astype(int)], n, :] += to_be_deposited[:, 1:]
+                        SedimSys.Qbi_tr[t+1][[self.provenance(to_be_deposited).astype(int)], n, :] += to_be_deposited[:, 1:]
 
                 # After this step, Qbi_pass[n] contains volume that do not finish
                 # the time step in this reach, i.e the passing cascades
@@ -316,22 +323,22 @@ class DCASCADE:
                         Qbi_dep_0_track[n] = np.copy(Vdep_end_track)
                         # Store in compacted matrix (no layers)
                         compacted = SedimSys.matrix_compact(Vdep_end_track)
-                        SedimSys.Qbi_dep_track2[t][[compacted[:,0].astype(int)], n, :] += compacted[:, 1:]
+                        SedimSys.Qbi_dep_track2[t][[self.provenance(compacted).astype(int)], n, :] += compacted[:, 1:]
             
 
                 # Store cascades in the mobilised volumes:
                 if self.passing_cascade_in_outputs == True:
                     # All cascades (passing + mobilised from reach)
                     for cascade in Qbi_pass[n]:
-                        SedimSys.Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_mob[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
                     # Cascades from reach only:
                     for cascade in reach_mobilized_cascades:
-                        SedimSys.Qbi_mob_from_r[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_mob_from_r[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
                 else:
                     # to reproduce v1, we only store the cascade mobilised from the reach
                     for cascade in reach_mobilized_cascades:
-                        SedimSys.Qbi_mob[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
-                        SedimSys.Qbi_mob_from_r[t][[cascade.volume[:,0].astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_mob[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
+                        SedimSys.Qbi_mob_from_r[t][[self.provenance(cascade.volume).astype(int)], n, :] += cascade.volume[:, 1:]
 
 
                 # Finally, pass these cascades to the next reach (if we are not at the outlet)
@@ -343,7 +350,7 @@ class DCASCADE:
                     n_down = None
                     # If it is the outlet, we add the cascades to Qout and to the last column of the connectivity matrix
                     for cascade in Qbi_pass[n]:
-                        SedimSys.Q_out[t, [cascade.volume[:,0].astype(int)], :] += self.sediments(cascade.volume)
+                        SedimSys.Q_out[t, [self.provenance(cascade.volume).astype(int)], :] += self.sediments(cascade.volume)
                         SedimSys.direct_connectivity[t][cascade.provenance, -1, :] += np.sum(self.sediments(cascade.volume), axis = 0)
 
                 # Store sediment budget:

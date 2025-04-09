@@ -185,6 +185,13 @@ class SedimentarySystem:
         '''
         return matrix[:, self.n_metadata:]
 
+    def provenance(self, matrix):
+        '''
+        Access the provenance column of the matrix.
+        @warning: Use self.provenance(matrix) for access, but use self.provenance(matrix)[:] for assignment!!!
+        '''
+        return matrix[:, 0]
+
     def create_4d_zero_array(self):
         ''' This type of matrice is made for including provenance (axis 0)
         Note: we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
@@ -835,8 +842,8 @@ class SedimentarySystem:
             # Volume from the incoming volume to be kept in the active layer:
             Qpass_act = self.sediments(Qpass_volume) - Qpass_dep
             # Re add the provenance column:
-            V_inc2act = np.hstack((Qpass_volume[:, 0][:,None], Qpass_act))
-            V_inc2dep = np.hstack((Qpass_volume[:, 0][:,None], Qpass_dep))
+            V_inc2act = np.hstack((self.provenance(Qpass_volume)[:,None], Qpass_act))
+            V_inc2dep = np.hstack((self.provenance(Qpass_volume)[:,None], Qpass_dep))
 
             # Add V_inc2dep to Vdep:
             # If, given the round, the deposited volume of the incoming cascades is not 0:
@@ -925,7 +932,7 @@ class SedimentarySystem:
             # The matrix V_dep2act_new contains the mobilized cascades from
             # the deposit layer, now corrected according to the tr_cap:
             V_dep2act_new = np.zeros(V_dep2act.shape)
-            V_dep2act_new[: , 0] = V_dep2act[: ,0]
+            self.provenance(V_dep2act_new)[:] = self.provenance(V_dep2act)
             V_dep2act_new[:,np.append(False, under_capacity_classes)== True] = map_perc * V_dep2act_class
             # Round the volume:
             if ~np.isnan(roundpar):
@@ -1035,7 +1042,7 @@ class SedimentarySystem:
                 continue
             # Storing matrix for removed volumes
             removed_Vm = np.zeros_like(Vm_same_time)
-            removed_Vm[:,0] = Vm_same_time[:,0] # same first col with initial provenance
+            self.provenance(removed_Vm)[:] = self.provenance(Vm_same_time) # same first col with initial provenance
             for col_idx in range(self.sediments(Vm_same_time).shape[1]):  # Loop over sediment classes
                 if V_remove[col_idx] > 0:
                     col_sum = np.sum(Vm_same_time[:, col_idx+1])
@@ -1135,11 +1142,11 @@ class SedimentarySystem:
         # volume_compacted: volume where layers have been summed by provenance
 
 
-        idx = np.unique(volume[:,0]) # Provenance reach indexes
+        idx = np.unique(self.provenance(volume)) # Provenance reach indexes
         volume_compacted = np.empty((len(idx), volume.shape[1]))
         # sum elements with same ID
         for ind, i in enumerate(idx):
-            vect = volume[volume[:,0] == i,:]
+            vect = volume[self.provenance(volume) == i,:]
             volume_compacted[ind,:] = np.append(idx[ind], np.sum(self.sediments(vect), axis = 0))
 
         if volume_compacted.shape[0]>1:
