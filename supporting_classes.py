@@ -183,14 +183,21 @@ class SedimentarySystem:
         Access the sediment columns of the matrix.
         @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!!!
         '''
-        return matrix[:, self.n_metadata:]
+        if matrix.ndim == 1:
+            return matrix[self.n_metadata:]
+        elif matrix.ndim == 2:
+            return matrix[:, self.n_metadata:]
+
 
     def provenance(self, matrix):
         '''
         Access the provenance column of the matrix.
         @warning: Use self.provenance(matrix) for access, but use self.provenance(matrix)[:] for assignment!!!
         '''
-        return matrix[:, 0]
+        if matrix.ndim == 1:
+            return matrix[0]
+        elif matrix.ndim == 2:
+            return matrix[:, 0]
 
     def create_4d_zero_array(self):
         ''' This type of matrice is made for including provenance (axis 0)
@@ -754,6 +761,7 @@ class SedimentarySystem:
         # V_dep_new    :      remaining deposit layer
         # Fi_r_reach   :      fraction of sediment in the maximum volume
 
+        reach_provenance_idx = V_dep_old[0, 0]
 
         if Qpass_volume is None:
             # Put an empty layer (for computation)
@@ -783,8 +791,7 @@ class SedimentarySystem:
                 print(' reach the bottom ....')
                 V_dep2act = V_dep_old
                 # Leave an empty layer in Vdep
-                reach_idx = V_dep_old[0,0]
-                V_dep = np.c_[reach_idx, np.zeros((1, self.n_classes))]
+                V_dep = np.c_[reach_provenance_idx, np.zeros((1, self.n_classes))]
 
             # Otherwise I must select the uppermost layers from V_dep_old to be
             # put in the active layer
@@ -803,7 +810,7 @@ class SedimentarySystem:
                 # The layer on the threshold (defined by index) gets divided according to perc_layer:
                 sum_above_threshold_layer = np.sum(self.sediments(Vdep_above_index))
                 threshold_layer_residual = V_lim_dep - sum_above_threshold_layer
-                threshold_layer_sum = sum(threshold_layer[1:])
+                threshold_layer_sum = sum(self.sediments(threshold_layer))
                 perc_layer = threshold_layer_residual/threshold_layer_sum
 
                 # remove small negative values that can arise from the difference being very close to 0
@@ -811,15 +818,15 @@ class SedimentarySystem:
 
                 # Multiply the threshold layer by perc_layer
                 if roundpar is not None: # round
-                    threshold_layer_included = np.around(threshold_layer[1:] * perc_layer, decimals = roundpar)
-                    threshold_layer_excluded = threshold_layer[1:] - threshold_layer_included
+                    threshold_layer_included = np.around(self.sediments(threshold_layer) * perc_layer, decimals = roundpar)
+                    threshold_layer_excluded = self.sediments(threshold_layer) - threshold_layer_included
                 else:
-                    threshold_layer_included = threshold_layer[1:] * perc_layer
-                    threshold_layer_excluded = threshold_layer[1:] - threshold_layer_included
+                    threshold_layer_included = self.sediments(threshold_layer) * perc_layer
+                    threshold_layer_excluded = self.sediments(threshold_layer) - threshold_layer_included
 
                 # Re-add the provenance column:
-                threshold_layer_included = np.hstack((threshold_layer[0], threshold_layer_included)).reshape(1, -1)
-                threshold_layer_excluded = np.hstack((threshold_layer[0], threshold_layer_excluded)).reshape(1, -1)
+                threshold_layer_included = np.hstack((self.provenance(threshold_layer), threshold_layer_included)).reshape(1, -1)
+                threshold_layer_excluded = np.hstack((self.provenance(threshold_layer), threshold_layer_excluded)).reshape(1, -1)
                 # Stack vertically the threshold layer included to the above layers (V_dep2act):
                 V_dep2act = np.vstack((threshold_layer_included, Vdep_above_index))
                 # Stack vertically the threshold layer excluded to the below layers (V_dep):
@@ -854,7 +861,7 @@ class SedimentarySystem:
                 V_dep = V_dep_old
 
             # Create an empty layer for the deposit volume to be put in the active layer:
-            V_dep2act = np.append(V_dep_old[0, 0], np.zeros((1, self.n_classes)))
+            V_dep2act = np.append(reach_provenance_idx, np.zeros((1, self.n_classes)))
             if V_dep2act.ndim == 1:
                 V_dep2act = V_dep2act[None, :]
 
