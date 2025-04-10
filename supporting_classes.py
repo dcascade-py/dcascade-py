@@ -898,7 +898,7 @@ class SedimentarySystem:
                 V_dep = V_dep_old
 
             # Create an empty layer for the deposit volume to be put in the active layer:
-            V_dep2act = np.append(reach_metadata, np.zeros((1, self.n_classes)))
+            V_dep2act = self.create_volume(metadata=reach_metadata)
             if V_dep2act.ndim == 1:
                 V_dep2act = V_dep2act[None, :]
 
@@ -1090,30 +1090,31 @@ class SedimentarySystem:
             # Storing matrix for removed volumes
             removed_Vm = np.zeros_like(Vm_same_time)
             self.provenance(removed_Vm)[:] = self.provenance(Vm_same_time) # same first col with initial provenance
-            for col_idx in range(self.sediments(Vm_same_time).shape[1]):  # Loop over sediment classes
-                if V_remove[col_idx] > 0:
-                    col_sum = np.sum(Vm_same_time[:, col_idx+1])
+            for psi_idx in range(len(self.psi)):  # Loop over sediment classes
+                col_idx = self.n_metadata + psi_idx
+                if V_remove[psi_idx] > 0:
+                    col_sum = np.sum(Vm_same_time[:, col_idx])
                     if col_sum > 0:
-                        fraction_to_remove = min(V_remove[col_idx] / col_sum, 1.0)
+                        fraction_to_remove = min(V_remove[psi_idx] / col_sum, 1.0)
                         # Subtract the fraction_to_remove from the input cascades objects (to modify them directly)
                         for casc in cascades:
                             Vm = casc.volume
-                            removed_quantities = Vm[:, col_idx+1] * fraction_to_remove
-                            Vm[:, col_idx+1] -= removed_quantities
+                            removed_quantities = Vm[:, col_idx] * fraction_to_remove
+                            Vm[:, col_idx] -= removed_quantities
                             # Round Vm
-                            Vm[:, col_idx+1] = np.round(Vm[:, col_idx+1], decimals = roundpar)
+                            Vm[:, col_idx] = np.round(Vm[:, col_idx], decimals = roundpar)
                             # Ensure no negative values
-                            if np.any(Vm[:, col_idx+1] < -10**(-roundpar)) == True:
+                            if np.any(Vm[:, col_idx] < -10**(-roundpar)) == True:
                                 raise ValueError("Negative value in VM is strange")
                             # Store removed volume in direct connectivity matrix:
-                            self.direct_connectivity[t][casc.provenance, n, col_idx] += np.sum(removed_quantities)
+                            self.direct_connectivity[t][casc.provenance, n, psi_idx] += np.sum(removed_quantities)
 
                         # Store the removed quantities in the removed volumes matrix
-                        removed_Vm[:, col_idx+1] = Vm_same_time[:, col_idx+1] * fraction_to_remove
+                        removed_Vm[:, col_idx] = Vm_same_time[:, col_idx] * fraction_to_remove
                         # Update V_remove by subtracting the total removed quantity
-                        V_remove[col_idx] -= col_sum * fraction_to_remove
+                        V_remove[psi_idx] -= col_sum * fraction_to_remove
                         # Ensure V_remove doesn't go under the number fixed by roundpar
-                        if np.any(V_remove[col_idx] < -10**(-roundpar)) == True:
+                        if np.any(V_remove[psi_idx] < -10**(-roundpar)) == True:
                             raise ValueError("Negative value in V_remove is strange")
             # Round and store removed volumes
             self.sediments(removed_Vm)[:] = np.round(self.sediments(removed_Vm), decimals=roundpar)
