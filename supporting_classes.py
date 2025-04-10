@@ -124,7 +124,7 @@ class SedimentarySystem:
 
 
     def __init__(self, reach_data, network, timescale, ts_length, save_dep_layer,
-                 update_slope, psi, phi = 0.4, minvel = 0.0000001):
+                 update_slope, psi, phi = 0.4, minvel = 0.0000001, n_metadata=1):
 
         self.reach_data = reach_data
         self.network = network
@@ -132,14 +132,13 @@ class SedimentarySystem:
         self.ts_length = ts_length
         self.save_dep_layer = save_dep_layer
         self.update_slope = update_slope
+        self.n_metadata = n_metadata
         self.n_classes = len(psi)
         self.n_reaches = reach_data.n_reaches
         self.psi = psi
         self.phi = phi                          # sediment porosity
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
-        
-        self.n_metadata = 1
 
         # Setted variables
 
