@@ -236,6 +236,17 @@ class SedimentarySystem:
             volume = volume.reshape(1,-1)
         
         return volume
+    
+    def set_erosion_time(self, v_mob, t):
+        '''
+        '''
+        col_eros_time = 1
+        
+        nan_mask = np.isnan(v_mob[:, 1])
+        v_mob[nan_mask, 1] = t
+                
+        return v_mob
+        
 
     def create_4d_zero_array(self):
         ''' This type of matrice is made for including provenance (axis 0)
@@ -752,6 +763,11 @@ class SedimentarySystem:
             # Search for layers to be put in the erosion max (e_max_vol_)
             V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
+            
+            # Set erosion time in Vmob
+            if self.n_metadata == 2:
+                V_mob = self.set_erosion_time(V_mob, t)
+                
             if np.all(self.sediments(V_mob) == 0):
                 V_mob = None
         else:
@@ -1013,7 +1029,7 @@ class SedimentarySystem:
         class_perc_inc = np.zeros(under_capacity_classes.shape)
         class_perc_inc[under_capacity_classes == False] = perc_inc
         # Incomimg volume that is effectively mobilised, according to tr_cap:
-        mask_above_capacity = np.append([True]*self.n_metadata, under_capacity_classes)#np.append([False]*self.n_metadata, ~under_capacity_classes)
+        mask_above_capacity = np.append([True]*self.n_metadata, under_capacity_classes)
         mask_under_capacity = np.append([False]*self.n_metadata, class_perc_inc)
         
         V_inc2act_new = V_inc2act * mask_above_capacity + V_inc2act * mask_under_capacity
@@ -1021,6 +1037,7 @@ class SedimentarySystem:
         # Mobilised volume :
         V_mob = np.vstack((V_dep2act_new, V_inc2act_new))
         V_mob = self.matrix_compact(V_mob)
+        
         # Round:
         if ~np.isnan(roundpar):
             self.sediments(V_mob)[:] = np.around(self.sediments(V_mob), decimals = roundpar)
@@ -1050,6 +1067,7 @@ class SedimentarySystem:
         # Remove empty rows:
         if not np.sum(self.sediments(V_dep2act)) == 0:
             V_dep = V_dep[np.sum(self.sediments(V_dep), axis = 1) != 0]
+        
 
         return V_mob, V_dep
 
