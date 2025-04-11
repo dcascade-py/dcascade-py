@@ -95,9 +95,13 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 # These parameter are setted by default in the model with the following values
 # But they can also be changed by the user
 
-# eros_max = al_depth           # Maximum depth that can be eroded in one time step from the reach, in meters. 
+# eros_max = 1                  # Maximum depth that can be eroded in one time step from the reach, in meters. 
                                 # It is by default equal to the active layer, but can be larger for some case study 
 
+# al_depth_method = 1           # method to count the al_depth, 1: from the reach deposit layer top, the possible passing through cascade are then added at the top
+                                #                               2: from the top, including possible passing cascades. In this case, al_depth and eros_max, even if they are equal
+                                #                                   do not include the same layers
+                                    
 # vel_height = '2D90'           # Section height for velocity calculation. 
                                 # Options: '2D90', '0.1_hw' (10% of water height), or any fixed value)
                                 
@@ -174,42 +178,47 @@ for n in range(reach_data.n_reaches):
 
 
 
-# Prepare optionnal paramaters for calling the DCASCADE_main function
+# Prepare optionnal paramaters (possibly not given by the user) for calling the DCASCADE_main function
 kwargs = {}
 
 if 'eros_max' in globals():
-    kwargs['eros_max'] = eros_max
+    kwargs['eros_max'] = globals().get('eros_max')
+    
+if 'al_depth_method' in globals():
+    kwargs['al_depth_method'] = globals().get('al_depth_method')
 
 if 'vel_height' in globals():
-    kwargs['vel_height'] = vel_height
+    kwargs['vel_height'] = globals().get('vel_height')
     
 if 'indx_flo_depth' in globals():
-    kwargs['indx_flo_depth'] = indx_flo_depth
+    kwargs['indx_flo_depth'] = globals().get('indx_flo_depth')
     
 if 'indx_velocity' in globals():
-    kwargs['indx_velocity'] = indx_velocity
+    kwargs['indx_velocity'] = globals().get('indx_velocity')
     
 if 'indx_vel_partition' in globals():
-    kwargs['indx_vel_partition'] = indx_vel_partition
+    kwargs['indx_vel_partition'] = globals().get('indx_vel_partition')
     
 if 'indx_slope_red' in globals():
-    kwargs['indx_slope_red'] = indx_slope_red
+    kwargs['indx_slope_red'] = globals().get('indx_slope_red')
     
 if 'indx_width_calc' in globals():
-    kwargs['indx_width_calc'] = indx_width_calc
+    kwargs['indx_width_calc'] = globals().get('indx_width_calc')
     
 if 'update_slope' in globals():
-    kwargs['update_slope'] = update_slope
+    kwargs['update_slope'] = globals().get('update_slope')
     
 if 'roundpar' in globals():
-    kwargs['roundpar'] = roundpar
+    kwargs['roundpar'] = globals().get('roundpar')
+    
+if 'save_dep_layer' in globals():
+    kwargs['save_dep_layer'] = globals().get('save_dep_layer')
 
 
 
 # Call dcascade main
 data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length, al_depth,
-                                             indx_tr_cap , indx_tr_partition, Qbi_dep_in,
-                                             save_dep_layer = 'never',
+                                             indx_tr_cap, indx_tr_partition, Qbi_dep_in,
                                              **kwargs)
 
 

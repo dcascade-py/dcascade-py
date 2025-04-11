@@ -142,7 +142,7 @@ class SedimentarySystem:
         # Setted variables
 
 
-        # Storing matrices
+        # Storing matrices (and related options)
         self.Qbi_dep = None
         self.external_inputs = None
         self.force_pass_external_inputs = None
@@ -166,6 +166,7 @@ class SedimentarySystem:
         self.eros_max_depth = None
         self.al_vol = None
         self.al_depth = None
+        self.al_depth_method = None
         self.vl_height = self.create_2d_zero_array()
         self.mass_balance = self.create_3d_zero_array()
 
@@ -292,21 +293,40 @@ class SedimentarySystem:
         self.Qbi_dep[0] = copy.deepcopy(self.Qbi_dep_0)  # store init condition of dep layer
 
     def set_erosion_maximum(self, eros_max_depth_, roundpar):
-        # Set maximum volume in meters that can be eroded for each reach, for each time step.
-        self.eros_max_depth = np.ones(self.n_reaches) * eros_max_depth_
-        self.eros_max_vol = np.round(self.eros_max_depth * self.reach_data.wac * self.reach_data.length, roundpar)
+        # Set maximum volume in meters that can be eroded for each reach, for each time step.        
+        self.eros_max_vol = self.create_2d_zero_array()
+        self.eros_max_depth = self.create_2d_zero_array()
 
-    def set_active_layer(self, al_depth):
+        if eros_max_depth_ == '2D90':
+            # We take the input D90, or if not provided, the D84:
+            if self.reach_data.D90 is not None:
+                reference_d = self.reach_data.D90
+            else:
+                reference_d = self.reach_data.D84
+            # Multiply by two, + apply a minimum threshold
+            eros_max_t = np.maximum(2 * reference_d, 0.01)
+        elif isinstance(eros_max_depth_, (int, float)):
+            # Apply the input AL depth
+            eros_max_t = eros_max_depth_ * np.ones(self.n_reaches)
+        else:
+            raise ValueError('As options for the eros max depth, you can choose "2D90" or a fixed number')
+
+        # Compute the AL volumes (all reaches)
+        eros_vol_t = eros_max_t * self.reach_data.wac * self.reach_data.length
+        # Store it for all time steps:
+        self.eros_max_vol = np.tile(eros_vol_t, (self.timescale, 1))
+        self.eros_max_depth = np.tile(eros_max_t, (self.timescale, 1))
+        
+    def set_active_layer(self, al_depth_, al_depth_method):
         # Set active layer volume, i.e. the one used for calculating the tranport
-        # capacity in [m3/s]. Corresponds to the depth that the river can see
-        # every second (more like a continuum carpet ...)
+        # capacity in [m3/s]. Corresponds to the depth that the river can see.
         # By default it is defined as 2.D90 [Parker 2008]
         # But this is maybe not adapted for sandy rivers.
 
         self.al_vol = self.create_2d_zero_array()
         self.al_depth = self.create_2d_zero_array()
 
-        if al_depth == '2D90':
+        if al_depth_ == '2D90':
             # We take the input D90, or if not provided, the D84:
             if self.reach_data.D90 is not None:
                 reference_d = self.reach_data.D90
@@ -314,9 +334,9 @@ class SedimentarySystem:
                 reference_d = self.reach_data.D84
             # Multiply by two, + apply a minimum threshold
             al_depth_t = np.maximum(2 * reference_d, 0.01)
-        elif isinstance(al_depth, (int, float)):
+        elif isinstance(al_depth_, (int, float)):
             # Apply the input AL depth
-            al_depth_t = al_depth * np.ones(self.n_reaches)
+            al_depth_t = al_depth_ * np.ones(self.n_reaches)
         else:
             raise ValueError('As options for the AL depth, you can choose "2D90" or a fixed number')
 
@@ -325,6 +345,9 @@ class SedimentarySystem:
         # Store it for all time steps:
         self.al_vol = np.tile(al_vol_t, (self.timescale, 1))
         self.al_depth = np.tile(al_depth_t, (self.timescale, 1))
+        
+        # Set option for calculating the al depth (from top of the possible passing through cascades or from their bottom)
+        self.al_depth_method = al_depth_method
 
     def set_velocity_section_height(self, vel_section_height, h, t):
         '''Set section height, for estimating velocity [m/s] from sediment flux [m3/s]
@@ -625,12 +648,17 @@ class SedimentarySystem:
         # TODO: warning when the AL is very small, we can have Fi_r is 0 due to roundpar
         
         if passing_volume is None:
-            AL_volume = self.al_vol[t,n]
+            AL_volume = self.al_vol[t,n]   
         else:
-            # if there are passing cascades, their total volume is added to the user-defined active volume
-            sum_pass = np.sum(passing_volume[:,1:])
-            AL_volume = self.al_vol[t,n] + sum_pass
-            
+            if self.al_depth_method == 1:  
+                # Method 1: (default) if there are passing cascades, their total volume is added to the user-defined active volume
+                sum_pass = np.sum(passing_volume[:,1:])
+                AL_volume = self.al_vol[t,n] + sum_pass                                
+            elif self.al_depth_method == 2:
+                # Method 2: the active depth is measured from the top of the passing cascades
+                AL_volume = self.al_vol[t,n]
+
+                
         _,_,_, Fi_al_ = self.layer_search(Vdep, AL_volume, Qpass_volume = passing_volume, roundpar = roundpar)
         
         
@@ -662,7 +690,7 @@ class SedimentarySystem:
         volume_mobilisable = tr_cap_per_s * time_to_mobilise
         # Erosion maximum during the time lag
         # (we take the mean time lag among the classes)
-        e_max_vol_ = self.eros_max_vol[n] * np.mean(time_fraction)
+        e_max_vol_ = self.eros_max_vol[t,n] * np.mean(time_fraction)
 
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:

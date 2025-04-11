@@ -20,8 +20,9 @@ from supporting_classes import Cascade, ReachData, SedimentarySystem
 
 def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
                   indx_tr_cap, indx_tr_partition, Qbi_dep_in,                     
-                  save_dep_layer = 'always', 
+                  save_dep_layer = 'never', 
                   eros_max = None,
+                  al_depth_method = 1,
                   vel_height = '2D90',
                   indx_flo_depth = 1,                  
                   indx_velocity = 2,
@@ -39,10 +40,6 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
                   time_lag_for_mobilised = False):
     
     
-    DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length, al_depth,
-                                                 indx_tr_cap , indx_tr_partition, Qbi_dep_in,
-                                                 **kwargs)
-
     if eros_max is None:
         eros_max = al_depth
         
@@ -100,7 +97,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
-    sedimentary_system.set_active_layer(al_depth)
+    sedimentary_system.set_active_layer(al_depth, al_depth_method)
 
 
 

@@ -48,12 +48,11 @@ def test_Po_Engelund_all_new_options_false():
     deposit_layer = 100000
     eros_max = 1
     al_depth = '2D90'
-    update_slope = False
+    al_depth_method = 2
     timescale = 150
     ts_length = 60 * 60 * 24
     sed_range = [-8, 3]
     n_classes = 6
-    save_dep_layer = 'never'
     roundpar = 0
 
 
@@ -90,7 +89,6 @@ def test_Po_Engelund_all_new_options_false():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_flo_depth = 1      # Manning
 
     # Options for the cascade algorithm (by default, they are all True):
     # If all these options are False, we are reproducing the algorithme of
@@ -112,9 +110,10 @@ def test_Po_Engelund_all_new_options_false():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
@@ -197,6 +196,7 @@ def test_Po_Wilcock_all_new_options_false():
     deposit_layer = 100000
     eros_max = 1
     al_depth = '2D90'
+    al_depth_method = 2
     update_slope = False
     timescale = 150
     ts_length = 60 * 60 * 24
@@ -239,7 +239,6 @@ def test_Po_Wilcock_all_new_options_false():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p.
-    indx_flo_depth = 1      # Manning
 
     # Options for the cascade algorithm (by default, they are all True):
     # If all these options are False, we are reproducing the algorithme of
@@ -261,9 +260,10 @@ def test_Po_Wilcock_all_new_options_false():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
@@ -343,6 +343,7 @@ def test_Po_Engelund_all_true_no_tlag():
     deposit_layer = 100000
     eros_max = 1
     al_depth = '2D90'
+    al_depth_method = 2
     update_slope = False
     timescale = 150
     ts_length = 60 * 60 * 24
@@ -385,7 +386,6 @@ def test_Po_Engelund_all_true_no_tlag():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_flo_depth = 1      # Manning
 
     # Options for the cascade algorithm (by default, they are all True):
     # If all these options are False, we are reproducing the algorithme of
@@ -407,9 +407,10 @@ def test_Po_Engelund_all_true_no_tlag():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
@@ -492,6 +493,7 @@ def test_Po_Wilcock_all_true_no_tlag():
     deposit_layer = 100000
     eros_max = 1
     al_depth = '2D90'
+    al_depth_method = 2
     update_slope = False
     timescale = 150
     ts_length = 60 * 60 * 24
@@ -534,7 +536,6 @@ def test_Po_Wilcock_all_true_no_tlag():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p.
-    indx_flo_depth = 1      # Manning
 
     # Options for the cascade algorithm (by default, they are all True):
     # If all these options are False, we are reproducing the algorithme of
@@ -556,9 +557,10 @@ def test_Po_Wilcock_all_true_no_tlag():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
@@ -640,6 +642,7 @@ def test_Po_Engelund_all_new_options_true():
     deposit_layer = 100000
     eros_max = 1
     al_depth = '2D90'
+    al_depth_method = 2
     update_slope = False
     timescale = 150
     ts_length = 60 * 60 * 24
@@ -682,13 +685,30 @@ def test_Po_Engelund_all_new_options_true():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_flo_depth = 1      # Manning
+    
+    # Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
+    # But this does not change the way sediment move.
+    op1 = True
+
+    # Option 2: If True, we now include present cascades from upstream + reach material
+    # in the transport capacity calculation, to check if they should pass or not.
+    op2 = True
+
+    # Option 3: If True, we consider a time lag between the beginning of the time step,
+    # and the arrival of the first cascade to the ToN of the reach,
+    # during which we are able to mobilise from the reach itself
+    op3 = True
+
 
     # Run definition
     start = time.time()
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap , indx_tr_partition, indx_flo_depth)
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
+                                                 time_lag_for_mobilised = op3)
 
     end = time.time()
     print(end - start)
@@ -764,6 +784,7 @@ def test_Po_Wilcock_all_new_options_true():
     deposit_layer = 100000
     eros_max = 1
     al_depth = '2D90'
+    al_depth_method = 2
     update_slope = False
     timescale = 150
     ts_length = 60 * 60 * 24
@@ -806,12 +827,29 @@ def test_Po_Wilcock_all_new_options_true():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress
-    indx_flo_depth = 1      # Manning
+    
+    # Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
+    # But this does not change the way sediment move.
+    op1 = True
+
+    # Option 2: If True, we now include present cascades from upstream + reach material
+    # in the transport capacity calculation, to check if they should pass or not.
+    op2 = True
+
+    # Option 3: If True, we consider a time lag between the beginning of the time step,
+    # and the arrival of the first cascade to the ToN of the reach,
+    # during which we are able to mobilise from the reach itself
+    op3 = True
+
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap , indx_tr_partition, indx_flo_depth)
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
+                                                 time_lag_for_mobilised = op3)
 
     # Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
