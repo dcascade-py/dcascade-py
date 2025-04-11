@@ -37,7 +37,8 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
                   
                   passing_cascade_in_outputs = True,
                   passing_cascade_in_trcap = True,
-                  time_lag_for_mobilised = False):
+                  time_lag_for_mobilised = False,
+                  t_track = None):
     
     
     if eros_max is None:
