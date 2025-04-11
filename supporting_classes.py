@@ -720,7 +720,7 @@ class SedimentarySystem:
         else:
             if self.al_depth_method == 1:  
                 # Method 1: (default) if there are passing cascades, their total volume is added to the user-defined active volume
-                sum_pass = np.sum(passing_volume[:,1:])
+                sum_pass = np.sum(self.sediments(passing_volume))
                 AL_volume = self.al_vol[t,n] + sum_pass                                
             elif self.al_depth_method == 2:
                 # Method 2: the active depth is measured from the top of the passing cascades
