@@ -128,7 +128,7 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 ################ MAIN ###############
 # If the transport capacity formula is not chosen manually:
 if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
-    indx_tr_cap, indx_tr_partition, indx_flo_depth = read_user_input()
+    indx_tr_cap, indx_tr_partition = read_user_input()
 
 # Read the network
 network = read_network(filename_river_network)
