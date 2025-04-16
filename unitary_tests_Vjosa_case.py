@@ -38,12 +38,11 @@ filename_q = path_q / name_q
 deposit_layer = 100000
 eros_max = 1
 al_depth = '2D90' # if None, it is 2D90
-update_slope = False
+al_depth_method = 2
 timescale = 20
 ts_length = 60 * 60 * 24
 sed_range = [-8, 5]
 n_classes = 6
-save_dep_layer = 'never'
 roundpar = 0
 
 # reach data
@@ -85,7 +84,6 @@ def test_Vjosa_Engelund_all_new_options_false():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_flo_depth = 1      # Manning
 
     # options in v2
     op1 = False
@@ -93,12 +91,15 @@ def test_Vjosa_Engelund_all_new_options_false():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
+    
+
 
 
     #----Test the total mobilised volume per reach
@@ -132,7 +133,6 @@ def test_Vjosa_Wilcock_all_new_options_false():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p
-    indx_flo_depth = 1      # Manning
 
     # options in v2
     op1 = False
@@ -140,9 +140,10 @@ def test_Vjosa_Wilcock_all_new_options_false():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method,
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
@@ -175,7 +176,6 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_flo_depth = 1      # Manning
 
     # options in v2
     op1 = True
@@ -183,9 +183,10 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
@@ -222,7 +223,6 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p
-    indx_flo_depth = 1      # Manning
 
     # options in v2
     op1 = True
@@ -230,9 +230,10 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     op3 = False
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth,
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
@@ -269,12 +270,21 @@ def test_Vjosa_Engelund_all_new_options_true():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    indx_flo_depth = 1      # Manning
+    
+    # options in v2
+    op1 = True
+    op2 = True
+    op3 = True
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth)
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
+                                                 time_lag_for_mobilised = op3)
+    
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
@@ -308,12 +318,20 @@ def test_Vjosa_Wilcock_all_new_options_true():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p
-    indx_flo_depth = 1      # Manning
+    
+    # options in v2
+    op1 = True
+    op2 = True
+    op3 = True
 
     # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, Qbi_dep_in, timescale, psi,
-                                                 roundpar, update_slope, eros_max, al_depth, save_dep_layer, ts_length,
-                                                 indx_tr_cap, indx_tr_partition, indx_flo_depth)
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method, 
+                                                 eros_max = eros_max,
+                                                 passing_cascade_in_outputs = op1,
+                                                 passing_cascade_in_trcap = op2,
+                                                 time_lag_for_mobilised = op3)
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)

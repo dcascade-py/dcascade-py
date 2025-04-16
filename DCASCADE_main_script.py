@@ -5,7 +5,7 @@ This script contains the time-space loop which assess the sediment routing throu
 
 This script was adapted from the Matlab version by Marco Tangi
 
-@author: Elisa Bozzolan
+@author: Elisa Bozzolan, Diane Doolaeghe, Anne-Laure Argentin
 """
 
 """ Libraries to import """
@@ -18,22 +18,32 @@ from supporting_classes import Cascade, ReachData, SedimentarySystem
 
 """ MAIN FUNCTION SECTION """
 
-def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
-                  update_slope, eros_max, al_depth,
-                  save_dep_layer, ts_length,
-                  indx_tr_cap, indx_tr_partition, indx_flo_depth,
+def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
+                  indx_tr_cap, indx_tr_partition, Qbi_dep_in,                     
+                  save_dep_layer = 'never', 
+                  eros_max = None,
+                  al_depth_method = 1,
                   vel_height = '2D90',
-                  external_inputs = None,
-                  force_pass_external_inputs = False,
+                  indx_flo_depth = 1,                  
                   indx_velocity = 2,
                   indx_vel_partition = 1,
                   indx_slope_red = 1,
                   indx_width_calc = 1,
+                  update_slope = False,
+                  roundpar = 0,
+                  
+                  external_inputs = None,
+                  force_pass_external_inputs = False,
+                  
                   passing_cascade_in_outputs = True,
                   passing_cascade_in_trcap = True,
-                  time_lag_for_mobilised = True,
+                  time_lag_for_mobilised = False,
                   t_track = None):
-
+    
+    
+    if eros_max is None:
+        eros_max = al_depth
+        
     """
     Main function of the D-CASCADE software.
 
@@ -50,7 +60,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
     roundpar            = mimimum volume to be considered for mobilization of subcascade
                          (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
     update_slope        = bool to chose if we change slope trought time or not. If Flase, constant slope. If True, slope changes according to sediment deposit.
-    eros_max            = maximum erosion depth per time step [m]
+    eros_max            = maximum erosion depth per time step [m], is equal to the active layer depth by default
     save_dep_layer      = saving option of the deposit layer for each time step
     ts_length           = the length in seconds of the timestep (60*60*24 for daily timesteps)
 
@@ -65,10 +75,13 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
     indx_vel_partition  = the index indicating the type of partitioning in the section used to compute velocity
     indx_slope_red      = the index indicating the slope reduction formula, default 1 is no reduction
 
-    Options for the dcascade algorithme (if all False, we reproduce the version 1)
-    passing_cascade_in_outputs          = Bool to activate or not this option (default True)
-    passing_cascade_in_trcap            = Bool to activate or not this option (default True)
-    time_lag_for_mobilised              = Bool to activate or not this option (default True)
+    Options for the dcascade algorithm (if all False, we reproduce the version 1)
+    passing_cascade_in_outputs          = if True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
+                                            But this does not change the way sediment move. (default True)
+    passing_cascade_in_trcap            = If True, we now include present cascades from upstream + reach material
+                                            in the transport capacity calculation, to check if they should pass or not. (default True)
+    time_lag_for_mobilised              = option in progress (default False). If True, we consider a time lag between the beginning of the time step,
+                                            and the arrival of the first cascade to the ToN of the reach, during which we are able to mobilise from the reach itself
 
     OUTPUT:
     data_output      = struct collecting the main aggregated output matrices
@@ -85,7 +98,7 @@ def DCASCADE_main(reach_data, network, Q, Qbi_dep_in, timescale, psi, roundpar,
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
-    sedimentary_system.set_active_layer(al_depth)
+    sedimentary_system.set_active_layer(al_depth, al_depth_method)
 
 
 
