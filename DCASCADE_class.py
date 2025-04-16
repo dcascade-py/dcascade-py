@@ -121,6 +121,9 @@ class DCASCADE:
 
             # loop for all reaches:
             for n in self.network['n_hier']:
+                
+                if n == 18 and t == 1:
+                    print('oki')
 
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
