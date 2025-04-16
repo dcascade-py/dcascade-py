@@ -47,7 +47,8 @@ def D_finder(fi_r, d_value, psi):
     @brief Computes the grain size corresponding to a given cumulative percentage (DXX)
            for a reach with a specified grain size distribution.
 
-    @param fi_r Array of fractions of material in each grain size class.
+    @param fi_r Array of fractions of material in each grain size class for one reach (1D)
+                or for all reaches (2D).
                 For example, [0.15, 0.50, 0.35] represents 15%, 50%, and 35% of material
                 in three grain size classes.
     @param d_value The target DXX value (e.g., 50 for D50, 90 for D90) representing the
@@ -82,11 +83,12 @@ def D_finder(fi_r, d_value, psi):
     nb_classes = len(psi)
 
     # Handles the case of single layers input as vector and
-    # multiple layers input as matrices.
+    # multiple layers input as matrices. 
+    # (DD: Layer = Number of reaches, sometimes fi_r will be for just one reach, or for all of them)
     if fi_r.ndim == 1:
         nb_layers = 1
         fi_r = np.expand_dims(fi_r, axis=0)
-    else: # If multiple layers: AL: Do we need it? Neither Vjosa nor Po use it.
+    else: # If multiple layers:
         nb_layers = np.shape(fi_r)[0]
 
     # If one class only, the target DXX value is the grain size of the class.
