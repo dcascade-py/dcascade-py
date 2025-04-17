@@ -328,8 +328,11 @@ class SedimentarySystem:
         # Moving sediments storing matrice
         self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
         self.Qbi_mob_from_r = self.create_4d_zero_array() # Volume mobilised from reach (gives also original provenance)
-        # TODO: DD see if we keep Qbi_tr
         self.Qbi_tr = self.create_4d_zero_array() # Volume entering the reach (gives also original provenance)
+        if self.n_metadata == 2:
+            self.Qbi_tr_eros_times = np.zeros((self.timescale, self.n_reaches, self.n_reaches + 1))
+            self.Qbi_tr_eros_times[:] = numpy.nan
+        
         # Direct connectivity matrice (an extra reach column is added to consider sediment leaving the system)
         self.direct_connectivity = [np.zeros((self.n_reaches, self.n_reaches + 1, self.n_classes)) for _ in range(self.timescale)]
 
@@ -1027,7 +1030,8 @@ class SedimentarySystem:
             # The matrix V_dep2act_new contains the mobilized cascades from
             # the deposit layer, now corrected according to the tr_cap:
             V_dep2act_new = np.zeros(V_dep2act.shape)
-            self.provenance(V_dep2act_new)[:] = self.provenance(V_dep2act)
+            # self.provenance(V_dep2act_new)[:] = self.provenance(V_dep2act)
+            self.metadata(V_dep2act_new)[:] = self.metadata(V_dep2act)
             V_dep2act_new[:, mask] = map_perc * V_dep2act_class
             # Round the volume:
             if ~np.isnan(roundpar):

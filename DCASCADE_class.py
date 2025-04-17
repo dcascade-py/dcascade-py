@@ -102,16 +102,16 @@ class DCASCADE:
             Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
 
             # If we are in the tracked times:
-            if t_track is not None:
-                if t >= t_track[0] and t <= t_track[1]:
-                # Create second deposit layer reinitialised in terms of provenances, if we are at the beginning of t_track times:
-                    if t == t_track[0]:
-                        Qbi_dep_0_track = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
-                        for n in SedimSys.network['n_hier']:
-                            # reset provenance in first column
-                            Qbi_dep_0_track[n][:,0] = n
+            # if t_track is not None:
+            #     if t >= t_track[0] and t <= t_track[1]:
+            #     # Create second deposit layer reinitialised in terms of provenances, if we are at the beginning of t_track times:
+            #         if t == t_track[0]:
+            #             Qbi_dep_0_track = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
+            #             for n in SedimSys.network['n_hier']:
+            #                 # reset provenance in first column
+            #                 Qbi_dep_0_track[n][:,0] = n
 
-                    Qbi_dep_old_track = copy.deepcopy(Qbi_dep_0_track)
+            #         Qbi_dep_old_track = copy.deepcopy(Qbi_dep_0_track)
 
 
             # Matrix to store volumes of sediment passing through a reach
@@ -122,19 +122,19 @@ class DCASCADE:
             # loop for all reaches:
             for n in self.network['n_hier']:
                 
-                if n == 18 and t == 1:
+                if n == 33:
                     print('oki')
 
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
 
                 # Extract equivalent deposit layer if t_track:
-                if t_track is not None:
-                    if t >= t_track[0] and t <= t_track[1]:
-                        Vdep_init_track = Qbi_dep_old_track[n]
-                        # Check if Vdep_init and Vdep_init_track remain the same:
-                        if np.array_equal(SedimSys.sediments(Vdep_init), SedimSys.sediments(Vdep_init_track)) == False:
-                            print('problem Vdep not equal')
+                # if t_track is not None:
+                #     if t >= t_track[0] and t <= t_track[1]:
+                #         Vdep_init_track = Qbi_dep_old_track[n]
+                #         # Check if Vdep_init and Vdep_init_track remain the same:
+                #         if np.array_equal(SedimSys.sediments(Vdep_init), SedimSys.sediments(Vdep_init_track)) == False:
+                #             print('problem Vdep not equal')
 
 
                 # Extract external cascade (if they are)
@@ -153,9 +153,15 @@ class DCASCADE:
                     # Store the arriving cascades in the transported matrix (Qbi_tr)
                     # Note: we store the volume by original provenance
                     for cascade in Qbi_pass[n]:
-                        SedimSys.Qbi_tr[t][[SedimSys.provenance(cascade.volume).astype(int)], n, :] += SedimSys.sediments(cascade.volume)
-                        # DD: If we want to store instead the direct provenance
-                        # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
+                        SedimSys.Qbi_tr[t][[SedimSys.provenance(cascade.volume).astype(int)], n, :] += SedimSys.sediments(cascade.volume)                    
+                    
+                    # Store also the erosion times of these cascades entering the reach 
+                    # (can be a decimal number since we average sometimes the time of same provenance)
+                    if SedimSys.n_metadata == 2:  
+                        if Qbi_pass[n] != []:
+                            concat_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
+                            concat_volume = SedimSys.matrix_compact(concat_volume) #to merge same initial provenance
+                            SedimSys.Qbi_tr_eros_times[t, SedimSys.provenance(concat_volume).astype(int), n] = SedimSys.metadata(concat_volume)[:, 1]
 
                 # Compute the velocity of the cascades in this reach [m/s]
                 if Qbi_pass[n] != []:
@@ -260,12 +266,12 @@ class DCASCADE:
 
 
                 # Mobilise in case of t_track:
-                if t_track is not None:
-                    if t >= t_track[0] and t <= t_track[1]:
-                            _, _, Vdep_end_track = SedimSys.compute_mobilised_volume(Vdep_track, tr_cap_per_s,
-                                                                                                 n, t, roundpar,
-                                                                                                 passing_cascades = passing_cascades,
-                                                                                                 time_fraction = r_time_lag)
+                # if t_track is not None:
+                #     if t >= t_track[0] and t <= t_track[1]:
+                #             _, _, Vdep_end_track = SedimSys.compute_mobilised_volume(Vdep_track, tr_cap_per_s,
+                #                                                                                  n, t, roundpar,
+                #                                                                                  passing_cascades = passing_cascades,
+                #                                                                                  time_fraction = r_time_lag)
 
                 # Mobilise:
                 Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volume(Vdep, tr_cap_per_s,
@@ -299,21 +305,21 @@ class DCASCADE:
                 if to_be_deposited is not None:
                     to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
                     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
-                    # In case of t_track
-                    if t_track is not None:
-                        if t >= t_track[0] and t <= t_track[1]:
-                            Vdep_end_track = np.concatenate([Vdep_end_track, to_be_deposited], axis=0)
+                    # # In case of t_track
+                    # if t_track is not None:
+                    #     if t >= t_track[0] and t <= t_track[1]:
+                    #         Vdep_end_track = np.concatenate([Vdep_end_track, to_be_deposited], axis=0)
 
 
                 # Store Vdep for next time step
                 SedimSys.Qbi_dep_0[n] = np.copy(Vdep_end)
-                # In case of t_track
-                if t_track is not None:
-                    if t >= t_track[0] and t <= t_track[1]:
-                        Qbi_dep_0_track[n] = np.copy(Vdep_end_track)
-                        # Store in compacted matrix (no layers)
-                        compacted = SedimSys.matrix_compact(Vdep_end_track)
-                        SedimSys.Qbi_dep_track2[t][[SedimSys.provenance(compacted).astype(int)], n, :] += SedimSys.sediments(compacted)
+                # # In case of t_track
+                # if t_track is not None:
+                #     if t >= t_track[0] and t <= t_track[1]:
+                #         Qbi_dep_0_track[n] = np.copy(Vdep_end_track)
+                #         # Store in compacted matrix (no layers)
+                #         compacted = SedimSys.matrix_compact(Vdep_end_track)
+                #         SedimSys.Qbi_dep_track2[t][[SedimSys.provenance(compacted).astype(int)], n, :] += SedimSys.sediments(compacted)
 
 
                 # Store cascades in the mobilised volumes:
@@ -336,12 +342,17 @@ class DCASCADE:
                     n_down = np.squeeze(self.network['downstream_node'][n], axis = 1)
                     n_down = int(n_down) # Note: This is wrong if there is more than 1 reach downstream (to consider later)
                     Qbi_pass[n_down].extend(copy.deepcopy(Qbi_pass[n]))
+                    
+                    
                 else:
                     n_down = None
                     # If it is the outlet, we add the cascades to Qout and to the last column of the connectivity matrix
                     for cascade in Qbi_pass[n]:
                         SedimSys.Q_out[t, [SedimSys.provenance(cascade.volume).astype(int)], :] += SedimSys.sediments(cascade.volume)
                         SedimSys.direct_connectivity[t][cascade.provenance, -1, :] += np.sum(SedimSys.sediments(cascade.volume), axis = 0)
+
+                
+                
 
                 # Store sediment budget:
                 vol_out = np.sum(SedimSys.Qbi_mob[t][:, n, :], axis = 0) # sum over provenance
@@ -370,9 +381,9 @@ class DCASCADE:
                     t_y = int((t+2)/365)
                     SedimSys.Qbi_dep[t_y] = copy.deepcopy(SedimSys.Qbi_dep_0)
 
-            if t_track is not None:
-                if t >= t_track[0] and t <= t_track[1]:
-                    SedimSys.Qbi_dep_track[t+1] = copy.deepcopy(Qbi_dep_0_track)
+            # if t_track is not None:
+            #     if t >= t_track[0] and t <= t_track[1]:
+            #         SedimSys.Qbi_dep_track[t+1] = copy.deepcopy(Qbi_dep_0_track)
 
             # In case of changing slope, change the slope accordingly to the bed elevation
             if self.update_slope == True:
@@ -449,7 +460,8 @@ class DCASCADE:
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
-
+                       
+                       'Eros_times_full' : SedimSys.Qbi_tr_eros_times
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
 
