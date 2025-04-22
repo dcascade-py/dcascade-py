@@ -122,8 +122,8 @@ class DCASCADE:
             # loop for all reaches:
             for n in self.network['n_hier']:
                 
-                if n == 33:
-                    print('oki')
+                # if n == 33:
+                #     print('oki')
 
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
@@ -232,10 +232,10 @@ class DCASCADE:
                     r_time_lag = None
                     Vdep = Vdep_init
 
-                    # t_track
-                    if t_track is not None:
-                        if t >= t_track[0] and t <= t_track[1]:
-                            Vdep_track = Vdep_init_track
+                    # # t_track
+                    # if t_track is not None:
+                    #     if t >= t_track[0] and t <= t_track[1]:
+                    #         Vdep_track = Vdep_init_track
 
 
                 # To reproduce v1, we leave the option to consider passing cascades or not

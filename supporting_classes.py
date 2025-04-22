@@ -1252,10 +1252,12 @@ class SedimentarySystem:
         for ind, i in enumerate(provenance_ids):
             vect = volume[self.provenance(volume) == i,:]
             # Diane: here we need to keep the original time (if there is one)
-            # To check: should we do the mean or the nanmean ??
-            # DD: check again how weight works with 0 sediments.. --> Make a nan, ok ?
-            weight = np.sum(self.sediments(vect), axis=1) / np.sum(self.sediments(vect))
-            eros_time = np.mean(self.metadata(vect)[:,1] * weight) #time is second column so number 1. I take the mean if there is many layers
+            # To check: should we do the sum or the nansum ?? for now only the sum works
+            if np.sum(self.sediments(vect)) == 0:
+                weight = 1
+            else:
+                weight = np.sum(self.sediments(vect), axis=1) / np.sum(self.sediments(vect))
+            eros_time = np.sum(self.metadata(vect)[:,1] * weight) #time is second column so number 1. I take the mean if there is many layers
             volume_compacted[ind,:] = self.create_volume(provenance=provenance_ids[ind], etime = eros_time, gsd=np.sum(self.sediments(vect), axis=0))
         
         # Diane: here we remove lines with 0 sediments
