@@ -46,15 +46,20 @@ class TransportCapacityCalculator:
         formula chosen by the  user and return the value of the transport capacity
         and the relative Grain Size Distrubution (pci) for each sediment class in the reach.
         """
+        
+        # Verify compatibility between transport formula and partitionning:
+        if indx_tr_cap == 2 and indx_partition != 4:
+            raise Exception("W&C formula can only be used with the 'shear stress correction' partitioning")
+        if indx_tr_cap != 2 and indx_partition == 4:   
+            raise Exception("the 'shear stress correction' partitioning can only be used for W&C")
 
+    
         ##choose partitioning formula for computation of sediment transport rates for individual size fractions
         #formulas from:
         #Molinas, A., & Wu, B. (2000): Comparison of fractional bed material load computation methods in sand?bed channels.
         #Earth Surface Processes and Landforms: The Journal of the British Geomorphological Research Group
 
 
-        # EB D50 entries change according to formula index - it would be good to create a class
-        # to call with the string name of the formula
 
         # 1: Direct computation by the size fraction approach
         # 2: The BMF approach (Bed Material Fraction)
