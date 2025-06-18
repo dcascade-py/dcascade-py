@@ -459,9 +459,16 @@ class DCASCADE:
         if self.time_lag_for_mobilised == True:
             data_output['D50 active layer bf tlag [m]'] = SedimSys.D50_al_before_tlag
 
+        # Sum quantities by provenance
+        mobilised_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
+
+        for t in range(self.timescale - 1):
+            # Sum over provenances (axe 0) 
+            mobilised_per_class[t,:,:] = np.sum(SedimSys.Qbi_mob[t], axis = (0))
 
         # Complete matrices:
         extended_output = {'Qbi_mob [m^3]': SedimSys.Qbi_mob,
+                           'Volume out per grain sizes [m^3]': mobilised_per_class,
                            'Qbi_tr [m^3]': SedimSys.Qbi_tr,
                            'Qbi_mob_from_reach [m^3]': SedimSys.Qbi_mob_from_r,
                            'Qbi_dep [m^3]': SedimSys.Qbi_dep,
