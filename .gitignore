@@ -5,4 +5,8 @@
 Input_Po_untracked/
 user_scripts/
 
+/dcascade/__pycache__
+
+/unit_tests_perso
+
 
