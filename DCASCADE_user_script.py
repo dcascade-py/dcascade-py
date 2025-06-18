@@ -80,8 +80,14 @@ timescale = 20 # days
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Transport capacity formula and partitioning
-indx_tr_cap = 2 # 2: Wilkock and Crowe 2003; 3: Engelund and Hansen; 6: Ackers and White
-indx_tr_partition = 4 # 2: BMF; 4: Shear stress correction
+indx_tr_cap = 2                 # 2: Wilkock and Crowe; 
+                                # 3: Engelund and Hansen; 
+                                # 6: Ackers and White;
+
+indx_tr_partition = 4           # 1: Direct calculation summing fractionnal load; 
+                                # 2: BMF: "Bed Material" Fraction weighting of fractionnal loads; 
+                                # 3: Molinas rates: weighting on total load
+                                # 4: Shear stress correction (only for Formula already partitionned, e.g., W&C)
 
 #---Initial layer sizes
 deposit_layer = 100000      # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
@@ -237,8 +243,8 @@ if not os.path.exists(path_results):   #does the output folder exist ?
 
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-#name_file_ext = path_results + 'save_all_ext.p'
-#pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+name_file_ext = path_results / 'save_all_ext.p'
+pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
 
 # ## Plot results
