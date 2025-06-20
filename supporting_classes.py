@@ -294,7 +294,7 @@ class SedimentarySystem:
             self.node_el[:,: ] = self.node_el[0,:]
 
 
-    def initialize_storing_matrices(self, t_track):
+    def initialize_storing_matrices(self):
 
         # Create Qbi dep matrix with size size depending on how often we want to save it:
         if self.save_dep_layer=='never':
@@ -304,12 +304,6 @@ class SedimentarySystem:
         if self.save_dep_layer=='always':
             dep_save_number = self.timescale
         self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
-        
-        # For t_track
-        if t_track is not None:
-            # n_time_track = t_track[1]-t_track[0]+1
-            self.Qbi_dep_track = [[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(self.timescale)]
-            self.Qbi_dep_track2 = self.create_4d_zero_array()
         
         # Initial Qbi_dep:
         self.Qbi_dep_0 = [np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] # Initialise sediment deposit in the reaches
