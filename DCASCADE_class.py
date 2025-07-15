@@ -308,6 +308,15 @@ class DCASCADE:
                     self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
 
 
+                # For the sand analysis, I store the top of Vdep at the end of the time step
+                AL_volume = SedimSys.al_vol[t, n]
+                nothing, Vdep_top, Vdep_left, _ = SedimSys.layer_search(Vdep_end, AL_volume, roundpar = roundpar)
+                Vdep_top_c = SedimSys.matrix_compact(Vdep_top)
+                # SedimSys.Vdep_top_all[t][n] = Vdep_top_c
+                
+                SedimSys.Vdep_top_all[t][[SedimSys.provenance(Vdep_top_c).astype(int)], n, :] += SedimSys.sediments(Vdep_top_c)
+
+
             """End of the reach loop"""
 
             # Save Qbi_dep according to saving frequency
@@ -393,7 +402,11 @@ class DCASCADE:
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
-
+                       
+                        # For Po
+                        'Vdep top [m^3]': SedimSys.Vdep_top_all,
+                        'Qbi_tr [m^3]': SedimSys.Qbi_tr,
+                        'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
 
@@ -433,7 +446,9 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
                            'Widths [m]': SedimSys.width.astype(np.float32),
                            'Slopes': SedimSys.slope.astype(np.float32),
-                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
+                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32),
+                           
+
                            }
 
         if self.time_lag_for_mobilised == True:

@@ -336,7 +336,10 @@ class SedimentarySystem:
         self.D50_al_before_tlag = self.create_2d_zero_array()
         self.tr_cap_sum = self.create_2d_zero_array()  # total transport capacity
         self.flow_depth = self.create_2d_zero_array()
-
+        
+        # For po case
+        self.Vdep_top_all = self.create_4d_zero_array()
+        #[[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(self.timescale)]
 
 
     def set_sediment_initial_deposit(self, Qbi_dep_in):
