@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul 29 18:47:53 2025
+
+@author: Sahansila
+"""
+
+
+# -*- coding: utf-8 -*-
 """
 Created on Mon Oct 10 15:21:34 2022
 
@@ -8,50 +17,48 @@ Input that are required in the ReachData class which define your river network:
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
 - deposit = initial deposit layer expressed in m3/m2 - this value will be then
-  multiplied by the reach width and length
+  multiplied by the reach width and length 
 - D16, D50, D84 diameters expressed in [m] - will define the diameter distributions
   of the sediments present in the reach at t = 0 (i.e. of the deposit)
 - Q = initial water discharge per reach in [m3/s]
-- n = Manning coefficient for the calculation of the flow velocity
+- n = Manning coefficient for the calculation of the flow velocity 
 
 
-Then you will also need a Dataframe which provides the water discharge per reach per time step:
+Then you will also need a Dataframe which provides the water discharge per reach per time step: 
     rows = timestep
-    columns = reaches
+    columns = reaches 
 
 Optional: you can provide external sediment sources per timestep, per reach and
-per class of sediments. This variable is defined by Qbi_input
+per class of sediments. This variable is defined by Qbi_input 
 
-This script was adapted from the Matlab version by Marco Tangi
+This script was adapted from the Matlab version by Marco Tangi 
 
-@author: Elisa Bozzolan, Diane Doolaeghe, Anne Laure Argentin
+@author: Elisa Bozzolan
 """
 
-import copy
-import os
-import profile
-from pathlib import Path
-
-# import libraries
+# import libraries 
 import numpy as np
-# import geopandas as gpd
+import geopandas as gpd
 import pandas as pd
+# from plot_function import dynamic_plot
+import copy
 from numpy import random
 
-from DCASCADE_main_script import DCASCADE_main
 # import ad hoc functions
 from GSD import GSDcurvefit
-# from plot_function import dynamic_plot
-from preprocessing import extract_Q, graph_preprocessing, read_network
-from supporting_classes import ReachData
+from preprocessing import graph_preprocessing, extract_Q
+from DCASCADE_main_script import DCASCADE_main, ReachData
 from widget import read_user_input
+import profile
+import os
+from pathlib import Path
+
+
 
 '''user defined input data'''
 
 
-#--------------------1) Pathes
-
-#---River shape files
+#-------River shape files 
 path_river_network = Path("C:\\Sahansila\\cascade\\input\\shp_file_slopes_hydro_and_LR\\02-shp_trib_GSD_updated\\")
 name_river_network = 'Po_river_network.shp'
    
@@ -61,23 +68,32 @@ filename_river_network = path_river_network / name_river_network
 path_q = Path('C:\\Sahansila\\cascade\\input\\Discharge\\')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 
-name_q = 'Po_Qdaily_16y.csv'
+name_q = 'Po_Qdaily_3y.csv'
 filename_q = path_q / name_q
 
-#---Path to the output folder
+#--------External input (here sand for Dora Baltea, Sesia, Tanaro, Scrivia)
+# path_extern_input = Path('../../Po_case_16y/Inputs/sand_input/sand_to_add_Vezzoli_2nd_method/')
+# # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+# name_extern_input = 'sand_to_add_5.p'
+# filename_ext = path_extern_input / name_extern_input
+
+
+#--------Path to the output folder
 path_results = Path("C:\\Sahansila\\Cascade_v2.0\\cascade_results\\")
-name_file = path_results / 'save_all_16y.p'
+name_file = path_results / 'save_3yr.p'
+# name_file_ext = path_results / 'save_all_ext.p'
 
-#-------------------2) User-defined main parameters of the simulation
 
-#---Sediment classes definition
+#--------Parameters of the simulation
+
+#---Sediment classes definition 
 # defines the sediment sizes considered in the simulation
 #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-8, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5).
-n_classes = 6        # number of classes
+sed_range = [-8, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+n_classes = 6       # number of classes
 
-#---Timescale
-timescale = 5843 # days
+#---Timescale 
+timescale = 1095 #5843 days 1095
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Transport capacity formula and partitioning
@@ -86,10 +102,10 @@ indx_tr_partition = 2 # 2: BMF; 4: Shear stress correction
 
 #---Initial layer sizes
 deposit_layer = 100000      # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
-al_depth = 0.3              # Active layer depth [m] (Possibilities: '2D90', or any fixed value)
+al_depth = 0.3           # Active layer depth (Possibilities: '2D90', or any fixed value)
 
 #---Storing Deposit layer
-save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to save the deposit layer matrix
+save_dep_layer = 'never' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
 
 
 #-------------------2) List of optional defined parameters of the simulation
@@ -125,33 +141,32 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 
 
 
-
 ################ MAIN ###############
 # If the transport capacity formula is not chosen manually:
 if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
     indx_tr_cap, indx_tr_partition, indx_flo_depth = read_user_input()
 
-# Read the network
-network = read_network(filename_river_network)
+# Read the network 
+network = gpd.GeoDataFrame.from_file(filename_river_network) #read shapefine from shp format
 reach_data = ReachData(network)
 
 # Define the initial deposit layer per each reach in [m3/m]
 reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
 
-# Read/define the water discharge
+# Read/define the water discharge  
 Q = extract_Q(filename_q)
 
 # Sort reach_data according to the from_n, and organise the Q file accordingly
 sorted_indices = reach_data.sort_values_by(reach_data.from_n)
-Q_new = np.zeros(Q.shape)
-for i, idx in enumerate(sorted_indices):
+Q_new = np.zeros((Q.shape))
+for i, idx in enumerate(sorted_indices): 
     Q_new[:,i] = Q.iloc[:,idx]
 Q = Q_new
 
 # Extract network properties
 Network = graph_preprocessing(reach_data)
 
-# Sediment classes defined in Krumbein phi (φ) scale
+# Sediment classes defined in Krumbein phi (φ) scale   
 psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
 
 # Sediment classes in mm
@@ -160,22 +175,97 @@ dmi = 2**(-psi).reshape(-1,1)
 # Check requirements. Classes must be compatible with D16, D50, D84 defined for the reaches - i.e. max sed class cannot be lower than D16
 print(min(reach_data.D16) * 1000, ' must be greater than ', np.percentile(dmi, 10, method='midpoint'))
 print(max(reach_data.D84) * 1000, ' must be lower than ',  np.percentile(dmi, 90, method='midpoint'))
+   
 
-
-# External sediment for all reaches, all classes and all timesteps
+# External sediment for all reaches, all classes and all timesteps 
 external_inputs = np.zeros((timescale, reach_data.n_reaches, n_classes))
+#external_inputs = pd.read_pickle(open(filename_ext , "rb"))
+#force_pass_external_inputs = True
 
 # Define input sediment load in the deposit layer
 deposit = reach_data.deposit * reach_data.length
 
+# Puting Ticino back to its old GSD
+FromN_Ticino = 51
+reach_data.D16[FromN_Ticino - 1] = network.loc[network['FromN'] == FromN_Ticino, 'D16_old']
+reach_data.D50[FromN_Ticino - 1] = network.loc[network['FromN'] == FromN_Ticino, 'D50_old']
+reach_data.D84[FromN_Ticino - 1] = network.loc[network['FromN'] == FromN_Ticino, 'D84_old']
+
+# Puting Lambro back to its old GSD
+FromN_Lambro = 53
+reach_data.D16[FromN_Lambro - 1] = network.loc[network['FromN'] == FromN_Lambro, 'D16_old']
+reach_data.D50[FromN_Lambro - 1] = network.loc[network['FromN'] == FromN_Lambro, 'D50_old']
+reach_data.D84[FromN_Lambro - 1] = network.loc[network['FromN'] == FromN_Lambro, 'D84_old']
+
+
+# Smooth Po main stem slopes
+# def smooth_vector_manual_3(vector):
+    
+#     smoothed = np.zeros_like(vector)
+    
+#     smoothed[0] = (vector[0] + vector[1]) / 2
+    
+#     smoothed[1] = (vector[0] + vector[1]) / 2
+
+#     for i in range(1, len(vector) - 1):
+#         smoothed[i] = (vector[i - 1] + vector[i] + vector[i + 1]) / 3
+
+#     smoothed[-1] = (vector[-1] + vector[-2]) / 2
+
+#     return smoothed
+
+
+# def smooth_vector_manual_4(vector):
+    
+#     smoothed = np.zeros_like(vector)
+    
+#     smoothed[0] = (vector[0] + vector[1] + vector[2]) / 3
+    
+#     for i in range(1, len(vector) - 2):
+#         smoothed[i] = (vector[i - 1] + vector[i] + vector[i + 1] + vector[i + 2]) / 4
+
+#     smoothed[-2] = (vector[-3] + vector[-2] + vector[-1]) / 3
+    
+#     smoothed[-1] = (vector[-2] + vector[-1]) / 2
+
+#     return smoothed
+
+# Po_only = network.loc[network['River'] == 'Po']
+# reach_data_Po = ReachData(Po_only)
+# _ = reach_data_Po.sort_values_by(reach_data_Po.from_n)
+# Po_slopes = reach_data_Po.slope
+
+# smoothed_slopes = smooth_vector_manual_4(Po_slopes)
+
+
+   
+
 # Define initial sediment fractions per class in each reaches, using a Rosin distribution
 Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
 
-# Initialise deposit layer
+# # Add sand in Fir of Dora Baltea, Sesia, Tanaro, Scrivia 
+# FromN_tribs = [47, 48, 49, 50]
+# # Rs_Vezzoli = [0.43, 0.35, 0.26, 0.22]
+# Rs_tuned = [0.06, 0.5, 0.3, 0.4]
+# for FromN in FromN_tribs:
+#     idx_trib = FromN_tribs.index(FromN)    
+#     Fi_r[FromN-1,7:] = Rs_tuned[idx_trib]/len(Fi_r[FromN-1,7:])
+#     # Make sure that the non sand make 1-Rs in total
+#     sum_non_sand = np.sum(Fi_r[FromN-1,:7])
+#     ratio = (1 - Rs_tuned[idx_trib])/sum_non_sand
+#     Fi_r[FromN-1,:7] = Fi_r[FromN-1,:7] * ratio
+    
+#     #check sum makes 1
+#     print(np.sum(Fi_r[FromN-1,:]))
+    
+
+
+    
+# Initialise deposit layer 
 Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
 for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
-
+    
 
 
 
@@ -221,27 +311,29 @@ if 'save_dep_layer' in globals():
 data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length, al_depth,
                                              indx_tr_cap, indx_tr_partition, Qbi_dep_in,
                                              **kwargs)
+                                                
+
 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
-# data_output_t = copy.deepcopy(data_output)
-# variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
-# for item in variable_names:
-#     del data_output_t[item]
+data_output_t = copy.deepcopy(data_output)
+variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
+for item in variable_names: 
+    del data_output_t[item]
+    
 
+# Save results as pickled files     
+import pickle 
 
-# Save results as pickled files
-import pickle
-
-if not os.path.exists(path_results):   #does the output folder exist ?
+if not os.path.exists(path_results):   #does the output folder exist ?   
     os.makedirs(path_results)          # if not, create it.
 
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-#name_file_ext = path_results + 'save_all_ext.p'
-#pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+# pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
 
-# ## Plot results
+# ## Plot results 
 # keep_slider = dynamic_plot(data_output_t, reach_data, psi)
+
 
