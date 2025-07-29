@@ -85,6 +85,11 @@ class DCASCADE:
         # start waiting bar
         for t in tqdm(range(self.timescale - 1)):
 
+            
+            # if t == 10:
+            #  print ('stop')
+              
+
             # Channel width calculation
             SedimSys.width = choose_widthVar(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
 
@@ -121,6 +126,14 @@ class DCASCADE:
 
             # loop for all reaches:
             for n in self.network['n_hier']:
+                
+                
+                
+                if t == 92:
+                    if n == 4:
+                     print ('stop')
+
+         
 
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
@@ -132,6 +145,11 @@ class DCASCADE:
                         # Check if Vdep_init and Vdep_init_track remain the same:
                         if np.array_equal(SedimSys.sediments(Vdep_init), SedimSys.sediments(Vdep_init_track)) == False:
                             print('problem Vdep not equal')
+                       
+                            
+                      
+                            
+                            
 
 
                 # Extract external cascade (if they are)

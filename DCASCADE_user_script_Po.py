@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jul 29 18:47:53 2025
@@ -5,6 +6,8 @@ Created on Tue Jul 29 18:47:53 2025
 @author: Sahansila
 """
 
+=======
+>>>>>>> Stashed changes
 
 # -*- coding: utf-8 -*-
 """
@@ -79,8 +82,13 @@ filename_q = path_q / name_q
 
 
 #--------Path to the output folder
+<<<<<<< Updated upstream
 path_results = Path("C:\\Sahansila\\Cascade_v2.0\\cascade_results\\")
 name_file = path_results / 'save_3yr.p'
+=======
+path_results = Path("C:\\Sahansila\\cascade\\SAFE_output\\data_output_batch_test\\")
+# name_file = path_results / 'save_all.p'
+>>>>>>> Stashed changes
 # name_file_ext = path_results / 'save_all_ext.p'
 
 
@@ -90,10 +98,17 @@ name_file = path_results / 'save_3yr.p'
 # defines the sediment sizes considered in the simulation
 #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
 sed_range = [-8, 3]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+<<<<<<< Updated upstream
 n_classes = 6       # number of classes
 
 #---Timescale 
 timescale = 1095 #5843 days 1095
+=======
+n_classes = 6        # number of classes
+
+#---Timescale 
+timescale =1095 #5843 days 1095
+>>>>>>> Stashed changes
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Transport capacity formula and partitioning
@@ -243,6 +258,11 @@ reach_data.D84[FromN_Lambro - 1] = network.loc[network['FromN'] == FromN_Lambro,
 # Define initial sediment fractions per class in each reaches, using a Rosin distribution
 Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
 
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes
 # # Add sand in Fir of Dora Baltea, Sesia, Tanaro, Scrivia 
 # FromN_tribs = [47, 48, 49, 50]
 # # Rs_Vezzoli = [0.43, 0.35, 0.26, 0.22]
@@ -316,15 +336,28 @@ data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timesc
 
 
 # Exclude variables not included in the plotting yet (sediment divided into classes)
+<<<<<<< Updated upstream
 data_output_t = copy.deepcopy(data_output)
 variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
 for item in variable_names: 
     del data_output_t[item]
+=======
+# data_output_t = copy.deepcopy(data_output)
+# variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
+# for item in variable_names: 
+#     del data_output_t[item]
+>>>>>>> Stashed changes
     
 
 # Save results as pickled files     
 import pickle 
 
+<<<<<<< Updated upstream
+=======
+name_file = 'C:\\Sahansila\\Cascade_v2.0\\save_reults_EH_2019-21'
+
+
+>>>>>>> Stashed changes
 if not os.path.exists(path_results):   #does the output folder exist ?   
     os.makedirs(path_results)          # if not, create it.
 
