@@ -78,7 +78,7 @@ class DCASCADE:
             raise ValueError("You can not use this combination of algorithm options")
 
 
-    def run(self, Q, roundpar):
+    def run(self, Q, roundpar, t_track):
 
         SedimSys = self.sedim_sys
 
@@ -105,6 +105,24 @@ class DCASCADE:
 
             # Deposit layer from previous timestep
             Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
+
+
+
+
+            # If we are in the tracked times:
+            if t_track is not None:
+                if t >= t_track[0] and t <= t_track[1]:
+                # Create second deposit layer reinitialised in terms of provenances, if we are at the beginning of t_track times:
+                    if t == t_track[0]:
+                        Qbi_dep_0_track = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
+                        for n in SedimSys.network['n_hier']:
+                            # reset provenance in first column
+                            Qbi_dep_0_track[n][:,0] = n
+
+                    Qbi_dep_old_track = copy.deepcopy(Qbi_dep_0_track)
+
+
+
 
 
             # Matrix to store volumes of sediment passing through a reach
