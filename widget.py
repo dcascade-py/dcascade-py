@@ -73,28 +73,29 @@ def read_user_input():
     drop.pack(pady=20)
     root.mainloop()
 
-    def flow_depth_selection(event):
-        global flo_depth
-        if clicked.get() == "Manning":
-            flo_depth = 1
-        if clicked.get() == "Ferguson (2007)":
-            flo_depth = 2
-        root.destroy()
+    # Commented because the choice for flo depth and slope reduction needs to remain optional:
+    # def flow_depth_selection(event):
+    #     global flo_depth
+    #     if clicked.get() == "Manning":
+    #         flo_depth = 1
+    #     if clicked.get() == "Ferguson (2007)":
+    #         flo_depth = 2
+    #     root.destroy()
 
-    root = Tk() # create the little window
-    myLabel = Label(root, text = 'Flow depth calculation formulas')
-    myLabel.pack()
-    root.geometry("300x300")
-    #flo_depth = 2 # default value
-    options = ["Manning", "Ferguson (2007)"]
-    clicked = StringVar()
-    clicked.set("Choose an option")
+    # root = Tk() # create the little window
+    # myLabel = Label(root, text = 'Flow depth calculation formulas')
+    # myLabel.pack()
+    # root.geometry("300x300")
+    # #flo_depth = 2 # default value
+    # options = ["Manning", "Ferguson (2007)"]
+    # clicked = StringVar()
+    # clicked.set("Choose an option")
 
-    drop = OptionMenu(root, clicked, *options, command = flow_depth_selection)
-    drop.pack(pady=20)
-    root.mainloop()
+    # drop = OptionMenu(root, clicked, *options, command = flow_depth_selection)
+    # drop.pack(pady=20)
+    # root.mainloop()
 
-    # Commented because the choice needs to remain optional:
+    
     # def slope_reduction_selection(event):
     #     global slopeRed
     #     if clicked.get() == "None":
@@ -120,4 +121,4 @@ def read_user_input():
     # drop.pack(pady=20)
     # root.mainloop()
 
-    return indx_tr_cap, indx_partition, flo_depth, slopeRed
+    return indx_tr_cap, indx_partition

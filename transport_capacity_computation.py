@@ -46,15 +46,20 @@ class TransportCapacityCalculator:
         formula chosen by the  user and return the value of the transport capacity
         and the relative Grain Size Distrubution (pci) for each sediment class in the reach.
         """
+        
+        # Verify compatibility between transport formula and partitionning:
+        if indx_tr_cap == 2 and indx_partition != 4:
+            raise Exception("W&C formula can only be used with the 'shear stress correction' partitioning")
+        if indx_tr_cap != 2 and indx_partition == 4:   
+            raise Exception("the 'shear stress correction' partitioning can only be used for W&C")
 
+    
         ##choose partitioning formula for computation of sediment transport rates for individual size fractions
         #formulas from:
         #Molinas, A., & Wu, B. (2000): Comparison of fractional bed material load computation methods in sand?bed channels.
         #Earth Surface Processes and Landforms: The Journal of the British Geomorphological Research Group
 
 
-        # EB D50 entries change according to formula index - it would be good to create a class
-        # to call with the string name of the formula
 
         # 1: Direct computation by the size fraction approach
         # 2: The BMF approach (Bed Material Fraction)
@@ -284,11 +289,19 @@ class TransportCapacityCalculator:
         # Kinematic viscosity : CREATE A TABLE IN THE CONSTANTS?
         # @ 20�C: http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
         nu = 1.003*1E-6
+        
+        # If we compute the total load based on the bed D50 
+        # (i.e. self.D50 is a float and not a vector in the case of Molinas rate partitionning (3))
+        #, then I force it to be a vector:
+        if isinstance(self.D50, float):   
+            D50_s = np.array([self.D50])
+        else:
+            D50_s = self.D50
 
         # Dimensionless grain size (Eq. 59 of Stevens & Yang, 1989):
-        # EB change coding line if D_gr is different from a number
-        # TODO: Ackers - White suggest to use the D35 instead of the D50 (p. 21 of Stevens & Yang, 1989)
-        D_gr = self.D50 * (GRAV * R_VAR / nu**2)**(1/3)
+        # TODO: Ackers - White suggest to use the D35 instead of the D50 (p. 21 of Stevens & Yang, 1989)        
+        D_gr = D50_s * (GRAV * R_VAR / nu**2)**(1/3)
+        
 
         # Coefficients for dimensionless transport calculation:
         # n - the transition exponent depending on sediment size.
@@ -346,7 +359,12 @@ class TransportCapacityCalculator:
         # Transport capacity [m3/s]
         QS = QS_kg / RHO_S
         tr_cap = QS
-
+        
+        # If we compute the total load based on the bed D50 (float),
+        # I put tr_cap back to be a float:
+        if isinstance(self.D50, float):   
+            tr_cap = tr_cap[0]
+        
         return {"tr_cap": tr_cap}
 
     def Wong_Parker_formula(self):
