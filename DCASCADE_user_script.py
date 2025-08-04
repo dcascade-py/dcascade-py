@@ -137,8 +137,8 @@ if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
     indx_tr_cap, indx_tr_partition = read_user_input()
 
 # Read the network
-network = read_network(filename_river_network)
-reach_data = ReachData(network)
+reach_data_df = read_network(filename_river_network)
+reach_data = ReachData(reach_data_df)
 
 # Define the initial deposit layer per each reach in [m3/m]
 reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
@@ -154,7 +154,7 @@ for i, idx in enumerate(sorted_indices):
 Q = Q_new
 
 # Extract network properties
-Network = graph_preprocessing(reach_data)
+network = graph_preprocessing(reach_data)
 
 # Sediment classes defined in Krumbein phi (φ) scale
 psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).astype(float)
@@ -223,7 +223,7 @@ if 'save_dep_layer' in globals():
 
 
 # Call dcascade main
-data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length, al_depth,
+data_output, extended_output = DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
                                              indx_tr_cap, indx_tr_partition, Qbi_dep_in,
                                              **kwargs)
 

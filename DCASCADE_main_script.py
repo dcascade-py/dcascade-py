@@ -89,10 +89,11 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
     # Create sedimentary system
     sedimentary_system = SedimentarySystem(reach_data, network, timescale, ts_length,
-                                           save_dep_layer, update_slope, psi)
-    sedimentary_system.initialize_slopes()
+                                           save_dep_layer, psi)
+    
+    sedimentary_system.initialize_slopes(update_slope, indx_slope_red)
     sedimentary_system.initialize_widths(indx_width_calc)
-    sedimentary_system.initialize_elevations()
+    sedimentary_system.initialize_elevations(update_slope)
     sedimentary_system.initialize_storing_matrices()
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)
@@ -102,10 +103,12 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
 
     # Create DCASCADE solver
-    dcascade = DCASCADE(sedimentary_system, indx_flo_depth, indx_slope_red, indx_width_calc)
-
+    dcascade = DCASCADE(sedimentary_system)
+    
+    # Set sediment transport solving options
+    dcascade.set_hydraulic_options(indx_flo_depth)
     dcascade.set_transport_indexes(indx_tr_cap, indx_tr_partition)
-    dcascade.set_velocity_options(indx_velocity, indx_vel_partition, vel_height)
+    dcascade.set_velocity_options(indx_velocity, indx_vel_partition, vel_height)   
     dcascade.set_algorithm_options(passing_cascade_in_outputs, passing_cascade_in_trcap,
                                    time_lag_for_mobilised)
     # Run

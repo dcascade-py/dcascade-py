@@ -24,7 +24,13 @@ from width_variation import choose_widthVar
 
 
 class DCASCADE:
-    def __init__(self, sedim_sys: SedimentarySystem, indx_flo_depth, indx_slope_red, indx_width_calc):
+    """
+    @brief Main class of the D-CASCADE code. Used to run the algorithm and transfer sediments.
+    
+    @param sedim_sys Sedimentary system class
+    """
+    
+    def __init__(self, sedim_sys: SedimentarySystem):
 
         self.sedim_sys = sedim_sys
         self.reach_data = sedim_sys.reach_data
@@ -38,20 +44,23 @@ class DCASCADE:
         self.ts_length = sedim_sys.ts_length                  # time step length
         self.save_dep_layer = sedim_sys.save_dep_layer        # option for saving the deposition layer or not
         self.update_slope = sedim_sys.update_slope            # option for updating slope
-
+        self.indx_slope_red = sedim_sys.indx_slope_red
+        self.indx_width_calc = sedim_sys.indx_width_calc
+        
         # Indexes
-        self.indx_flo_depth = indx_flo_depth
-        self.indx_slope_red = indx_slope_red
-        self.indx_width_calc = indx_width_calc
+        self.indx_flo_depth = None
         self.indx_tr_cap = None
         self.indx_tr_partition = None
         self.indx_velocity = None
         self.indx_vel_partition = None
-
+        
         # Algorithm options
         self.passing_cascade_in_outputs = None
         self.passing_cascade_in_trcap = None
         self.time_lag_for_mobilised = None
+        
+    def set_hydraulic_options(self, indx_flo_depth):
+        self.indx_flo_depth = indx_flo_depth
 
     def set_transport_indexes(self, indx_tr_cap, indx_tr_partition):
         self.indx_tr_cap = indx_tr_cap

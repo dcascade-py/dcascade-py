@@ -117,21 +117,29 @@ class ReachData:
 
 
 class SedimentarySystem:
-    ''' Class for managing sediment exchanges, reassembling, and storing
+    ''' 
+    @brief Class for defining the sedimentary system at network scale, 
+    i.e. initial morphological conditions, storing matrices, and sediment transport functions
+
+    @param reach_data The reach data inputs
+    @param network Network structure (graph)
+    @param timescale Time step number
+    @param ts_length Time step length
+    @param save_dep_layer Option for saving deposit layer
+    @param psi Sediment size class vector in psi scale
+    @param phi porosity
+    @param minvel minimum velocity
     '''
-    #TODO: (DD) tests must be made on eros max, al, and velocity_height
-    # to make sure that they don't contain Nans
 
 
     def __init__(self, reach_data, network, timescale, ts_length, save_dep_layer,
-                 update_slope, psi, phi = 0.4, minvel = 0.0000001, n_metadata=1):
+                 psi, phi = 0.4, minvel = 0.0000001, n_metadata=1):
 
         self.reach_data = reach_data
         self.network = network
         self.timescale = timescale
         self.ts_length = ts_length
         self.save_dep_layer = save_dep_layer
-        self.update_slope = update_slope
         self.n_metadata = n_metadata
         self.n_classes = len(psi)
         self.n_reaches = reach_data.n_reaches
@@ -139,9 +147,7 @@ class SedimentarySystem:
         self.phi = phi                          # sediment porosity
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
-
-        # Setted variables
-
+        
 
         # Storing matrices (and related options)
         self.Qbi_dep = None
@@ -151,7 +157,10 @@ class SedimentarySystem:
         self.Qbi_mob = None
         self.Qbi_mob_from_r = None
         self.V_sed = None
-        self.Q_out = None
+        self.Q_out = None        
+        self.update_slope = None
+        self.indx_slope_red = None
+        self.indx_width_calc = None
         self.slope = None
         self.width = None
         self.node_el = None
@@ -174,7 +183,6 @@ class SedimentarySystem:
 
         # temporary ?
         self.Qbi_dep_0 = None
-
         self.Qc_class_all = None        # DD: can it be optional ?
 
 
@@ -250,17 +258,24 @@ class SedimentarySystem:
     def create_2d_zero_array(self):
         return np.zeros((self.timescale, self.n_reaches))
 
-    def initialize_slopes(self):
+    def initialize_slopes(self, update_slope, indx_slope_red):
+        self.update_slope = update_slope
+        self.indx_slope_red = indx_slope_red
+        
+        # Initialise slope matrices
         self.min_slope = min(self.reach_data.slope)  # put a minimum value to guarantee movement  (DD: why min of the reach slopes ?)
         self.slope = self.create_2d_zero_array()
         self.slope[0,:] = np.maximum(self.reach_data.slope, self.min_slope)
         self.slope[1,:] = np.maximum(self.reach_data.slope, self.min_slope)
 
         # In case of constant slope
-        if self.update_slope == False:
+        if update_slope == False:
             self.slope[:,:] = self.slope[0,:]
 
     def initialize_widths(self, indx_width_calc):
+        self.indx_width_calc = indx_width_calc
+        
+        # Initialise width matrices
         self.width = self.create_2d_zero_array()
 
         if indx_width_calc == 1:
@@ -279,7 +294,7 @@ class SedimentarySystem:
         # Put the same initial width for all time steps
         self.width[:,:] = self.width[0,:]
 
-    def initialize_elevations(self):
+    def initialize_elevations(self, update_slope):
         # Initialize node elevation (for each reach the matrix reports the fromN elevation)
         # The last column reports the outlet ToNode elevation (last node of the network),
         # which can never change elevation.
@@ -290,7 +305,7 @@ class SedimentarySystem:
         self.node_el[:,-1] = self.node_el[1,-1]
 
         # In case of constant slope:
-        if self.update_slope == False:
+        if update_slope == False:
             self.node_el[:,: ] = self.node_el[0,:]
 
 
