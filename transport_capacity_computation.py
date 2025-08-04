@@ -26,16 +26,16 @@ class TransportCapacityCalculator:
             7: self.Rickenmann_formula
         }
         self.fi_r_reach = fi_r_reach
-        self.total_D50 = total_D50
+        self.total_D50 = total_D50              # total D50 in meters
         self.slope = slope
         self.Q = Q
         self.wac = wac
         self.v = v
         self.h = h
         self.psi = psi
-        self.class_D50 = 2**(-self.psi) / 1000 # sediment classes diameter [m]
-        self.gamma = gamma # hiding factor
-        self.roughness = roughness # D90, D84 or roughness from input reachdata class
+        self.class_D50 = 2**(-self.psi) / 1000  # sediment classes diameter in meters
+        self.gamma = gamma                      # hiding factor
+        self.roughness = roughness              # D90, D84 or roughness from input reachdata class
 
         self.D50 = np.nan
 
@@ -73,7 +73,7 @@ class TransportCapacityCalculator:
         }
         self.D50 = index_to_partitioning.get(indx_partition)
 
-        Qtr_cap = np.zeros(len(self.psi))[None]
+        # Qtr_cap = np.zeros(len(self.psi))[None]
         Qtr_cap, Qc = self.choose_formula(indx_tr_cap)
 
         if indx_partition == 2:
@@ -367,6 +367,7 @@ class TransportCapacityCalculator:
         
         return {"tr_cap": tr_cap}
 
+
     def Wong_Parker_formula(self):
         """
         Returns the value of the transport capacity [m3/s] for each sediment class
@@ -396,6 +397,7 @@ class TransportCapacityCalculator:
         tr_cap = QS_WP # [m3/s]
 
         return {"tr_cap": tr_cap}
+
 
     def Rickenmann_formula(self):
         """
@@ -437,44 +439,62 @@ class TransportCapacityCalculator:
 
 
 
-    def Molinas_rates(self, dmi_finer, D50_finer):
+    def Molinas_rates(self, dmi, total_D50):
         """
-        Returns the Molinas coefficient of fractional transport rates pci, to be
-        multiplied by the total sediment load to split it into different classes.
+        Method for paritionning the transport capacity among sediment size classes. 
+        Falls into the transport capacity fraction approaches (TCF approaches), i.e. it 
+        directly distribute the sediment transport rates into size groups through a transport 
+        capacity distribution function.      
+        
+        Here, the TC distribution function is from Wu and Molinas (1996), 
+        described also in Molinas and Wu (2000).
+        
+        Input grain sizes must be in mm.
+        
+        
+        Input: 
+            - dmi: sediment class size [mm] - array
+            - total_D50: total D50 [mm] - float
+        
+        Return:  
+            - pci: Molinas coefficient of fractional transport rates to be multiplied 
+            by the total sediment load to split it into different classes.
 
         References:
         Molinas, A., & Wu, B. (2000). Comparison of fractional bed material load
         computation methods in sand-bed channels. Earth Surface Processes and
         Landforms: The Journal of the British Geomorphological Research Group.
+        
+        Wu B, Molinas A. (1996). Modeling of alluvial river sediment transport. 
+        Proceedings of the International Conference on Reservoir Sedimentation, 
+        Vol. I, Albertson ML, Molinas A, Hotchkiss R (eds). 
+        
         """
+        
+        # Hydraulic parameters
+        tau = RHO_W * GRAV * self.h * self.slope         # Shear stress
+        
+        vstar = np.sqrt(GRAV * self.h * self.slope)     # Shear velocity
+        
+        froude = self.v / np.sqrt(GRAV * self.h)        # Froude number
+                
+        # Accounting for scaling size of bed material (from Wu et al. (2003)) (DD: better understand why)
+        Dn = (1 + (self.GSD_std(dmi) - 1)**1.5) * total_D50 
+        
+        # Geometric standard deviation of bed material
+        gsd_std = self.GSD_std(dmi) 
 
-        # Molinas and wu coefficients
-        # Molinas requires D50 and dmi in mm
-
-        # Hydraulic parameters in each flow percentile for the current reach
-        Dn = (1 + (self.GSD_std(dmi_finer) - 1)**1.5) * D50_finer # scaling size of bed material
-
-        tau = 1000 * GRAV * self.h * self.slope
-        vstar = np.sqrt(tau / 1000);
-        froude = self.v / np.sqrt(GRAV * self.h)     # Froude number
-
-        # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
-        # EQ 24 , 25 , 26 , Molinas and Wu (2000)
-        alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / D50_finer)**(-2))
-        beta = 0.2 * self.GSD_std(dmi_finer)
-        zeta = 2.8 * froude**(-1.2) *  self.GSD_std(dmi_finer)**(-3)
+        # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
+        alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+                
+        beta = 0.2 * gsd_std
+        
+        zeta = 2.8 * froude**(-1.2) *  gsd_std**(-3)       
         zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
 
-        # alpha, beta, and zeta parameter for each flow percentile (columns), and each grain size (rows)
-        # EQ 17 , 18 , 19 , Molinas and Wu (2003)
-        # alpha = - 2.85* exp(-1000*(self.v/vstar)^2*(self.h/D50)^(-2));
-        # beta = 0.2* GSD_std(dmi);
-        # zeta = 2.16*froude^(-1);
-        # zeta(isinf(zeta)) = 0;
-
-        # fractioning factor for each flow percentile (columns), and each grain size (rows)
-        frac1 = self.fi_r_reach * ((dmi_finer / Dn)**alpha + zeta * (dmi_finer / Dn)**beta) # Nominator in EQ 23, Molinas and Wu (2000)
-        pci = frac1 / np.sum(frac1)
+        # Fractioning factor for each grain size (rows) (eq 23 in Molinas and Wu (2000))
+        frac = self.fi_r_reach * ((dmi / Dn)**alpha + zeta * (dmi / Dn)**beta)  
+        pci = frac / np.sum(frac)
 
         return pci
 
