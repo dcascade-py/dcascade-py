@@ -225,7 +225,7 @@ class SedimentarySystem:
     def sediments(self, matrix):
         '''
         Access the sediment columns of the matrix.
-        @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!
+        @warning Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!
         '''
         if matrix.ndim == 1:
             return matrix[self.n_metadata:]
@@ -235,7 +235,7 @@ class SedimentarySystem:
     def metadata(self, matrix):
         '''
         Access the metadata columns of the matrix.
-        @warning: Use self.metadata(matrix) for access, but use self.metadata(matrix)[:] for assignment!
+        @warning Use self.metadata(matrix) for access, but use self.metadata(matrix)[:] for assignment!
         '''
         if matrix.ndim == 1:
             return matrix[:self.n_metadata]
@@ -245,7 +245,7 @@ class SedimentarySystem:
     def provenance(self, matrix):
         '''
         Access the provenance column of the matrix.
-        @warning: Use self.provenance(matrix) for access, but use self.provenance(matrix)[:] for assignment!
+        @warning Use self.provenance(matrix) for access, but use self.provenance(matrix)[:] for assignment!
         '''
         if matrix.ndim == 1:
             return matrix[0]
@@ -285,7 +285,7 @@ class SedimentarySystem:
     def create_4d_zero_array(self):
         ''' 
         Initialise a 4d storing matrice (time step x initial reach x current reach x sediment size class)        
-        @Note: we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
+        @Note we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
         '''
         return [np.zeros((self.n_reaches, self.n_reaches, self.n_classes)) for _ in range(self.timescale)]
 
@@ -557,7 +557,8 @@ class SedimentarySystem:
 
     def extract_external_inputs(self, cascade_list, t, n):
         """
-        Create a new cascade object in reach n at time step t, to be added to the cascade list
+        Create a new cascade object in reach n at time step t, from external input,
+        to be added to the cascade list.
         
         @param cascade_list
             list of cascades currently in the reach
@@ -585,16 +586,46 @@ class SedimentarySystem:
                                     Q_reach, v, h, roundpar, t, n,
                                     indx_velocity, indx_vel_partition,
                                     indx_tr_cap, indx_tr_partition):
-
-        # Compute the velocity of the cascades in reach_cascade_list.
-        # The velocity must be assessed by re-calculating the transport capacity
-        # in the present reach, considering the effect of the arriving cascade(s).
-        # Two methods are proposed to re-evaluated the transport capacity, chosen
-        # by the indx_velocity.
-        # First method: the simplest, we re-calculate the transport capacity on each cascade itself.
-        # Second method: we consider the active layer volume, to complete, if needed,
-        # the list of cascade by some reach material. If the cascade volume is more
-        # than the active layer, we consider all the cascade volume.
+        
+        """
+        Compute the velocity of all the cascade objects in cascade_list.
+        
+        @param cascade_list
+            List of cascade objects        
+        @param Vdep
+            Reach deposit layer        
+        @param Q_reach
+            Reach water discharge [m3/s] at this time step        
+        @param v
+            Reach water velocity [m/s]
+        @param h
+            Reach water height        
+        @param t
+            Time step       
+        @param n
+            Reach index        
+        @param indx_velocity
+            Index for velocity calculation method
+        @param indx_vel_partition
+            Index for velocity calculation method among the different size classes
+        @param indx_tr_cap
+            Index for transport capacity formula
+        @param indx_tr_partition
+            Index for transport capacity paritionning
+        
+        @Note 
+            The velocity must be assessed by re-calculating the transport capacity [m3/s]
+            in the present reach considering all arriving cascade(s).
+        @Note
+            Two methods are proposed to evaluated this transport capacity, chosen
+            by the indx_velocity parameter: 1) the simplest, we re-calculate the transport 
+            capacity on each cascade independantly.
+            2) we consider the active layer volume. This will potentially add the influence of
+            some reach deposited material.
+        @Note 
+            The velocity can be either the same among the sediment size classes 
+            or set proportionnaly to the fluxes Qi
+        """
 
 
         if indx_velocity == 1:
@@ -637,15 +668,42 @@ class SedimentarySystem:
                           indx_vel_partition,
                           indx_tr_cap, indx_tr_partition):
 
-        ''' Compute the velocity of the volume of sediments in m/s.
-        The transport capacity [m3/s] is calculated on this volume,
-        and the velocity is calculated by dividing the
-        transport capacity by a section (hVel x width x (1 - porosity)).
-        For partionning the section among the different sediment class in the volume,
-        two methods are proposed.
-        The first one put the same velocity to all classes.
-        The second divides the section equally among the classes with non-zero transport
-        capacity, so the velocity stays proportional to the transport capacity of that class.
+        ''' 
+        Compute the velocity of one sediment volume.
+        
+        @param volume
+            one sediment volume
+        @param Q_reach
+            Reach water discharge [m3/s] at this time step        
+        @param v
+            Reach water velocity [m/s]
+        @param h
+            Reach water height        
+        @param t
+            Time step       
+        @param n
+            Reach index        
+        @param indx_vel_partition
+            Index for velocity calculation method among the different size classes
+        @param indx_tr_cap
+            Index for transport capacity formula
+        @param indx_tr_partition
+            Index for transport capacity paritionning
+        
+        @return 
+            the computed velocities (1d array, size: n_classes)
+        
+        @Note 
+            The transport capacity [m3/s] is calculated on this volume,
+            and the velocity is calculated by dividing the transport capacity 
+            by a section (hVel x width x (1 - porosity)).
+        
+        @Note 
+            For partionning the section among the different sediment size class in the volume,
+            two methods are proposed.
+            The first one put the same velocity to all classes.
+            The second divides the section equally among the classes with non-zero transport
+            capacity, so the velocity stays proportional to the transport capacity of that class.
 
         '''
         # Find volume sediment class fractions and D50
@@ -685,20 +743,28 @@ class SedimentarySystem:
 
 
     def cascades_end_time_or_not(self, cascade_list, n, t):
-        ''' Fonction to decide if the traveling cascades in cascade list stop in
+        '''         
+        Fonction to decide if the traveling cascades in cascade list stop in
         the reach or not, due to the end of the time step.
-        Inputs:
-            cascade_list:       list of traveling cascades
-            n:                  reach index
+        
 
-        Return:
-            cascade_list_new:       same cascade list updated. Stopping cascades or
-                                    partial volumes have been removed
-
-            depositing_volume:      the volume to be deposited in this reach.
-                                    They are ordered according to their arrival time
-                                    at the inlet, so that volume arriving first
-                                    deposit first.
+        @param cascade_list       
+            List of cascades objects
+        @param n                  
+            Reach index
+        @param t                  
+            Time step
+            
+        @return cascade_list_new
+            List of cascades objects updated. Stopping cascades or partial volumes have been removed                                    
+        @return depositing_volume      
+            The volume to be deposited in this reach. Stopped by time.
+        
+        @Note
+            Cascades are ordered according to their arrival time at the inlet, 
+            so that volume arriving first deposit first.
+                                    
+                                    
         '''
         # Order cascades according to their arrival time, so that first arriving
         # cascade are first in the loop and are deposited first
