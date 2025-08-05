@@ -831,12 +831,23 @@ class SedimentarySystem:
 
     def stop_or_not(self, t_new, Vm):
         '''
-        Function that decides if a volume of sediments will stop in this
-        reach or not, depending on time. Part of the volume can stop or continue.
+        Decides if a volume of sediments (Vm) will stop in this
+        reach at the end of the time step or not. 
+        
+        @Note Part of the volume can stop or continue.
 
-        t_new: elapsed time since beginning of time step for Vm, for each sed class
-        Vm: traveling volume of sediments
+        @param t_new
+            Elapsed time since beginning of time step for Vm, for each sed class
+        @param Vm 
+            Volume of sediments
+            
+        @return Vm_stop
+            Stopping volume
+        @return Vm_continue
+            Continuing volume
+            
         '''
+        
         cond_stop = np.append([True]*self.n_metadata, [t_new>1])
         Vm_stop = np.zeros_like(Vm)
         Vm_stop[:, cond_stop] = Vm[:, cond_stop]
@@ -854,13 +865,19 @@ class SedimentarySystem:
 
 
     def compute_time_lag(self, cascade_list):
-
-        # The time lag is the time we use to mobilise from the reach,
-        # before cascades from upstream reaches arrive at the outlet of the present reach.
-        # We take it as the time for the first cascade to arrive at the outet.
-
-        # cascade_list            : the list of passing cascade objects. Can be empty.
-
+        """
+        @details 
+            This function is used only when the time_lag option is activated in the simulation.
+            The time lag is the time before the first continuing cascade arrives
+            at the outlet of the reach. It leave time to mobilise from the reach 
+            deposit layer in the meantime. 
+            
+        @param 
+            list of continuing cascade objects. Can be empty.
+        @return time_lag
+            the time lag 
+        """
+        
         if cascade_list == []:
             time_lag = np.ones(self.n_classes) # the time lag is the entire time step as no other cascade reach the outlet
         else:
@@ -875,12 +892,27 @@ class SedimentarySystem:
     def compute_transport_capacity(self, Vdep, roundpar, t, n, Q, v, h,
                                    indx_tr_cap, indx_tr_partition,
                                    passing_cascades = None):
-        # Compute the transport capacity in m3/s using the active layer
-        # on the deposit layer (Vdep) and passing cascades (if they are).
-
-        # The option "per second" put the passing cascades in m3/s instead of m3/ts_length
-        # This option is by default False. Putting it True can create some
-        # strange behaviour (on and off mobilisation).
+        """
+        Compute the transport capacity in reach n at time step t. 
+        
+        @details 
+            The transport capacity [m3/s] is computed on the active layer, made of
+            the deposit layer (Vdep) and eventually continuing cascades (passing_cascades)  
+            
+        @param Vdep
+            Reach deposit layer
+        @param passing_cascades
+            List of cascade (the ones that did not end the time step in this reach = continuing cascades)
+            
+        @return tr_cap_per_s
+            Transport capacity in m3/s (array, size: n_classes)
+        @return Fi_al_
+            Sediment fraction per size class in the active layer
+        @return D50_al_
+            Active layer D50
+        @return Qc
+            Critical discharge (only for Rickenmann transport formula)
+        """
 
         if passing_cascades == None or passing_cascades == []:
             passing_volume = None
@@ -930,8 +962,42 @@ class SedimentarySystem:
         return tr_cap_per_s, Fi_al_, D50_al_, Qc
 
 
-    def compute_mobilised_volume(self, Vdep, tr_cap_per_s, n, t, roundpar,
+    def compute_mobilised_volumes(self, Vdep, tr_cap_per_s, n, t, roundpar,
                                  passing_cascades = None, time_fraction = None):
+        
+        """
+        Compute the mobilised volumes in reach n at time step t. 
+        
+        @details 
+            This function compute the mobilised volumes from a reach, considering 
+            the eventual continuig cascades (cascade coming from upstream but not 
+            stopped by time). It can mobilised a volume from the reach (Vmob) and/or
+            deposit some of the continuing cascade (that are now stopped by energy).
+        
+        @Note 
+            The order in which we select the continuing cascade to be deposited
+            is from largest times (arriving later) to shortest times (arriving first). 
+            Hypotheticaly, cascade arriving first are passing in priority, in turn, 
+            cascades arriving later are deposited in priority.
+        
+            
+        @param Vdep
+            Reach deposit layer
+        @param tr_cap_per_s
+            Transport capacity
+        @param passing_cascades
+            List of cascade (the ones that did not end the time step in this reach = continuing cascades)
+        @param time_fraction
+            Fraction of the time step we are actually mobilising (created to consider the time lag option)
+            
+        @return Vmob
+            New volume mobilised from the reach deposit layer
+        @return passing_cascades
+            Liste of cascades (continuing cascade that actually manage to pass the outlet)
+        @return Vdep_new
+            Updated reach deposit layer
+
+        """
 
         # Case where we don't consider a time lag, the time for mobilising is the complete time step:
         if time_fraction is None:
@@ -970,6 +1036,8 @@ class SedimentarySystem:
         diff_pos = np.where(diff_with_capacity < 0, 0, diff_with_capacity)
         if np.any(diff_pos):
             # Search for layers to be put in the erosion max (e_max_vol_)
+            # _, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
+            # [V_mob, Vdep_new] = self.mobilise_from_deposit_layer(V_dep_el, V_dep_not_el, diff_pos, roundpar)
             V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
             if np.all(self.sediments(V_mob) == 0):
@@ -978,8 +1046,7 @@ class SedimentarySystem:
             Vdep_new  = Vdep
             V_mob = None
 
-        # Sediment classes with negative values in diff_with_capacity
-        # are over capacity
+        # Sediment classes with negative values in diff_with_capacity are over capacity
         # They are deposited, i.e. directly added to Vdep
         diff_neg = -np.where(diff_with_capacity > 0, 0, diff_with_capacity)
         if np.any(diff_neg):
@@ -991,7 +1058,7 @@ class SedimentarySystem:
         if self.force_pass_external_inputs == True and passing_cascades_excluded != []:
             passing_cascades.extend(passing_cascades_excluded)
 
-        # If the new vdep is empty, put an empty layer for next steps
+        # If the new Vdep is empty, put an empty layer for next steps
         if Vdep_new.size == 0:
             Vdep_new = self.create_volume(provenance=n)
 
@@ -1000,24 +1067,33 @@ class SedimentarySystem:
 
 
     def layer_search(self, V_dep_old, V_lim, Qpass_volume = None, roundpar = None):
-        # This function searches uppermost layers from a volume of layers,
-        # to correspond to a maximum volume. Passing cascade can be integrated
-        # to the top of the volume.
-        # The maximum volume can represent for example the active layer,
-        # i.e. what we consider as active during the transport process,
-        # or a maximum to be eroded per time step.
-
-        # INPUTS:
-        # V_dep_old :         the reach deposit layer
-        # V_lim  :            is the total maximum volume to be selected
-        # Qpass_volume :      is the traveling volume to be added at the top of the layers
-        # roundpar     :      number of decimals for rounding volumes
-
-        # RETURN:
-        # V_inc2act    :      Layers of the incoming volume to be put in the maximum volume
-        # V_dep2act    :      layers of the deposit volume to be put in the maximum volume
-        # V_dep_new    :      remaining deposit layer
-        # Fi_r_reach   :      fraction of sediment in the maximum volume
+        """
+        Select uppermost layers available in a reach.
+        
+        @details 
+            This function searches uppermost layers from a volume of layers,
+            to correspond to a maximum volume (V_lim). Passing cascade can be integrated
+            to the top of the volume (Qpass_volume). 
+            The maximum volume can represent for example the active layer,
+            i.e. what we consider as active during the transport process,
+            or a maximum to be eroded per time step.   
+            
+        @param V_dep_old
+            Reach deposit layer        
+        @param V_lim
+            Volume limit (float)
+        @param Qpass_volume
+            Sediment volume to be added to the top of the reach deposit layer
+            
+        @return V_inc2act
+            Layers of the traveling volume (Qpass_volume) to be put in the maximum volume
+        @return V_dep2act
+            Layers of the deposit volume (V_dep_old) to be put in the maximum volume
+        @return V_dep_new
+            Remaining deposit layer
+        @return Fi_r_reach 
+            Fraction of sediment per sizes in the maximum volume
+        """
 
         reach_metadata = V_dep_old[0, :self.n_metadata]
 
@@ -1135,8 +1211,156 @@ class SedimentarySystem:
         return V_inc2act, V_dep2act, V_dep, Fi_r_reach
 
 
+    # Trying to rewrite tr_cap_deposit that is now used only for mobilising from the reach deposit layer
+    
+    # def mobilise_from_deposit_layer(self, V_inc2act, V_dep2act, V_dep_not_act, tr_cap, roundpar):
+    #     '''
+        
+        
+    #     INPUTS:
+    #     V_inc2act :  incoming volume that is in the maximum mobilisable volume (active layer)
+    #                 (n_layers x n_classes + 1)
+    #     V_dep2act :  deposit volume that is in the maximum mobilisable volume (active layer)
+    #                 (n_layers x n_classes + 1)
+    #     V_dep_not_act     :  remaining deposit volume
+    #                 (n_layers x n_classes + 1)
+    #     tr_cap    :  volume that can be mobilised during the time step according to transport capacity
+    #                 (x n_classes)
+    #     roundpar  : number of decimals to round the volumes
+    #     '''
+        
+
+    
+    #     # # Identify classes for which the incoming volume in the active layer
+    #     # # is under the transport capacity:
+    #     # under_capacity_classes = tr_cap > np.sum(self.sediments(V_inc2act), axis=0)
+    
+    #     # # If they are any, sediment will have to be mobilised from V_dep2act,
+    #     # # taking into consideration the sediment stratigraphy
+    #     # # (upper layers get mobilized first)
+    #     # if np.any(under_capacity_classes):
+    #     #     # sum of under capacity classes in the incoming volume:
+    #     #     mask = np.append([False]*self.n_metadata, under_capacity_classes)
+    #     #     sum_classes = np.sum(V_inc2act[:, mask], axis=0)
+    #     #     # remaining active layer volume per class after considering V_inc2act
+    #     #     # (for under capacity classes only)
+    #     #     tr_cap_remaining = tr_cap[under_capacity_classes] - sum_classes
+    #     #     # select columns in V_dep2act corresponding to under_capacity_classes
+    #     #     V_dep2act_class = V_dep2act[:, mask]
+        
+        
+    #     # Cumulate volumes in V_dep2act from last to first row
+    #     # Reminder: Last row is the top layer
+    #     csum = np.cumsum(V_dep2act[::-1], axis = 0)[::-1]
+    
+    #     # Find the indexes of the lowermost layer falling within tr_cap, for each class.
+    #     # In case tr cap is higher than the total volume in Vdep_2_act, for a given class,
+    #     # we take the bottom class (first row):
+    #     mapp = csum >= tr_cap
+    #     mapp[0, np.any(~mapp, axis = 0)] = True # force bottom layer to be true (first row)
+    #     firstoverthresh = (mapp * 1).argmin(axis = 0)
+    #     firstoverthresh = firstoverthresh - 1
+    #     firstoverthresh[firstoverthresh == -1] = csum.shape[0] - 1
+    #     # Finally, we obtain a binary matrix indicating the threshold layers:
+    #     # (DD: maybe there is a more elegant way to find this matrix ?)
+    #     mapfirst = np.zeros(mapp.shape)
+    #     mapfirst[firstoverthresh, :] = 1
+    #     # Now compute the percentage to be lifted from the layer "on the threshold":
+    #     sum_layers_above_threshold = np.sum(np.where(mapp == False, V_dep2act, 0), axis = 0)
+    #     remaining_for_split_threshold = tr_cap - sum_layers_above_threshold
+    #     perc_threshold = remaining_for_split_threshold/V_dep2act[firstoverthresh, :]
+    #     # limit to a maximum of 1, in case the tr_cap is higher than the total volume (see above),
+    #     # and we had taken the bottom layer:
+    #     perc_dep = np.minimum(perc_threshold, 1)
+    
+    #     # Final matrix indicating the percentage we take from V_dep2act:
+    #     # (To multiply to V_dep2act_class)
+    #     map_perc = mapfirst * perc_dep + ~mapp * 1
+    
+    #     # The matrix V_dep2act_new contains the mobilized cascades from
+    #     # the deposit layer, now corrected according to the tr_cap:
+    #     V_dep2act_new = np.zeros(V_dep2act.shape)
+    #     self.provenance(V_dep2act_new)[:] = self.provenance(V_dep2act)
+    #     V_dep2act_new = map_perc * V_dep2act
+    #     # Round the volume:
+    #     if ~np.isnan(roundpar):
+    #         self.sediments(V_dep2act_new)[:]  = np.around(self.sediments(V_dep2act_new), decimals=roundpar)
+
+    #     # The matrix V_2dep contains the cascades that will be deposited into the deposit layer.
+    #     # (the new volumes for the classes in under_capacity_classes and all the volumes in the remaining classes)
+    #     V_2dep = np.zeros(V_dep2act.shape)
+    #     # add all volume in other (over capacity) classes
+    #     V_2dep[:, ~mask] = V_dep2act[:, ~mask]
+    #     # add remaining volume in uncer capacity classe
+    #     V_2dep_class = V_dep2act_class - V_dep2act_new[:, mask]
+    #     V_2dep[:, mask] = V_2dep_class
+
+    #     # Round the volume:
+    #     if ~np.isnan(roundpar):
+    #         self.sediments(V_2dep)[:]  = np.around(self.sediments(V_2dep), decimals=roundpar)
+
+    #     # # If they are no sediment to be mobilised from V_dep2act,
+    #     # # I re-deposit all the matrix V_dep2act into the deposit layer:
+    #     # else:
+    #     #     V_2dep = V_dep2act
+    #     #     # V_dep2act_new is empty:
+    #     #     V_dep2act_new = np.zeros(V_dep2act.shape)
+    #     #     V_dep2act_new[0] = 0 # EB:0 because it should be the row index (check whether should be 1)
+    
+    #     # # For the classes where V_inc2act is enough, I deposit the cascades
+    #     # # proportionally
+    #     # # TODO : DD, now in this new version, there is never volume incoming in this function -> to be adapted
+    #     # sum_classes_above_capacity = np.sum(V_inc2act[: , np.append([False]*self.n_metadata, ~under_capacity_classes) == True], axis = 0)
+    #     # # percentage to mobilise from the above_capacity classes:
+    #     # perc_inc = tr_cap[~under_capacity_classes] / sum_classes_above_capacity
+    #     # perc_inc[np.isnan(perc_inc)] = 0 # change NaN to 0 (naN appears when both tr_cap and sum(V_inc2act) are 0)
+    #     # class_perc_inc = np.zeros(under_capacity_classes.shape)
+    #     # class_perc_inc[under_capacity_classes == False] = perc_inc
+    #     # # Incomimg volume that is effectively mobilised, according to tr_cap:
+    #     # mask_above_capacity = np.append([True]*self.n_metadata, under_capacity_classes)#np.append([False]*self.n_metadata, ~under_capacity_classes)
+    #     # mask_under_capacity = np.append([False]*self.n_metadata, class_perc_inc)
+        
+    #     # V_inc2act_new = V_inc2act * mask_above_capacity + V_inc2act * mask_under_capacity
+    
+    #     # Mobilised volume :
+    #     V_mob = V_dep2act_new
+    #     V_mob = self.matrix_compact(V_mob)
+    #     # Round:
+    #     if ~np.isnan(roundpar):
+    #         self.sediments(V_mob)[:] = np.around(self.sediments(V_mob), decimals = roundpar)
+    
+    #     # # Compute what is to be added to V_dep from Q_incomimg:
+    #     # # DD: again in V2, there in no Q_incoming in this function anymore -> to be adapted
+    #     # class_residual = np.zeros(under_capacity_classes.shape);
+    #     # class_residual[under_capacity_classes==False] = 1 - perc_inc
+    #     # V_inc2dep = V_inc2act * np.hstack(([1]*self.n_metadata, class_residual))
+    
+    #     # Final volume from active layer to be put in Vdep:
+    #     V_2dep = V_2dep
+    #     # Round:
+    #     if ~np.isnan( roundpar ):
+    #         self.sediments(V_2dep)[:] = np.around(self.sediments(V_2dep), decimals=roundpar)
+    
+    #     # Put the volume exceeding the transport capacity (V_2dep) back in the deposit:
+    #     # (If the upper layer in the deposit and the lower layer in the volume to be
+    #     #deposited are from the same reach, i sum them)
+    #     V_dep = np.copy(V_dep_not_act)
+    #     if (V_dep[-1,0] == V_2dep[0,0]):
+    #         V_dep[-1,1:] = V_dep[-1,1:] + V_2dep[0,1:]
+    #         V_dep = np.vstack((V_dep, V_2dep[1:,:]))
+    #     else:
+    #         V_dep = np.vstack((V_dep, V_2dep))
+    
+    #     # Remove empty rows:
+    #     if not np.sum(self.sediments(V_dep2act)) == 0:
+    #         V_dep = V_dep[np.sum(self.sediments(V_dep), axis = 1) != 0]
+    
+    #     return V_mob, V_dep
+
+
     def tr_cap_deposit(self, V_inc2act, V_dep2act, V_dep_not_act, tr_cap, roundpar):
         '''
+                
         INPUTS:
         V_inc2act :  incoming volume that is in the maximum mobilisable volume (active layer)
                     (n_layers x n_classes + 1)

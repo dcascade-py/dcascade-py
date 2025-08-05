@@ -190,7 +190,7 @@ class DCASCADE:
                     SedimSys.D50_al_before_tlag[t, n] = D50_al
 
                     # Mobilise during the time lag
-                    Vmob, _, Vdep = SedimSys.compute_mobilised_volume(Vdep_init, tr_cap_per_s,
+                    Vmob, _, Vdep = SedimSys.compute_mobilised_volumes(Vdep_init, tr_cap_per_s,
                                                                       n, t, roundpar,
                                                                       time_fraction = time_lag)
 
@@ -239,7 +239,7 @@ class DCASCADE:
 
 
                 # Mobilise:
-                Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volume(Vdep, tr_cap_per_s,
+                Vmob, passing_cascades, Vdep_end = SedimSys.compute_mobilised_volumes(Vdep, tr_cap_per_s,
                                                                                      n, t, roundpar,
                                                                                      passing_cascades = passing_cascades,
                                                                                      time_fraction = r_time_lag)
