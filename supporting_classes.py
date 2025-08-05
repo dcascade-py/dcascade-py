@@ -22,20 +22,26 @@ from transport_capacity_computation import TransportCapacityCalculator
 
 
 class Cascade:
-    def __init__(self, provenance, elapsed_time, volume):
-        """
-        Initialyse a cascade.
+    """
+    @brief Sediment cascade object.
+    
+    A sediment cascade is a volume mobilised from a reach during one time step.
 
-        @param provenance (...)
-            Provenance
-        @param elapsed_time (...)
-            Elapsed time
-        @param volume (...)
-            Volume
-        """
+    @param provenance 
+        Reach from which the cascade is mobilised at this time step
+    @param elapsed_time 
+        Time since the begining of the time step. Is updated as the cascade moves through different reaches.
+    @param volume 
+        The mobilised sediment volume itself. It is a 2d array. 
+        N_col = n_classes + metadata. N_row = number of layers separated by initial provenance
+    """    
+    
+    def __init__(self, provenance, elapsed_time, volume):
+
         self.provenance = provenance
         self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
-        self.volume = volume # size = n_classes + 1, to include the original provenance in a first column
+        self.volume = volume # size = n_classes + metadata, to include the original provenance in a first column
+        
         # To be filled during the time step
         self.velocities = np.nan # in m/s
         # Flag to know if the cascade is from external source (default False)
@@ -44,6 +50,15 @@ class Cascade:
 
 
 class ReachData:
+    """
+    @brief Class to store reach inputs paramaters.
+    
+    Contains all input information per each reach (e.g. node indexes, initial grain size, width, slope...etc)
+
+    @param geodataframe 
+        Dataframe table, that is read from the reach data input csv or shp file. 
+
+    """        
     def __init__(self, geodataframe):
         self.geodf = geodataframe
         self.n_reaches = len(geodataframe)
@@ -85,7 +100,7 @@ class ReachData:
 
     def sort_values_by(self, sorting_array):
         """
-        Function to sort the Reaches by the array given in input.
+        Function to sort the reaches by the array given in input (e.g the upstream node index).
         """
         # Making sure the array given has the right length
         assert(len(sorting_array) == self.n_reaches)
@@ -104,6 +119,10 @@ class ReachData:
         return sorted_indices
 
     def compute_roughness(self):
+        """
+        Function to set the roughness attribute. 
+        If a roughness parameter is not given in the reach data, then is takes D90 or D84. 
+        """                
         # to test and see if it is what we want in terms of physics
         if 'roughness' in self.geodf:
             roughness = self.geodf['roughness'].astype(float).values
@@ -118,22 +137,39 @@ class ReachData:
 
 class SedimentarySystem:
     ''' 
-    @brief Class for defining the sedimentary system at network scale, 
-    i.e. initial morphological conditions, storing matrices, and sediment transport functions
+    @brief Network scale sedimentary system object.
+    
+    Contains all informations regarding the sedimentary system, i.e. its initialisation and its 
+    dynamicity through the simulation. 
+    
+    Globaly contains: 
+        - The reach initial morphological informations
+        - The sediment transfer functions
+        - The sediment storing matrices
 
-    @param reach_data The reach data inputs
-    @param network Network structure (graph)
-    @param timescale Time step number
-    @param ts_length Time step length
-    @param save_dep_layer Option for saving deposit layer
-    @param psi Sediment size class vector in psi scale
-    @param phi porosity
-    @param minvel minimum velocity
+    @param reach_data 
+        The reach data inputs (ReachData object)
+    @param network 
+        Network structure (graph)
+    @param timescale 
+        Time step number (int)
+    @param ts_length 
+        Time step length (float)
+    @param save_dep_layer 
+        Option for saving deposit layer
+    @param psi 
+        Sediment size class vector in psi scale (1d array)
+    @param phi 
+        Porosity (default: 0.4)
+    @param minvel 
+        minimum velocity (default: 0.0000001)
+    @param n_metadata 
+        number of metadata column (default: 1, for storing initial provenance)
     '''
 
 
     def __init__(self, reach_data, network, timescale, ts_length, save_dep_layer,
-                 psi, phi = 0.4, minvel = 0.0000001, n_metadata=1):
+                 psi, phi = 0.4, minvel = 0.0000001, n_metadata = 1):
 
         self.reach_data = reach_data
         self.network = network
@@ -189,7 +225,7 @@ class SedimentarySystem:
     def sediments(self, matrix):
         '''
         Access the sediment columns of the matrix.
-        @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!!!
+        @warning: Use self.sediments(matrix) for access, but use self.sediments(matrix)[:] for assignment!
         '''
         if matrix.ndim == 1:
             return matrix[self.n_metadata:]
@@ -199,7 +235,7 @@ class SedimentarySystem:
     def metadata(self, matrix):
         '''
         Access the metadata columns of the matrix.
-        @warning: Use self.metadata(matrix) for access, but use self.metadata(matrix)[:] for assignment!!!
+        @warning: Use self.metadata(matrix) for access, but use self.metadata(matrix)[:] for assignment!
         '''
         if matrix.ndim == 1:
             return matrix[:self.n_metadata]
@@ -209,7 +245,7 @@ class SedimentarySystem:
     def provenance(self, matrix):
         '''
         Access the provenance column of the matrix.
-        @warning: Use self.provenance(matrix) for access, but use self.provenance(matrix)[:] for assignment!!!
+        @warning: Use self.provenance(matrix) for access, but use self.provenance(matrix)[:] for assignment!
         '''
         if matrix.ndim == 1:
             return matrix[0]
@@ -247,18 +283,33 @@ class SedimentarySystem:
         return volume
 
     def create_4d_zero_array(self):
-        ''' This type of matrice is made for including provenance (axis 0)
-        Note: we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
+        ''' 
+        Initialise a 4d storing matrice (time step x initial reach x current reach x sediment size class)        
+        @Note: we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
         '''
         return [np.zeros((self.n_reaches, self.n_reaches, self.n_classes)) for _ in range(self.timescale)]
 
     def create_3d_zero_array(self):
+        """
+        Initialise a 3d storing matrice (time step x reach x sediment size class) 
+        """
         return np.zeros((self.timescale, self.n_reaches, self.n_classes))
 
     def create_2d_zero_array(self):
+        """
+        Initialise a 2d storing matrice (time step x reach) 
+        """
         return np.zeros((self.timescale, self.n_reaches))
 
     def initialize_slopes(self, update_slope, indx_slope_red):
+        ''' 
+        Initialise slopes options and storing matrices. 
+        
+        @param update_slope 
+            Option for updating slope with deposit or not (bool)
+        @param indx_slope_red 
+            Option for the slope reduction - see Pitscheider et al. (int)
+        '''
         self.update_slope = update_slope
         self.indx_slope_red = indx_slope_red
         
@@ -272,7 +323,14 @@ class SedimentarySystem:
         if update_slope == False:
             self.slope[:,:] = self.slope[0,:]
 
+
     def initialize_widths(self, indx_width_calc):
+        ''' 
+        Initialise width options and storing matrices. 
+        
+        @param indx_width_calc 
+            Option for the width variations - e.g. with hydrology (int)
+        '''
         self.indx_width_calc = indx_width_calc
         
         # Initialise width matrices
@@ -295,9 +353,12 @@ class SedimentarySystem:
         self.width[:,:] = self.width[0,:]
 
     def initialize_elevations(self, update_slope):
-        # Initialize node elevation (for each reach the matrix reports the fromN elevation)
-        # The last column reports the outlet ToNode elevation (last node of the network),
-        # which can never change elevation.
+        """
+        Initialize node elevations.
+        @Note For each reach the matrix reports the fromN elevation
+        @Note The last column reports the outlet ToNode elevation (last node of the network)
+        """
+
         self.node_el = np.zeros((self.timescale, self.n_reaches + 1))
         self.node_el[0,:] = np.append(self.reach_data.el_fn, self.reach_data.el_tn[self.outlet])
         self.node_el[1,:] = np.append(self.reach_data.el_fn, self.reach_data.el_tn[self.outlet])
@@ -310,7 +371,8 @@ class SedimentarySystem:
 
 
     def initialize_storing_matrices(self):
-
+        """ Initialize all matrices used for storing sediment transport during the simulations
+        """      
         # Create Qbi dep matrix with size size depending on how often we want to save it:
         if self.save_dep_layer=='never':
             dep_save_number = 1
@@ -326,11 +388,9 @@ class SedimentarySystem:
         # Moving sediments storing matrice
         self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
         self.Qbi_mob_from_r = self.create_4d_zero_array() # Volume mobilised from reach (gives also original provenance)
-        # TODO: DD see if we keep Qbi_tr
         self.Qbi_tr = self.create_4d_zero_array() # Volume entering the reach (gives also original provenance)
         # Direct connectivity matrice (an extra reach column is added to consider sediment leaving the system)
         self.direct_connectivity = [np.zeros((self.n_reaches, self.n_reaches + 1, self.n_classes)) for _ in range(self.timescale)]
-
 
         # 3D arrays
         self.Q_out = self.create_3d_zero_array()  # amount of material delivered outside the network in each timestep
@@ -355,7 +415,12 @@ class SedimentarySystem:
 
 
     def set_sediment_initial_deposit(self, Qbi_dep_in):
-        #TODO: (DD) better way to store Qbi_dep, Qbi_dep_0 etc ?
+        """ Initialize initial sediment deposit layer in each reach
+        
+        @ param Qbi_dep_in 
+            Matrice with user-defined initial deposit volumes (3d array, size: n_reaches, 1, n_classes)        
+        """   
+
         for n in self.network['n_hier']:
             # if no inputs are defined, initialize deposit layer with a single cascade with no volume and GSD equal to 0
             q_bin = np.array(Qbi_dep_in[n])
@@ -369,7 +434,15 @@ class SedimentarySystem:
 
         self.Qbi_dep[0] = copy.deepcopy(self.Qbi_dep_0)  # store init condition of dep layer
 
-    def set_erosion_maximum(self, eros_max_depth_, roundpar):
+
+    def set_erosion_maximum(self, eros_max_depth_, roundpar):        
+        """ 
+        Set maximum volume in cubic meters that can be eroded for each reach, for each time step. 
+        @Note By default the active layer (see below) and the erosion maximum are the same
+        
+        @param eros_max_depth_ 
+            Depth of the erodible layer per time step (float or string, e.g. '2D90')        
+        """ 
         # Set maximum volume in meters that can be eroded for each reach, for each time step.        
         self.eros_max_vol = self.create_2d_zero_array()
         self.eros_max_depth = self.create_2d_zero_array()
@@ -383,23 +456,35 @@ class SedimentarySystem:
             # Multiply by two, + apply a minimum threshold
             eros_max_t = np.maximum(2 * reference_d, 0.01)
         elif isinstance(eros_max_depth_, (int, float)):
-            # Apply the input AL depth
+            # Apply the input eros depth
             eros_max_t = eros_max_depth_ * np.ones(self.n_reaches)
         else:
             raise ValueError('As options for the eros max depth, you can choose "2D90" or a fixed number')
 
-        # Compute the AL volumes (all reaches)
+        # Compute the erodible volumes (all reaches)
         eros_vol_t = eros_max_t * self.reach_data.wac * self.reach_data.length
         # Store it for all time steps:
         self.eros_max_vol = np.tile(eros_vol_t, (self.timescale, 1))
         self.eros_max_depth = np.tile(eros_max_t, (self.timescale, 1))
+    
         
     def set_active_layer(self, al_depth_, al_depth_method):
-        # Set active layer volume, i.e. the one used for calculating the tranport
-        # capacity in [m3/s]. Corresponds to the depth that the river can see.
-        # By default it is defined as 2.D90 [Parker 2008]
-        # But this is maybe not adapted for sandy rivers.
-
+        """ 
+        Set active layer volume in cubic meters.
+        It is the layer used for computing the GSD for the transport capacity calculation.
+        
+        @Note By default it is defined as 2.D90 [Parker 2008] but this is maybe not adapted for sandy rivers.
+        @Note By default the active layer and the erosion maximum are the same
+        
+        @param al_depth_            
+            Depth of the active layer (float or string, e.g. '2D90') 
+        @param al_depth_method      
+            Option to select the active layers, 
+            1: from the reach deposit layer top, the possible passing through cascade are then added at the top
+            2: from the top, including possible passing cascades. In this case, 
+            al_depth and eros_max, even if they are equal do not include the same layers                                                                           
+        
+        """ 
         self.al_vol = self.create_2d_zero_array()
         self.al_depth = self.create_2d_zero_array()
 
@@ -426,11 +511,16 @@ class SedimentarySystem:
         # Set option for calculating the al depth (from top of the possible passing through cascades or from their bottom)
         self.al_depth_method = al_depth_method
 
+
     def set_velocity_section_height(self, vel_section_height, h, t):
-        '''Set section height, for estimating velocity [m/s] from sediment flux [m3/s]
-        Possibilities:  '2D90': twice the input D90.
-                        '0.1_hw': 10% of the water column.
-                        Or a fixed value.
+        '''
+        Set characteristic traveling height, for estimating velocity [m/s] from sediment flux [m3/s]
+        
+        @param vel_section_height 
+            The characteristic traveling height, hv.
+            Possibilities:  '2D90': twice the input D90;'0.1_hw': 10% of the water column; Or a fixed value.
+            
+        @Note the velocity is calculated as: v = Qs/S, with S the traveling section, S = W x hv x (1-phi)
         '''
         if vel_section_height == '2D90':
             # We take the input D90, or if not provided, the D84:
@@ -452,13 +542,33 @@ class SedimentarySystem:
         self.vl_height[t, :] = vl_height_t
 
     def set_external_input(self, external_inputs, force_pass_external_inputs, roundpar):
-        # define Qbi_input in this sed_system
+        """
+        Set external inputs (lateral sources).
+        
+        @param external_inputs 
+            The external input matrix
+        @force_pass_external_inputs 
+            Option to for the external input to be passed entirely to the downstream reach (bool)
+        """        
+        
         self.external_inputs = external_inputs
         self.force_pass_external_inputs = force_pass_external_inputs
 
 
     def extract_external_inputs(self, cascade_list, t, n):
-        # Create a new cascade in reach n at time step t, to be added to the cascade list
+        """
+        Create a new cascade object in reach n at time step t, to be added to the cascade list
+        
+        @param cascade_list
+            list of cascades currently in the reach
+        @param t
+            current time step       
+        @param n
+            current reach index   
+            
+        @return 
+            the cascade list updated with the external input
+        """
         if numpy.any(self.external_inputs[t, n, :] > 0):
             provenance = n
             elapsed_time = np.zeros(self.n_classes)
