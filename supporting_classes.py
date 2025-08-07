@@ -285,7 +285,7 @@ class SedimentarySystem:
     def create_4d_zero_array(self):
         '''
         Initialise a 4d storing matrice (time step x initial reach x current reach x sediment size class)
-        @Note we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
+        @note we add the time as a list, otherwise we can not look at the 4d matrix in spyder.
         '''
         return [np.zeros((self.n_reaches, self.n_reaches, self.n_classes)) for _ in range(self.timescale)]
 
@@ -355,8 +355,8 @@ class SedimentarySystem:
     def initialize_elevations(self, update_slope):
         """
         Initialize node elevations.
-        @Note For each reach the matrix reports the fromN elevation
-        @Note The last column reports the outlet ToNode elevation (last node of the network)
+        @note For each reach the matrix reports the fromN elevation
+        @note The last column reports the outlet ToNode elevation (last node of the network)
         """
 
         self.node_el = np.zeros((self.timescale, self.n_reaches + 1))
@@ -438,7 +438,7 @@ class SedimentarySystem:
     def set_erosion_maximum(self, eros_max_depth_, roundpar):
         """
         Set maximum volume in cubic meters that can be eroded for each reach, for each time step.
-        @Note By default the active layer (see below) and the erosion maximum are the same
+        @note By default the active layer (see below) and the erosion maximum are the same
 
         @param eros_max_depth_
             Depth of the erodible layer per time step (float or string, e.g. '2D90')
@@ -473,8 +473,8 @@ class SedimentarySystem:
         Set active layer volume in cubic meters.
         It is the layer used for computing the GSD for the transport capacity calculation.
 
-        @Note By default it is defined as 2.D90 [Parker 2008] but this is maybe not adapted for sandy rivers.
-        @Note By default the active layer and the erosion maximum are the same
+        @note By default it is defined as 2.D90 [Parker 2008] but this is maybe not adapted for sandy rivers.
+        @note By default the active layer and the erosion maximum are the same
 
         @param al_depth_
             Depth of the active layer (float or string, e.g. '2D90')
@@ -520,7 +520,7 @@ class SedimentarySystem:
             The characteristic traveling height, hv.
             Possibilities:  '2D90': twice the input D90;'0.1_hw': 10% of the water column; Or a fixed value.
 
-        @Note the velocity is calculated as: v = Qs/S, with S the traveling section, S = W x hv x (1-phi)
+        @note the velocity is calculated as: v = Qs/S, with S the traveling section, S = W x hv x (1-phi)
         '''
         if vel_section_height == '2D90':
             # We take the input D90, or if not provided, the D84:
@@ -613,16 +613,16 @@ class SedimentarySystem:
         @param indx_tr_partition
             Index for transport capacity paritionning
 
-        @Note
+        @note
             The velocity must be assessed by re-calculating the transport capacity [m3/s]
             in the present reach considering all arriving cascade(s).
-        @Note
+        @note
             Two methods are proposed to evaluated this transport capacity, chosen
             by the indx_velocity parameter: 1) the simplest, we re-calculate the transport
             capacity on each cascade independantly.
             2) we consider the active layer volume. This will potentially add the influence of
             some reach deposited material.
-        @Note
+        @note
             The velocity can be either the same among the sediment size classes
             or set proportionnaly to the fluxes Qi
         """
@@ -693,12 +693,12 @@ class SedimentarySystem:
         @return
             the computed velocities (1d array, size: n_classes)
 
-        @Note
+        @note
             The transport capacity [m3/s] is calculated on this volume,
             and the velocity is calculated by dividing the transport capacity
             by a section (hVel x width x (1 - porosity)).
 
-        @Note
+        @note
             For partionning the section among the different sediment size class in the volume,
             two methods are proposed.
             The first one put the same velocity to all classes.
@@ -760,7 +760,7 @@ class SedimentarySystem:
         @return depositing_volume
             The volume to be deposited in this reach. Stopped by time.
 
-        @Note
+        @note
             Cascades are ordered according to their arrival time at the inlet,
             so that volume arriving first deposit first.
 
@@ -834,7 +834,7 @@ class SedimentarySystem:
         Decides if a volume of sediments (Vm) will stop in this
         reach at the end of the time step or not.
 
-        @Note Part of the volume can stop or continue.
+        @note Part of the volume can stop or continue.
 
         @param t_new
             Elapsed time since beginning of time step for Vm, for each sed class
@@ -974,7 +974,7 @@ class SedimentarySystem:
             stopped by time). It can mobilised a volume from the reach (Vmob) and/or
             deposit some of the continuing cascade (that are now stopped by energy).
 
-        @Note
+        @note
             The order in which we select the continuing cascade to be deposited
             is from largest times (arriving later) to shortest times (arriving first).
             Hypotheticaly, cascade arriving first are passing in priority, in turn,
@@ -1356,7 +1356,7 @@ class SedimentarySystem:
         '''
         This function remove the quantity V_remove from the list of cascades.
 
-        @Note
+        @note
             The order in which we take the cascade is from largest times (arriving later)
             to shortest times (arriving first). Hypotheticaly, cascade arriving first
             are passing in priority, in turn, cascades arriving later are deposited in priority.
@@ -1470,7 +1470,7 @@ class SedimentarySystem:
         @param t
              the time step
 
-        @Note
+        @note
             It also guarantees that the slope is not negative or lower than
             the min_slope value by changing the node elevation bofore findin the SLlpe
         """
