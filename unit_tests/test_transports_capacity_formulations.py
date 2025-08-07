@@ -38,7 +38,7 @@ def test_engelund_hansen_formula():
     expected_tr_cap = 0.046356178
 
     # Computing the transport capacity with the D-CASCADE implementation
-    calculator = TransportCapacityCalculator(np.nan, np.nan, slope, np.nan, wac, v, h, np.nan)
+    calculator = TransportCapacityCalculator(np.nan, np.nan, slope, np.nan, wac, v, h, np.nan, np.nan)
     calculator.D50 = D50
     computed_tr_cap = calculator.Engelund_Hansen_formula()
 
@@ -70,7 +70,7 @@ def test_wilcock_crowe_formula():
     expected_tr_cap = 0.0058621118228
 
     # Computing the transport capacity with the D-CASCADE implementation
-    calculator = TransportCapacityCalculator(Fi_r_reach, np.nan, slope, np.nan, wac, np.nan, h, psi)
+    calculator = TransportCapacityCalculator(Fi_r_reach, np.nan, slope, np.nan, wac, np.nan, h, psi, np.nan)
     calculator.D50 = D50
     computed_tr_cap = calculator.Wilcock_Crowe_formula()
 
@@ -104,7 +104,7 @@ def test_rickenmann_formula():
     expected_qc = 0.013461692
 
     # Computing the transport capacity with the D-CASCADE implementation
-    calculator = TransportCapacityCalculator(np.nan, np.nan, slope, discharge, wac, np.nan, np.nan, np.nan)
+    calculator = TransportCapacityCalculator(np.nan, np.nan, slope, discharge, wac, np.nan, np.nan, np.nan, np.nan)
     calculator.D50 = D50
     computed_tr_cap = calculator.Rickenmann_formula()
 
