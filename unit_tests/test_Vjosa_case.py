@@ -29,11 +29,11 @@ from preprocessing import extract_Q, graph_preprocessing, read_network
 
 
 #Pathes
-path_river_network = Path('Input/input_trial/')
+path_river_network = Path('input/input_trial/')
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
-path_q = Path('Input/input_trial/')
+path_q = Path('input/input_trial/')
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q
 
