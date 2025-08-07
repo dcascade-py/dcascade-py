@@ -29,7 +29,7 @@ from preprocessing import extract_Q, graph_preprocessing, read_network
 
 
 #Pathes
-path_river_network = Path('input/input_trial/')
+path_river_network = Path('inputs/input_trial/')
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
