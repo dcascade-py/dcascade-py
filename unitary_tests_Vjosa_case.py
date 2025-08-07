@@ -93,12 +93,12 @@ def test_Vjosa_Engelund_all_new_options_false():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
-    
+
 
 
 
@@ -185,7 +185,7 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -232,7 +232,7 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -270,7 +270,7 @@ def test_Vjosa_Engelund_all_new_options_true():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    
+
     # options in v2
     op1 = True
     op2 = True
@@ -279,12 +279,12 @@ def test_Vjosa_Engelund_all_new_options_true():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
                                                  time_lag_for_mobilised = op3)
-    
+
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
@@ -318,7 +318,7 @@ def test_Vjosa_Wilcock_all_new_options_true():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p
-    
+
     # options in v2
     op1 = True
     op2 = True
@@ -327,7 +327,7 @@ def test_Vjosa_Wilcock_all_new_options_true():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,

@@ -95,7 +95,7 @@ def read_user_input():
     # drop.pack(pady=20)
     # root.mainloop()
 
-    
+
     # def slope_reduction_selection(event):
     #     global slopeRed
     #     if clicked.get() == "None":

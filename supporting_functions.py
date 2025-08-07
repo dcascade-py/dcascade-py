@@ -83,7 +83,7 @@ def D_finder(fi_r, d_value, psi):
     nb_classes = len(psi)
 
     # Handles the case of single layers input as vector and
-    # multiple layers input as matrices. 
+    # multiple layers input as matrices.
     # (DD: Layer = Number of reaches, sometimes fi_r will be for just one reach, or for all of them)
     if fi_r.ndim == 1:
         nb_layers = 1
@@ -113,7 +113,7 @@ def D_finder(fi_r, d_value, psi):
         # Computes the target DXX value.
         d_changes = np.zeros(nb_layers)
         for k in range(nb_layers):
-            
+
             # Finds the class index of the percentage just above the target DXX value.
             class_index = np.where(perc_finer[k, :] > d_value)[0].max()
             # Ensure within valid range, which means that the interpolation to determine
@@ -131,17 +131,17 @@ def D_finder(fi_r, d_value, psi):
             # Apply this fractional position to the grain size values and add the
             # grain size values for class index + 1.
             d_changes[k] = interpolated_fraction * psi_diff - psi[class_index + 1] # DD: gives minus the D50 in phi scale (see if we can change it to be more clear)
-                            
+
             # Converts back to meters (DD: D50 in phi scale is already minus, so there is no - in the formula)
             d_changes[k] = np.power(2, d_changes[k]) / 1000
             # Ensures no negative sizes by replacing them with the smallest size in dmi
             d_changes[k] = d_changes[k] * (d_changes[k] > 0) + dmi[-1] * (d_changes[k] < 0)
-                        
+
             # DD: Put a boundary so that we don't produce D50 out of the user chosen size range
             # to be thought better maybe ?
             if d_changes[k] > dmi[0]:
                 d_changes[k] = dmi[0]
-                
+
             if d_changes[k] < dmi[-1]:
                 d_changes[k] = dmi[-1]
 

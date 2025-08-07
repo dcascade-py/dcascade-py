@@ -112,7 +112,7 @@ def test_Po_Engelund_all_new_options_false():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -262,7 +262,7 @@ def test_Po_Wilcock_all_new_options_false():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -409,7 +409,7 @@ def test_Po_Engelund_all_true_no_tlag():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -559,7 +559,7 @@ def test_Po_Wilcock_all_true_no_tlag():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -685,7 +685,7 @@ def test_Po_Engelund_all_new_options_true():
     # indexes
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
-    
+
     # Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
     # But this does not change the way sediment move.
     op1 = True
@@ -704,7 +704,7 @@ def test_Po_Engelund_all_new_options_true():
     start = time.time()
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,
@@ -827,7 +827,7 @@ def test_Po_Wilcock_all_new_options_true():
     # indexes
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress
-    
+
     # Option 1: If True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
     # But this does not change the way sediment move.
     op1 = True
@@ -845,7 +845,7 @@ def test_Po_Wilcock_all_new_options_true():
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method, 
+                                                 al_depth_method = al_depth_method,
                                                  eros_max = eros_max,
                                                  passing_cascade_in_outputs = op1,
                                                  passing_cascade_in_trcap = op2,

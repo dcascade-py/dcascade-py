@@ -80,12 +80,12 @@ timescale = 20 # days
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Transport capacity formula and partitioning
-indx_tr_cap = 2                 # 2: Wilkock and Crowe; 
-                                # 3: Engelund and Hansen; 
+indx_tr_cap = 2                 # 2: Wilkock and Crowe;
+                                # 3: Engelund and Hansen;
                                 # 6: Ackers and White;
 
-indx_tr_partition = 4           # 1: Direct calculation summing fractionnal load; 
-                                # 2: BMF: "Bed Material" Fraction weighting of fractionnal loads; 
+indx_tr_partition = 4           # 1: Direct calculation summing fractionnal load;
+                                # 2: BMF: "Bed Material" Fraction weighting of fractionnal loads;
                                 # 3: Molinas rates: weighting on total load
                                 # 4: Shear stress correction (only for Formula already partitionned, e.g., W&C)
 
@@ -101,17 +101,17 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 # These parameter are setted by default in the model with the following values
 # But they can also be changed by the user
 
-# eros_max = 1                  # Maximum depth that can be eroded in one time step from the reach, in meters. 
-                                # It is by default equal to the active layer, but can be larger for some case study 
+# eros_max = 1                  # Maximum depth that can be eroded in one time step from the reach, in meters.
+                                # It is by default equal to the active layer, but can be larger for some case study
 
 # al_depth_method = 1           # method to count the al_depth, 1: from the reach deposit layer top, the possible passing through cascade are then added at the top
                                 #                               2: from the top, including possible passing cascades. In this case, al_depth and eros_max, even if they are equal
                                 #                                   do not include the same layers
-                                    
-# vel_height = '2D90'           # Section height for velocity calculation. 
+
+# vel_height = '2D90'           # Section height for velocity calculation.
                                 # Options: '2D90', '0.1_hw' (10% of water height), or any fixed value)
-                                
-# indx_flo_depth = 1            # Index for the flow calculation, default 1 = Manning 
+
+# indx_flo_depth = 1            # Index for the flow calculation, default 1 = Manning
                                 # (alternatives where developed for accounting for mountain stream roughness)
 
 
@@ -119,7 +119,7 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 # indx_vel_partition = 1        # velocity section partitionning (1: same velocity for all classes, 2: section shared equally for all classes)
 
 
-# indx_slope_red = 1            # Slope reduction index, default 1 = None 
+# indx_slope_red = 1            # Slope reduction index, default 1 = None
                                 # (alternatives where developed for accounting for mountain stream roughness)
 
 # indx_width_calc = 1           # Index for varying the width, default None
@@ -189,34 +189,34 @@ kwargs = {}
 
 if 'eros_max' in globals():
     kwargs['eros_max'] = globals().get('eros_max')
-    
+
 if 'al_depth_method' in globals():
     kwargs['al_depth_method'] = globals().get('al_depth_method')
 
 if 'vel_height' in globals():
     kwargs['vel_height'] = globals().get('vel_height')
-    
+
 if 'indx_flo_depth' in globals():
     kwargs['indx_flo_depth'] = globals().get('indx_flo_depth')
-    
+
 if 'indx_velocity' in globals():
     kwargs['indx_velocity'] = globals().get('indx_velocity')
-    
+
 if 'indx_vel_partition' in globals():
     kwargs['indx_vel_partition'] = globals().get('indx_vel_partition')
-    
+
 if 'indx_slope_red' in globals():
     kwargs['indx_slope_red'] = globals().get('indx_slope_red')
-    
+
 if 'indx_width_calc' in globals():
     kwargs['indx_width_calc'] = globals().get('indx_width_calc')
-    
+
 if 'update_slope' in globals():
     kwargs['update_slope'] = globals().get('update_slope')
-    
+
 if 'roundpar' in globals():
     kwargs['roundpar'] = globals().get('roundpar')
-    
+
 if 'save_dep_layer' in globals():
     kwargs['save_dep_layer'] = globals().get('save_dep_layer')
 

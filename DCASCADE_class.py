@@ -1,7 +1,7 @@
 """
 Created on Tue Oct 29 10:58:54 2024
 
-@author: Diane Doolaeghe, Elisa Bozzolan, Anne Laure Argentin 
+@author: Diane Doolaeghe, Elisa Bozzolan, Anne Laure Argentin
 """
 import copy
 import os
@@ -26,10 +26,10 @@ from width_variation import choose_widthVar
 class DCASCADE:
     """
     @brief Main class of the D-CASCADE code. Used to run the algorithm and transfer sediments.
-    
+
     @param sedim_sys Sedimentary system class
     """
-    
+
     def __init__(self, sedim_sys: SedimentarySystem):
 
         self.sedim_sys = sedim_sys
@@ -46,19 +46,19 @@ class DCASCADE:
         self.update_slope = sedim_sys.update_slope            # option for updating slope
         self.indx_slope_red = sedim_sys.indx_slope_red
         self.indx_width_calc = sedim_sys.indx_width_calc
-        
+
         # Indexes
         self.indx_flo_depth = None
         self.indx_tr_cap = None
         self.indx_tr_partition = None
         self.indx_velocity = None
         self.indx_vel_partition = None
-        
+
         # Algorithm options
         self.passing_cascade_in_outputs = None
         self.passing_cascade_in_trcap = None
         self.time_lag_for_mobilised = None
-        
+
     def set_hydraulic_options(self, indx_flo_depth):
         self.indx_flo_depth = indx_flo_depth
 
@@ -180,7 +180,7 @@ class DCASCADE:
 
                 if self.time_lag_for_mobilised == True and Qbi_pass[n] != []:
                     time_lag = SedimSys.compute_time_lag(Qbi_pass[n])
-                    # Transport capacity is only calculated on Vdep_init 
+                    # Transport capacity is only calculated on Vdep_init
                     # TODO: plus possibly external cascades
                     tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                              self.indx_tr_cap, self.indx_tr_partition)
@@ -312,9 +312,7 @@ class DCASCADE:
 
                 # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
                 if self.update_slope == True:
-                    sed_budg_t_n = np.sum(SedimSys.sediment_budget[t,n,:])
-                    # TODO: DD check this line
-                    self.node_el[t+1,n] = self.node_el[t,n] + sed_budg_t_n/( np.sum(self.reach_data.wac[np.append(n, self.network['upstream_node'][n])] * self.reach_data.length[np.append(n, self.network['Upstream_Node'][n])]) * (1-self.phi) )
+                    SedimSys.update_node_elevation_with_deposit(t, n)
 
 
             """End of the reach loop"""
@@ -329,7 +327,8 @@ class DCASCADE:
 
             # In case of changing slope, change the slope accordingly to the bed elevation
             if self.update_slope == True:
-                self.slope[t+1,:], self.node_el[t+1,:] = SedimSys.change_slope(self.node_el[t+1,:], self.reach_data.length, self.network, s = self.min_slope)
+                # DD: see what min slope value should be
+                SedimSys.change_slope(t)
 
         """End of the time loop"""
 
@@ -415,9 +414,9 @@ class DCASCADE:
         transported_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
         deposited_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
 
-        
+
         for t in range(self.timescale - 1):
-            # Sum over provenances (axe 0) 
+            # Sum over provenances (axe 0)
             mobilised_per_class[t,:,:] = np.sum(SedimSys.Qbi_mob[t], axis = (0))
             transported_per_class[t,:,:] = np.sum(SedimSys.Qbi_tr[t], axis = (0))
             deposited_per_class[t,:,:] = np.sum(SedimSys.direct_connectivity[t][:, :-1, :], axis = (0)) # exclude outlet
@@ -426,7 +425,7 @@ class DCASCADE:
         extended_output = {'Volume out per grain sizes [m^3]': mobilised_per_class,
                            'Volume in per grain sizes [m^3]': transported_per_class,
                            'Deposited per grain sizes [m^3]': deposited_per_class,
-                           
+
 
                            'Qbi_mob [m^3]': SedimSys.Qbi_mob,
                            'Qbi_tr [m^3]': SedimSys.Qbi_tr,

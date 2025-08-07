@@ -46,14 +46,14 @@ class TransportCapacityCalculator:
         formula chosen by the  user and return the value of the transport capacity
         and the relative Grain Size Distrubution (pci) for each sediment class in the reach.
         """
-        
+
         # Verify compatibility between transport formula and partitionning:
         if indx_tr_cap == 2 and indx_partition != 4:
             raise Exception("W&C formula can only be used with the 'shear stress correction' partitioning")
-        if indx_tr_cap != 2 and indx_partition == 4:   
+        if indx_tr_cap != 2 and indx_partition == 4:
             raise Exception("the 'shear stress correction' partitioning can only be used for W&C")
 
-    
+
         ##choose partitioning formula for computation of sediment transport rates for individual size fractions
         #formulas from:
         #Molinas, A., & Wu, B. (2000): Comparison of fractional bed material load computation methods in sand?bed channels.
@@ -289,19 +289,19 @@ class TransportCapacityCalculator:
         # Kinematic viscosity : CREATE A TABLE IN THE CONSTANTS?
         # @ 20�C: http://onlinelibrary.wiley.com/doi/10.1002/9781118131473.app3/pdf
         nu = 1.003*1E-6
-        
-        # If we compute the total load based on the bed D50 
+
+        # If we compute the total load based on the bed D50
         # (i.e. self.D50 is a float and not a vector in the case of Molinas rate partitionning (3))
         #, then I force it to be a vector:
-        if isinstance(self.D50, float):   
+        if isinstance(self.D50, float):
             D50_s = np.array([self.D50])
         else:
             D50_s = self.D50
 
         # Dimensionless grain size (Eq. 59 of Stevens & Yang, 1989):
-        # TODO: Ackers - White suggest to use the D35 instead of the D50 (p. 21 of Stevens & Yang, 1989)        
+        # TODO: Ackers - White suggest to use the D35 instead of the D50 (p. 21 of Stevens & Yang, 1989)
         D_gr = D50_s * (GRAV * R_VAR / nu**2)**(1/3)
-        
+
 
         # Coefficients for dimensionless transport calculation:
         # n - the transition exponent depending on sediment size.
@@ -359,12 +359,12 @@ class TransportCapacityCalculator:
         # Transport capacity [m3/s]
         QS = QS_kg / RHO_S
         tr_cap = QS
-        
+
         # If we compute the total load based on the bed D50 (float),
         # I put tr_cap back to be a float:
-        if isinstance(self.D50, float):   
+        if isinstance(self.D50, float):
             tr_cap = tr_cap[0]
-        
+
         return {"tr_cap": tr_cap}
 
 
@@ -441,59 +441,59 @@ class TransportCapacityCalculator:
 
     def Molinas_rates(self, dmi, total_D50):
         """
-        Method for paritionning the transport capacity among sediment size classes. 
-        Falls into the transport capacity fraction approaches (TCF approaches), i.e. it 
-        directly distribute the sediment transport rates into size groups through a transport 
-        capacity distribution function.      
-        
-        Here, the TC distribution function is from Wu and Molinas (1996), 
+        Method for paritionning the transport capacity among sediment size classes.
+        Falls into the transport capacity fraction approaches (TCF approaches), i.e. it
+        directly distribute the sediment transport rates into size groups through a transport
+        capacity distribution function.
+
+        Here, the TC distribution function is from Wu and Molinas (1996),
         described also in Molinas and Wu (2000).
-        
+
         Input grain sizes must be in mm.
-        
-        
-        Input: 
+
+
+        Input:
             - dmi: sediment class size [mm] - array
             - total_D50: total D50 [mm] - float
-        
-        Return:  
-            - pci: Molinas coefficient of fractional transport rates to be multiplied 
+
+        Return:
+            - pci: Molinas coefficient of fractional transport rates to be multiplied
             by the total sediment load to split it into different classes.
 
         References:
         Molinas, A., & Wu, B. (2000). Comparison of fractional bed material load
         computation methods in sand-bed channels. Earth Surface Processes and
         Landforms: The Journal of the British Geomorphological Research Group.
-        
-        Wu B, Molinas A. (1996). Modeling of alluvial river sediment transport. 
-        Proceedings of the International Conference on Reservoir Sedimentation, 
-        Vol. I, Albertson ML, Molinas A, Hotchkiss R (eds). 
-        
+
+        Wu B, Molinas A. (1996). Modeling of alluvial river sediment transport.
+        Proceedings of the International Conference on Reservoir Sedimentation,
+        Vol. I, Albertson ML, Molinas A, Hotchkiss R (eds).
+
         """
-        
+
         # Hydraulic parameters
         tau = RHO_W * GRAV * self.h * self.slope         # Shear stress
-        
+
         vstar = np.sqrt(GRAV * self.h * self.slope)     # Shear velocity
-        
+
         froude = self.v / np.sqrt(GRAV * self.h)        # Froude number
-                
+
         # Accounting for scaling size of bed material (from Wu et al. (2003)) (DD: better understand why)
-        Dn = (1 + (self.GSD_std(dmi) - 1)**1.5) * total_D50 
-        
+        Dn = (1 + (self.GSD_std(dmi) - 1)**1.5) * total_D50
+
         # Geometric standard deviation of bed material
-        gsd_std = self.GSD_std(dmi) 
+        gsd_std = self.GSD_std(dmi)
 
         # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
         alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
-                
+
         beta = 0.2 * gsd_std
-        
-        zeta = 2.8 * froude**(-1.2) *  gsd_std**(-3)       
+
+        zeta = 2.8 * froude**(-1.2) *  gsd_std**(-3)
         zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
 
         # Fractioning factor for each grain size (rows) (eq 23 in Molinas and Wu (2000))
-        frac = self.fi_r_reach * ((dmi / Dn)**alpha + zeta * (dmi / Dn)**beta)  
+        frac = self.fi_r_reach * ((dmi / Dn)**alpha + zeta * (dmi / Dn)**beta)
         pci = frac / np.sum(frac)
 
         return pci

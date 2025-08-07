@@ -19,30 +19,30 @@ from supporting_classes import Cascade, ReachData, SedimentarySystem
 """ MAIN FUNCTION SECTION """
 
 def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
-                  indx_tr_cap, indx_tr_partition, Qbi_dep_in,                     
-                  save_dep_layer = 'never', 
+                  indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                  save_dep_layer = 'never',
                   eros_max = None,
                   al_depth_method = 1,
                   vel_height = '2D90',
-                  indx_flo_depth = 1,                  
+                  indx_flo_depth = 1,
                   indx_velocity = 2,
                   indx_vel_partition = 1,
                   indx_slope_red = 1,
                   indx_width_calc = 1,
                   update_slope = False,
                   roundpar = 0,
-                  
+
                   external_inputs = None,
                   force_pass_external_inputs = False,
-                  
+
                   passing_cascade_in_outputs = True,
                   passing_cascade_in_trcap = True,
                   time_lag_for_mobilised = False):
-    
-    
+
+
     if eros_max is None:
         eros_max = al_depth
-        
+
     """
     Main function of the D-CASCADE software.
 
@@ -90,7 +90,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     # Create sedimentary system
     sedimentary_system = SedimentarySystem(reach_data, network, timescale, ts_length,
                                            save_dep_layer, psi)
-    
+
     sedimentary_system.initialize_slopes(update_slope, indx_slope_red)
     sedimentary_system.initialize_widths(indx_width_calc)
     sedimentary_system.initialize_elevations(update_slope)
@@ -104,11 +104,11 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
     # Create DCASCADE solver
     dcascade = DCASCADE(sedimentary_system)
-    
+
     # Set sediment transport solving options
     dcascade.set_hydraulic_options(indx_flo_depth)
     dcascade.set_transport_indexes(indx_tr_cap, indx_tr_partition)
-    dcascade.set_velocity_options(indx_velocity, indx_vel_partition, vel_height)   
+    dcascade.set_velocity_options(indx_velocity, indx_vel_partition, vel_height)
     dcascade.set_algorithm_options(passing_cascade_in_outputs, passing_cascade_in_trcap,
                                    time_lag_for_mobilised)
     # Run
