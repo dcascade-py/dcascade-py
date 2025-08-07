@@ -1,0 +1,13 @@
+fiona==1.9.1
+#gdal==3.6.2
+geopandas==0.12.2
+matplotlib==3.7.0
+networkx==3.0
+numpy==1.24.2
+pandas==1.5.3
+shapely==2.0.1
+tqdm==4.64.1
+scipy==1.12.0
+
+# Testing
+pytest==7.4.2
