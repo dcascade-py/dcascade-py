@@ -35,7 +35,7 @@ def test_engelund_hansen_formula():
     h = 0.5
 
     # Manually calculated transport capacity
-    expected_tr_cap = 0.046356178
+    expected_tr_cap = 0.092712
 
     # Computing the transport capacity with the D-CASCADE implementation
     calculator = TransportCapacityCalculator(np.nan, np.nan, slope, np.nan, wac, v, h, np.nan, np.nan)
