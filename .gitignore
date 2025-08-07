@@ -1,7 +1,7 @@
 
 __pycache__
-Input_Po_untracked/
-user_scripts/
-unit_tests_perso/
 
-/.vs
+user_scripts/*.py
+!user_scripts/00-DCASCADE_user_script_example_Vjosa.py
+
+cascade_results/
