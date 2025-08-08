@@ -20,6 +20,11 @@ from preprocessing import extract_Q, graph_preprocessing, read_network
 from reach_data import ReachData
 
 
+# get the current folder (where is this script)
+# for github actions 
+BASE_DIR = Path(__file__).resolve().parent
+
+
 ''' List of tests performed here:
 
         test_Vjosa_Engelund_all_new_options_false
@@ -33,11 +38,11 @@ from reach_data import ReachData
 
 
 #Pathes
-path_river_network = Path('../inputs/input_trial/')
+path_river_network = BASE_DIR / Path('../inputs/input_trial/')
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
-path_q = Path('../inputs/input_trial/')
+path_q = BASE_DIR / Path('../inputs/input_trial/')
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q
 

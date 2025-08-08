@@ -20,6 +20,12 @@ from GSD_curvefit import GSDcurvefit
 from preprocessing import extract_Q, graph_preprocessing, read_network
 from reach_data import ReachData
 
+# get the current folder (where is this script)
+# for github actions 
+BASE_DIR = Path(__file__).resolve().parent
+
+
+
 # Temporary test for us. The input files are not versionned, but must be asked to Diane D..
 
 ''' List of tests performed here:
@@ -34,11 +40,11 @@ from reach_data import ReachData
 '''
 
 #Pathes
-path_river_network = Path('../inputs/Input_Po_untracked/shp/')
+path_river_network = BASE_DIR / Path('../inputs/Input_Po_untracked/shp/')
 name_river_network = 'Po_river_network.shp'
 filename_river_network = path_river_network / name_river_network
 
-path_q = Path('../inputs/Input_Po_untracked/')
+path_q = BASE_DIR / Path('../inputs/Input_Po_untracked/')
 name_q = 'Po_Qdaily_3y.csv'
 filename_q = path_q / name_q
 
