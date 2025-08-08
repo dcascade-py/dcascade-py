@@ -4,17 +4,21 @@ Created on Thu Sep  5 13:50:28 2024
 @author: Diane Doolaeghe
 """
 
+
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add source (src) folder in the python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+
 
 from pathlib import Path
-
 import geopandas as gpd
 import numpy as np
 
-from DCASCADE_main_script import DCASCADE_main, ReachData
-from GSD import GSDcurvefit
+from main import DCASCADE_main
+from GSD_curvefit import GSDcurvefit
 from preprocessing import extract_Q, graph_preprocessing, read_network
+from reach_data import ReachData
+
 
 ''' List of tests performed here:
 
@@ -29,11 +33,11 @@ from preprocessing import extract_Q, graph_preprocessing, read_network
 
 
 #Pathes
-path_river_network = Path('inputs/input_trial/')
+path_river_network = Path('../inputs/input_trial/')
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
-path_q = Path('inputs/input_trial/')
+path_q = Path('../inputs/input_trial/')
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q
 
@@ -369,3 +373,5 @@ if __name__ == "__main__":
     test_Vjosa_Wilcock_all_true_no_tlag()
     test_Vjosa_Engelund_all_new_options_true()
     test_Vjosa_Wilcock_all_new_options_true()
+    
+    print("All tests successfully run.")

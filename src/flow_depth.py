@@ -32,7 +32,7 @@ import numpy as np
 import numpy.matlib
 
 from constants import GRAV
-from supporting_functions import D_finder
+from d_finder import D_finder
 
 
 def h_manning(reach_data, SedimSys, Q, t):

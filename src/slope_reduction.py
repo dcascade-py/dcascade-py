@@ -50,7 +50,7 @@ def slopeRed_Nitsche(slope, h, D84):
 
     return reduced_slope
 
-def choose_slopeRed(reach_data, SedimSys, Q, t, h, indx_slope_red):
+def choose_slope_reduction(reach_data, SedimSys, Q, t, h, indx_slope_red):
     if indx_slope_red == 1:
         slope_t = SedimSys.slope[t]
 

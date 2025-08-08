@@ -4,135 +4,14 @@ Created on Tue Oct 29 10:58:54 2024
 @author: diane
 """
 import copy
-import os
-import sys
+import numpy as np
 from itertools import groupby
 
-# General imports
-import numpy as np
-import numpy.matlib
-import pandas as pd
-from tqdm import tqdm
+from cascade import Cascade
+from transport_capacity_calculator import TransportCapacityCalculator
+from d_finder import D_finder
 
 np.seterr(divide='ignore', invalid='ignore')
-
-from constants import GRAV, R_VAR, RHO_S, RHO_W
-from supporting_functions import D_finder
-from transport_capacity_computation import TransportCapacityCalculator
-
-
-class Cascade:
-    """
-    @brief Sediment cascade object.
-
-    A sediment cascade is a volume mobilised from a reach during one time step.
-
-    @param provenance
-        Reach from which the cascade is mobilised at this time step
-    @param elapsed_time
-        Time since the begining of the time step. Is updated as the cascade moves through different reaches.
-    @param volume
-        The mobilised sediment volume itself. It is a 2d array.
-        N_col = n_classes + metadata. N_row = number of layers separated by initial provenance
-    """
-
-    def __init__(self, provenance, elapsed_time, volume):
-
-        self.provenance = provenance
-        self.elapsed_time = elapsed_time # can contain nans, in case a class has 0 volume
-        self.volume = volume # size = n_classes + metadata, to include the original provenance in a first column
-
-        # To be filled during the time step
-        self.velocities = np.nan # in m/s
-        # Flag to know if the cascade is from external source (default False)
-        self.is_external = False
-
-
-
-class ReachData:
-    """
-    @brief Class to store reach inputs paramaters.
-
-    Contains all input information per each reach (e.g. node indexes, initial grain size, width, slope...etc)
-
-    @param geodataframe
-        Dataframe table, that is read from the reach data input csv or shp file.
-
-    """
-    def __init__(self, geodataframe):
-        self.geodf = geodataframe
-        self.n_reaches = len(geodataframe)
-
-        # Mandatory attributes
-        self.from_n = geodataframe['FromN'].astype(int).values
-        self.to_n = geodataframe['ToN'].astype(int).values
-        self.slope = geodataframe['Slope'].astype(float).values
-        self.wac = geodataframe['Wac'].astype(float).values
-        self.n = geodataframe['n'].astype(float).values
-        self.D16 = geodataframe['D16'].astype(float).values
-        self.D50 = geodataframe['D50'].astype(float).values
-        self.D84 = geodataframe['D84'].astype(float).values
-        self.length = geodataframe['Length'].astype(float).values
-        self.el_fn = geodataframe['el_FN'].astype(float).values
-        self.el_tn = geodataframe['el_TN'].astype(float).values
-
-        self.roughness = self.compute_roughness()
-
-        # Optional attributes
-        self.reach_id = geodataframe['reach_id'].values if 'reach_id' in geodataframe.columns else None
-        self.id = geodataframe['Id'].values if 'Id' in geodataframe.columns else None
-        self.q = geodataframe['Q'].values if 'Q' in geodataframe.columns else None
-        self.wac_bf = geodataframe['Wac_BF'].values if 'Wac_BF' in geodataframe.columns else None
-        self.D90 = geodataframe['D90'].values if 'D90' in geodataframe.columns else None
-        self.s_lr_gis = geodataframe['S_LR_GIS'].values if 'S_LR_GIS' in geodataframe.columns else None
-        self.tr_limit = geodataframe['tr_limit'].values if 'tr_limit' in geodataframe.columns else None
-        self.x_fn = geodataframe['x_FN'].values if 'x_FN' in geodataframe.columns else None
-        self.y_fn = geodataframe['y_FN'].values if 'y_FN' in geodataframe.columns else None
-        self.x_tn = geodataframe['x_TN'].values if 'x_TN' in geodataframe.columns else None
-        self.y_tn = geodataframe['y_TN'].values if 'y_TN' in geodataframe.columns else None
-        self.ad = geodataframe['Ad'].values if 'Ad' in geodataframe.columns else None
-        self.direct_ad = geodataframe['directAd'].values if 'directAd' in geodataframe.columns else None
-        self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else None
-        self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else None
-        self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else None
-
-
-
-    def sort_values_by(self, sorting_array):
-        """
-        Function to sort the reaches by the array given in input (e.g the upstream node index).
-        """
-        # Making sure the array given has the right length
-        assert(len(sorting_array) == self.n_reaches)
-
-        # Get the indices that would sort sorting_array
-        sorted_indices = np.argsort(sorting_array)
-
-        # Loop through all attributes
-        for attr_name in vars(self):
-
-            # Check if these are reach attributes
-            attr_value = vars(self)[attr_name]
-            if isinstance(attr_value, np.ndarray) and len(attr_value) == self.n_reaches:
-                vars(self)[attr_name] = attr_value[sorted_indices]
-
-        return sorted_indices
-
-    def compute_roughness(self):
-        """
-        Function to set the roughness attribute.
-        If a roughness parameter is not given in the reach data, then is takes D90 or D84.
-        """
-        # to test and see if it is what we want in terms of physics
-        if 'roughness' in self.geodf:
-            roughness = self.geodf['roughness'].astype(float).values
-        elif 'D90' in self.geodf:
-            roughness = self.geodf['D90'].astype(float).values
-        else:
-            roughness = self.geodf['D84'].astype(float).values
-        return roughness
-
-
 
 
 class SedimentarySystem:
@@ -570,7 +449,7 @@ class SedimentarySystem:
         @return
             the cascade list updated with the external input
         """
-        if numpy.any(self.external_inputs[t, n, :] > 0):
+        if np.any(self.external_inputs[t, n, :] > 0):
             provenance = n
             elapsed_time = np.zeros(self.n_classes)
             volume = np.expand_dims(np.append(n, self.external_inputs[t, n, :]), axis = 0)
@@ -722,7 +601,7 @@ class SedimentarySystem:
 
 
         Svel = self.vl_height[t, n] * self.width[t, n] * (1 - self.phi)  # the global section where all sediments pass through
-        if Svel == 0 or numpy.isnan(Svel) == True:
+        if Svel == 0 or np.isnan(Svel) == True:
             raise ValueError("The section to compute velocities can not be 0 or NaN.")
 
         if indx_vel_partition == 1:
@@ -1524,6 +1403,24 @@ class SedimentarySystem:
             volume_compacted = self.create_volume(provenance=provenance_ids[0])
 
         return volume_compacted
-
-
+    
+    
+    def sort_by_init_provenance(self, volume, n):
+        '''         
+        Function to sort the volume layers according to initial provenance.
+        @note
+            It was used in v1 to sort the incoming volume layers according to the distance to 
+            their initial provenance reach.
+            DD: We keep it in v2. Removing it seems to substancially change the results (+/-10%)
+        '''
+        distancelist = self.network['upstream_distance_list'][n]
+    
+        idx = np.argwhere(volume[:, 0][:,None] == distancelist[~(np.isnan(distancelist))])[:,1]
+    
+        if idx.size != 0 and len(idx) != 1:  # if there is a match #EB check
+            volume_sort = np.array(volume[(idx-1).argsort(), :])
+        else:
+            volume_sort = volume
+    
+        return volume_sort
 

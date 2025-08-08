@@ -28,22 +28,19 @@ This script was adapted from the Matlab version by Marco Tangi
 """
 
 import copy
-import os
-import profile
+import os, sys
 from pathlib import Path
 
-# import libraries
 import numpy as np
-# import geopandas as gpd
 import pandas as pd
-from numpy import random
 
-from DCASCADE_main_script import DCASCADE_main
-# import ad hoc functions
-from GSD import GSDcurvefit
-# from plot_function import dynamic_plot
+# Add source (src) folder in the python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+
+from main import DCASCADE_main
+from GSD_curvefit import GSDcurvefit
 from preprocessing import extract_Q, graph_preprocessing, read_network
-from supporting_classes import ReachData
+from reach_data import ReachData
 from widget import read_user_input
 
 '''user defined input data'''
@@ -52,13 +49,13 @@ from widget import read_user_input
 #--------------------1) Pathes
 
 #---River shape files
-path_river_network = Path('../input/input_trial/')
+path_river_network = Path('../inputs/input_trial/')
 # Reach data file (shp, but can also be a csv)
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
 #---Discharge files
-path_q = Path('../input/input_trial/')
+path_q = Path('../inputs/input_trial/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q

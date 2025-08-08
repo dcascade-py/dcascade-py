@@ -15,12 +15,13 @@ from tqdm import tqdm
 
 np.seterr(divide='ignore', invalid='ignore')
 
+from cascade import Cascade
+from sedimentary_system import SedimentarySystem
 
-from flow_depth_calc import choose_flow_depth
-from slope_reduction import choose_slopeRed
-from supporting_classes import Cascade, SedimentarySystem
-from supporting_functions import D_finder, sortdistance
-from width_variation import choose_widthVar
+from flow_depth import choose_flow_depth
+from slope_reduction import choose_slope_reduction
+from width_variation import choose_width_variation
+from d_finder import D_finder
 
 
 class DCASCADE:
@@ -95,7 +96,7 @@ class DCASCADE:
         for t in tqdm(range(self.timescale - 1)):
 
             # Channel width calculation
-            SedimSys.width = choose_widthVar(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
+            SedimSys.width = choose_width_variation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
 
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
@@ -105,7 +106,7 @@ class DCASCADE:
             SedimSys.set_velocity_section_height(self.vel_height_option, h, t)
 
             # Slope reduction functions
-            SedimSys.slope = choose_slopeRed(self.reach_data, SedimSys, Q, t, h, self.indx_slope_red)
+            SedimSys.slope = choose_slope_reduction(self.reach_data, SedimSys, Q, t, h, self.indx_slope_red)
 
             # Deposit layer from previous timestep
             Qbi_dep_old = copy.deepcopy(self.sedim_sys.Qbi_dep_0)
@@ -264,10 +265,11 @@ class DCASCADE:
                 # Add the cascades that were mobilised from this reach to Qbi_pass[n]:
                 if reach_mobilized_cascades != []:
                     Qbi_pass[n].extend(reach_mobilized_cascades)
-
+                
                 # Deposit the stopping cascades in Vdep
                 if to_be_deposited is not None:
-                    to_be_deposited = sortdistance(to_be_deposited, self.network['upstream_distance_list'][n])
+                    to_be_deposited = SedimSys.sort_by_init_provenance(to_be_deposited, n)  
+                    #DD: see if we remove line above, because theoretically to_be_deposited is already sorted
                     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
 
                 # Store Vdep for next time step

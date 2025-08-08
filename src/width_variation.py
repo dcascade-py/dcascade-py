@@ -33,7 +33,7 @@ def dynamic_width_Lugo(width, D50, slopes, Q_t):
 
     return new_width
 
-def choose_widthVar(reach_data, SedimSys, Q, t, indx_width_calc):
+def choose_width_variation(reach_data, SedimSys, Q, t, indx_width_calc):
 
     if  indx_width_calc == 1:
         width_t = SedimSys.width[t] # Static width

@@ -4,15 +4,21 @@ Created on Thu Sep  5 13:50:28 2024
 @author: Diane Doolaeghe
 """
 
-import time
-from pathlib import Path
+import sys, os
+# Add source (src) folder in the python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
+
+
+from pathlib import Path
 import geopandas as gpd
 import numpy as np
+import time
 
-from DCASCADE_main_script import DCASCADE_main, ReachData
-from GSD import GSDcurvefit
+from main import DCASCADE_main
+from GSD_curvefit import GSDcurvefit
 from preprocessing import extract_Q, graph_preprocessing, read_network
+from reach_data import ReachData
 
 # Temporary test for us. The input files are not versionned, but must be asked to Diane D..
 
@@ -28,11 +34,11 @@ from preprocessing import extract_Q, graph_preprocessing, read_network
 '''
 
 #Pathes
-path_river_network = Path('Input_Po_untracked/shp/')
+path_river_network = Path('../inputs/Input_Po_untracked/shp/')
 name_river_network = 'Po_river_network.shp'
 filename_river_network = path_river_network / name_river_network
 
-path_q = Path('Input_Po_untracked/')
+path_q = Path('../inputs/Input_Po_untracked/')
 name_q = 'Po_Qdaily_3y.csv'
 filename_q = path_q / name_q
 
@@ -919,3 +925,5 @@ if __name__ == "__main__":
     test_Po_Wilcock_all_true_no_tlag()
     test_Po_Engelund_all_new_options_true()
     test_Po_Wilcock_all_new_options_true()
+    
+    print("All tests successfully run.")

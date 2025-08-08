@@ -13,8 +13,8 @@ This script was adapted from the Matlab version by Marco Tangi
 
 import itertools
 
-from DCASCADE_class import DCASCADE
-from supporting_classes import Cascade, ReachData, SedimentarySystem
+from dcascade import DCASCADE
+from sedimentary_system import SedimentarySystem
 
 """ MAIN FUNCTION SECTION """
 

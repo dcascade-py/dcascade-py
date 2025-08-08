@@ -3,13 +3,16 @@ Created on Mon Nov 18 16:34:03 2024
 
 @author: FPitscheider
 """
+
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add source (src) folder in the python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+
 
 import numpy as np
 import numpy.matlib
 
-from supporting_functions import D_finder
+from d_finder import D_finder
 
 # To account for potential imprecision or errors in the calculations, we use
 # an " absolute tolerance" EPSILON of 0.0001.

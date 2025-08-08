@@ -5,12 +5,14 @@ Created on Thu Sep  5 13:50:28 2024
 """
 
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add source (src) folder in the python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+
 
 import numpy as np
 import numpy.matlib
 
-from transport_capacity_computation import TransportCapacityCalculator
+from transport_capacity_calculator import TransportCapacityCalculator
 
 # To account for potential imprecision or errors in the calculations, we use
 # an " absolute tolerance" EPSILON of 0.0001.
