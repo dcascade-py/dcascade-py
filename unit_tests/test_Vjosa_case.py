@@ -20,9 +20,9 @@ from preprocessing import extract_Q, graph_preprocessing, read_network
 from reach_data import ReachData
 
 
-# get the current folder (where is this script)
+# get the root of the project
 # for github actions 
-BASE_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
 ''' List of tests performed here:
@@ -38,11 +38,11 @@ BASE_DIR = Path(__file__).resolve().parent
 
 
 #Pathes
-path_river_network = BASE_DIR / Path('../inputs/input_trial/')
+path_river_network = ROOT_DIR / Path('inputs/input_trial/')
 name_river_network = 'River_Network.shp'
 filename_river_network = path_river_network / name_river_network
 
-path_q = BASE_DIR / Path('../inputs/input_trial/')
+path_q = ROOT_DIR / Path('inputs/input_trial/')
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q
 
