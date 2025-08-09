@@ -3,6 +3,7 @@ __pycache__
 
 user_scripts/*.py
 !user_scripts/00-DCASCADE_user_script_example_Vjosa.py
+!user_scripts/DCASCADE_user_script_Solda_workshop.py
 
 cascade_results/
 
