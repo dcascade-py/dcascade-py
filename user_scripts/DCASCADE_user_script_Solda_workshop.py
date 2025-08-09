@@ -47,12 +47,12 @@ from widget import read_user_input
 '''user defined input data'''
 
 
-#-------River shape files
-path_river_network = Path('../inputs/input_solda_workshop_insbruck/')
-# path_river_network = Path('C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\RN4Model\\')
-name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok.shp'
-# name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok_PS.shp' # Only PS reach - For test tr_cap
-filename_river_network = path_river_network / name_river_network
+# #-------River shape files
+# path_river_network = Path('../inputs/input_solda_workshop_insbruck/')
+# # path_river_network = Path('C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\RN4Model\\')
+# name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok.shp'
+# # name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok_PS.shp' # Only PS reach - For test tr_cap
+# filename_river_network = path_river_network / name_river_network
 
 # #--------Discharge files
 # path_q = Path('C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\DischargeSims\\')
@@ -84,19 +84,19 @@ filename_river_network = path_river_network / name_river_network
 # # name_q = q_init
 
 
-path_q = Path('../inputs/input_solda_workshop_insbruck/')
-# csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'discharges_allReaches_m3_per_s_noNode29.csv'
+# path_q = Path('../inputs/input_solda_workshop_insbruck/')
+# # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+# name_q = 'discharges_allReaches_m3_per_s_noNode29.csv'
 
-filename_q = path_q / name_q
-filename_q = path_q / name_q
+# filename_q = path_q / name_q
+# filename_q = path_q / name_q
 
-# #--------Path to the output folder
-# path_results = Path("C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\dCascade_Results\\Simualtions\\2015_20_v1Apr25\\")
+# # #--------Path to the output folder
+# # path_results = Path("C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\dCascade_Results\\Simualtions\\2015_20_v1Apr25\\")
 
-#---Path to the output folder
-path_results = Path("../cascade_results/")
-name_file = path_results / 'save_all.p'
+# #---Path to the output folder
+# path_results = Path("../cascade_results/")
+# name_file = path_results / 'save_all.p'
 
 
 # #--------Parameters of the simulation
@@ -104,11 +104,11 @@ name_file = path_results / 'save_all.p'
 # #---Sediment classes definition
 # # defines the sediment sizes considered in the simulation
 # #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-sed_range = [-10, -1]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5).
-n_classes = 10       # number of classes
+# sed_range = [-10, -1]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5).
+# n_classes = 10       # number of classes
 
 # #---Timescale
-timescale = 365#len(name_q) #5844 #3287 # 3652
+# timescale = 365#len(name_q) #5844 #3287 # 3652
 # # print(timescale)
 # ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
@@ -118,7 +118,7 @@ timescale = 365#len(name_q) #5844 #3287 # 3652
 # #---Initial layer sizes
 # deposit_layer = 0.1     # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
 # eros_max = 0.3               # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters.
-al_depth = '2D90'              # Active layer depth (Possibilities: '2D90', or any fixed value)
+# al_depth = '2D90'              # Active layer depth (Possibilities: '2D90', or any fixed value)
 # vel_height = '2D90'         # Section for velocity calculation
 #                             #Possibilities: '2D90', '0.1_hw' (10% of water height), or any fixed value)
 
@@ -129,8 +129,8 @@ al_depth = '2D90'              # Active layer depth (Possibilities: '2D90', or a
 # roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 
-indx_tr_cap = 7
-indx_tr_partition = 2
+# indx_tr_cap = 7
+# indx_tr_partition = 2
 
 
 def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, sed_range, n_classes, indx_tr_cap , indx_tr_partition, al_depth = 0.3, vel_height = '2D90'):
@@ -280,4 +280,4 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     # ## Plot results
     # keep_slider = dynamic_plot(data_output_t, reach_data, psi)
     
-DCASCADE_run(filename_river_network, filename_q, path_results, timescale, sed_range, n_classes, indx_tr_cap , indx_tr_partition, al_depth = 0.3, vel_height = '2D90')
+# DCASCADE_run(filename_river_network, filename_q, path_results, timescale, sed_range, n_classes, indx_tr_cap , indx_tr_partition, al_depth = 0.3, vel_height = '2D90')
