@@ -141,9 +141,9 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
 
 
     ################ MAIN ###############
-    # If the transport capacity formula is not chosen manually:
-    if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
-        indx_tr_cap, indx_tr_partition = read_user_input()
+    # # If the transport capacity formula is not chosen manually:
+    # if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
+    #     indx_tr_cap, indx_tr_partition = read_user_input()
 
     # Read the network
     reach_data_df = read_network(filename_river_network)
