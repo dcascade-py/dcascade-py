@@ -141,7 +141,8 @@ def graph_preprocessing(reach_data):
 
     # shortest downstream path to each node
     paths = nx.shortest_path(graph)
-
+    paths = dict(paths)
+    
     # shortest upstream path to each node
     paths_up = nx.shortest_path(graph_down)
     paths_up = dict(paths_up)
