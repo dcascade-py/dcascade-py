@@ -16,12 +16,11 @@ from tqdm import tqdm
 np.seterr(divide='ignore', invalid='ignore')
 
 from cascade import Cascade
-from sedimentary_system import SedimentarySystem
-
+from d_finder import D_finder
 from flow_depth import choose_flow_depth
+from sedimentary_system import SedimentarySystem
 from slope_reduction import choose_slope_reduction
 from width_variation import choose_width_variation
-from d_finder import D_finder
 
 
 class DCASCADE:
@@ -265,10 +264,10 @@ class DCASCADE:
                 # Add the cascades that were mobilised from this reach to Qbi_pass[n]:
                 if reach_mobilized_cascades != []:
                     Qbi_pass[n].extend(reach_mobilized_cascades)
-                
+
                 # Deposit the stopping cascades in Vdep
                 if to_be_deposited is not None:
-                    to_be_deposited = SedimSys.sort_by_init_provenance(to_be_deposited, n)  
+                    to_be_deposited = SedimSys.sort_by_init_provenance(to_be_deposited, n)
                     #DD: see if we remove line above, because theoretically to_be_deposited is already sorted
                     Vdep_end = np.concatenate([Vdep_end, to_be_deposited], axis=0)
 

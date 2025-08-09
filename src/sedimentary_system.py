@@ -4,12 +4,13 @@ Created on Tue Oct 29 10:58:54 2024
 @author: diane
 """
 import copy
-import numpy as np
 from itertools import groupby
 
+import numpy as np
+
 from cascade import Cascade
-from transport_capacity_calculator import TransportCapacityCalculator
 from d_finder import D_finder
+from transport_capacity_calculator import TransportCapacityCalculator
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -1403,24 +1404,24 @@ class SedimentarySystem:
             volume_compacted = self.create_volume(provenance=provenance_ids[0])
 
         return volume_compacted
-    
-    
+
+
     def sort_by_init_provenance(self, volume, n):
-        '''         
+        '''
         Function to sort the volume layers according to initial provenance.
         @note
-            It was used in v1 to sort the incoming volume layers according to the distance to 
+            It was used in v1 to sort the incoming volume layers according to the distance to
             their initial provenance reach.
             DD: We keep it in v2. Removing it seems to substancially change the results (+/-10%)
         '''
         distancelist = self.network['upstream_distance_list'][n]
-    
+
         idx = np.argwhere(volume[:, 0][:,None] == distancelist[~(np.isnan(distancelist))])[:,1]
-    
+
         if idx.size != 0 and len(idx) != 1:  # if there is a match #EB check
             volume_sort = np.array(volume[(idx-1).argsort(), :])
         else:
             volume_sort = volume
-    
+
         return volume_sort
 

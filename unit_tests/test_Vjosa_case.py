@@ -5,23 +5,25 @@ Created on Thu Sep  5 13:50:28 2024
 """
 
 
-import sys, os
+import os
+import sys
+
 # Add source (src) folder in the python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 
 from pathlib import Path
+
 import geopandas as gpd
 import numpy as np
 
-from main import DCASCADE_main
 from GSD_curvefit import GSDcurvefit
+from main import DCASCADE_main
 from preprocessing import extract_Q, graph_preprocessing, read_network
 from reach_data import ReachData
 
-
 # get the root of the project
-# for github actions 
+# for github actions
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -378,5 +380,5 @@ if __name__ == "__main__":
     test_Vjosa_Wilcock_all_true_no_tlag()
     test_Vjosa_Engelund_all_new_options_true()
     test_Vjosa_Wilcock_all_new_options_true()
-    
+
     print("All tests successfully run.")

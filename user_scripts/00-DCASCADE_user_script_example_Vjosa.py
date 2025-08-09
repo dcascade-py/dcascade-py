@@ -28,7 +28,8 @@ This script was adapted from the Matlab version by Marco Tangi
 """
 
 import copy
-import os, sys
+import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -37,8 +38,8 @@ import pandas as pd
 # Add source (src) folder in the python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from main import DCASCADE_main
 from GSD_curvefit import GSDcurvefit
+from main import DCASCADE_main
 from preprocessing import extract_Q, graph_preprocessing, read_network
 from reach_data import ReachData
 from widget import read_user_input

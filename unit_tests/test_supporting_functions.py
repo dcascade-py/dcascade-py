@@ -4,7 +4,9 @@ Created on Mon Nov 18 16:34:03 2024
 @author: FPitscheider
 """
 
-import sys, os
+import os
+import sys
+
 # Add source (src) folder in the python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
