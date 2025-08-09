@@ -270,7 +270,7 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     if not os.path.exists(path_results):   #does the output folder exist ?
         os.makedirs(path_results)          # if not, create it.
 
-    name_file = path_results / 'RR_VFW_Init_6.p'
+    name_file = Path(path_results) / 'RR_VFW_Init_6.p'
     pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
     #name_file_ext = path_results + 'save_all_ext.p'
