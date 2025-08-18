@@ -3,15 +3,14 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.11.0
+  - python=3.12.3
   - numpy
   - tqdm
   - matplotlib
   - spyder
-  - geopandas
-  - pandas=2.2.0
-  - fiona=1.9.1
-  - gdal=3.6.2
-  - networkx=3.0
-  - shapely=2.0.1
-
+  - geopandas=1.1.1
+  - pandas=2.3.1
+  - networkx=3.5
+  - shapely=2.0.5
+  # - fiona=1.9.5
+  # - gdal=3.6.2
