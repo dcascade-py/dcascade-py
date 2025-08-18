@@ -140,10 +140,10 @@ def graph_preprocessing(reach_data):
     graph_down = extract_graph(to_n, from_n)
 
     # shortest downstream path to each node
-    paths = nx.shortest_path(graph)
+    paths = dict(nx.shortest_path(graph))
 
     # shortest upstream path to each node
-    paths_up = nx.shortest_path(graph_down)
+    paths_up = dict(nx.shortest_path(graph_down))
 
     #find the number of upstream nodes
     number_upstream_nodes = np.zeros([reach_data.n_reaches, 1])
