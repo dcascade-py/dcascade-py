@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 
 
+
+
 def read_network(file_path):
     # Get the file extension
     file_extension = os.path.splitext(file_path)[1].lower()
@@ -46,14 +48,30 @@ def extract_Q(filename_q):
     if Q_check2.iloc[0,0]=='yyyy/mm/dd':
         Q_matrix = pd.read_csv(filename_q, header = 0, sep=my_delimiter, index_col = 'yyyy/mm/dd')
     else:
-        print('Warning: you did not provide headers with reach names \
-              in the Q file. We will proceed as if the Q file column order \
-              corresponds to the order of the reach as they are in the \
-              input network shape file. \n')
+        print("\n Warning: you did not provide headers with reach names "
+              "in the Q file. We will proceed as if the Q file column order "
+              "corresponds to the order of the reach as they are in the "
+              "input network shape file. \n"
+              )
         Q_matrix = pd.read_csv(filename_q, header = None, sep=my_delimiter)
 
     return Q_matrix
 
+
+def check_sediment_sizes(reach_data, dmi):
+    ''' Warns the user in case the modeled sediment size range excludes input sizes.
+    Classes must be compatible with D16, D50, D84 defined for the reaches.
+    '''    
+    if min(reach_data.D16) * 1000 < np.percentile(dmi, 10, method='midpoint'):
+        print("\n Warning: the minimum input D16, " + str(min(reach_data.D16) * 1000) + "mm, is lower "
+               "than the 10th percentile of the defined sediment "
+               "range, " + str(np.percentile(dmi, 10, method='midpoint')) + "mm \n")
+                            
+    if max(reach_data.D84) * 1000 > np.percentile(dmi, 90, method='midpoint'):
+        print("\n Warning: the maximum input D84, " + str(max(reach_data.D84) * 1000) + "mm, is larger "
+               "than the 90th percentile of the defined sediment "
+               "range, " + str(np.percentile(dmi, 90, method='midpoint')) + "mm \n")        
+        
 
 
 def write_adj_matrix(FromN, ToN , Lngt):
@@ -201,7 +219,7 @@ def graph_preprocessing(reach_data):
         to_fill[0, 0:len(keep)] = keep
         upstream_distance_list.append(to_fill)
 
-    print('upstream paths and nodes done..')
+    # print('upstream paths and nodes done..')
     # find the number of downstream nodes and their relative distance (EB)
     number_downstream_nodes = np.zeros([np.size(from_n), 1])
     distance_downstream = [None] * reach_data.n_reaches
@@ -243,7 +261,7 @@ def graph_preprocessing(reach_data):
         to_fill[0, 0:len(keep)] = keep
         downstream_distance_list.append(to_fill)
 
-    print('downstream paths and nodes done..')
+    # print('downstream paths and nodes done..')
     # ID of directly upstream nodes
     upstream_node = [None] * np.size(number_upstream_nodes)
     outlet = from_n[np.argwhere(from_n==to_n)]
@@ -285,5 +303,5 @@ def graph_preprocessing(reach_data):
                'downstream_distance': distance_downstream,
                'downstream_path': paths
                }
-    print('preprocessing done!')
+    # print('preprocessing done!')
     return network

@@ -41,9 +41,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'
 
 from GSD_curvefit import GSDcurvefit
 from main import DCASCADE_main
-from preprocessing import extract_Q, graph_preprocessing, read_network
+from preprocessing import extract_Q, graph_preprocessing, read_network, check_sediment_sizes
 from reach_data import ReachData
 from widget import read_user_input
+from plot_function import dynamic_plot
+
 
 '''user defined input data'''
 
@@ -62,9 +64,14 @@ path_q = Path('../inputs/input_trial/')
 name_q = 'Q_Vjosa.csv'
 filename_q = path_q / name_q
 
-#---Path to the output folder
-path_results = Path("../cascade_results/")
-name_file = path_results / 'save_all.p'
+#---Nome of the output
+name_output = 'Vjosa_test'
+
+#---Option to save extended outputs or not
+save_extended = True
+
+#---Option to display dynamic output plots at the end
+dynamic_display = True
 
 #-------------------2) User-defined main parameters of the simulation
 
@@ -160,11 +167,7 @@ psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).asty
 
 # Sediment classes in mm
 dmi = 2**(-psi).reshape(-1,1)
-
-# Check requirements. Classes must be compatible with D16, D50, D84 defined for the reaches - i.e. max sed class cannot be lower than D16
-print(min(reach_data.D16) * 1000, ' must be greater than ', np.percentile(dmi, 10, method='midpoint'))
-print(max(reach_data.D84) * 1000, ' must be lower than ',  np.percentile(dmi, 90, method='midpoint'))
-
+check_sediment_sizes(reach_data, dmi)
 
 # External sediment for all reaches, all classes and all timesteps
 external_inputs = np.zeros((timescale, reach_data.n_reaches, n_classes))
@@ -227,25 +230,23 @@ data_output, extended_output = DCASCADE_main(reach_data, network, Q, psi, timesc
                                              **kwargs)
 
 
-# Exclude variables not included in the plotting yet (sediment divided into classes)
-data_output_t = copy.deepcopy(data_output)
-variable_names = [data for data in data_output_t.keys() if data.endswith('per class [m^3/s]')]
-for item in variable_names:
-    del data_output_t[item]
-
 
 # Save results as pickled files
 import pickle
 
-if not os.path.exists(path_results):   #does the output folder exist ?
-    os.makedirs(path_results)          # if not, create it.
+path_results = Path("../cascade_results/")
+if not os.path.exists(path_results):   
+    os.makedirs(path_results)          
 
+name_file = path_results / Path(str(name_output) + '.p')
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-name_file_ext = path_results / 'save_all_ext.p'
-pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+if save_extended: 
+    name_file_ext = path_results / Path(str(name_output) + '_ext.p')
+    pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+    
 
-
-# ## Plot results
-# keep_slider = dynamic_plot(data_output_t, reach_data, psi)
+# Plot results
+if dynamic_display:
+    keep_slider = dynamic_plot(data_output, reach_data_df, psi)
 
