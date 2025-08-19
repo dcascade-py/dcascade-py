@@ -1,6 +1,5 @@
 # dcascade_py
-This repository contains all the basic functions necessary to run the D-CASCADE model in python. In the repository there are few input available to test the code.
-
+This is D-CASCADE version 1. We advise you to use the version 2: D-CASCADE v2.0
 
 ## Installing the conda environment 
 
