@@ -92,7 +92,7 @@ class DCASCADE:
         SedimSys = self.sedim_sys
 
         # start waiting bar
-        for t in tqdm(range(self.timescale - 1)):
+        for t in tqdm(range(self.timescale)):
 
             # Channel width calculation
             SedimSys.width = choose_width_variation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
@@ -161,7 +161,7 @@ class DCASCADE:
                     to_be_deposited = None
 
                 # Temporary to reproduce v1. Stopping cascades are stored at next time step.
-                if self.passing_cascade_in_outputs == False:
+                if self.passing_cascade_in_outputs == False and t != (self.timescale - 1):
                     if to_be_deposited is not None:
                         SedimSys.Qbi_tr[t+1][[SedimSys.provenance(to_be_deposited).astype(int)], n, :] += SedimSys.sediments(to_be_deposited)
 
@@ -311,8 +311,9 @@ class DCASCADE:
                     delta_volume_reach = np.sum(SedimSys.sediments(SedimSys.Qbi_dep_0[n]), axis = 0) - np.sum(SedimSys.sediments(Qbi_dep_old[n]), axis = 0)
                     SedimSys.check_mass_balance(t, n, delta_volume_reach)
 
-                # Optional: Compute the changes in bed elevation, due to deposition (+) or erosion (-)
-                if self.update_slope == True:
+                # Optional: Update the changes in bed elevation, due to deposition (+) or erosion (-)
+                # Note: sediment budget at t, will update the node elevation at t+1
+                if self.update_slope == True and t != self.timescale - 1:
                     SedimSys.update_node_elevation_with_deposit(t, n)
 
 
@@ -326,8 +327,8 @@ class DCASCADE:
                     t_y = int((t+2)/365)
                     SedimSys.Qbi_dep[t_y] = copy.deepcopy(SedimSys.Qbi_dep_0)
 
-            # In case of changing slope, change the slope accordingly to the bed elevation
-            if self.update_slope == True:
+            # In case of changing slope, change the slope accordingly to the bed elevation (at t+1)
+            if self.update_slope == True and t != self.timescale - 1:
                 # DD: see what min slope value should be
                 SedimSys.change_slope(t)
 
@@ -368,7 +369,7 @@ class DCASCADE:
         direct_connectivity = np.zeros((self.timescale, self.n_reaches, self.n_reaches + 1)) # + 1 to consider sediment going to the outlet
         deposited = SedimSys.create_2d_zero_array()
 
-        for t in range(self.timescale - 1):
+        for t in range(self.timescale):
             # Sum over provenances (axe 0) and sediment classes (axe 2)
             mobilised[t,:] = np.sum(SedimSys.Qbi_mob[t], axis = (0,2))
             transported[t,:] = np.sum(SedimSys.Qbi_tr[t], axis = (0,2))
@@ -380,7 +381,7 @@ class DCASCADE:
 
         # Compute D50 mobilised (over sediment classes and provenance):
         D50_mob = SedimSys.create_2d_zero_array()
-        for t in range(self.timescale - 1):
+        for t in range(self.timescale):
             sum_by_provenance = np.sum(SedimSys.Qbi_mob[t], axis = 0)
             Fi_mob_t  = sum_by_provenance / mobilised[t, :][:, np.newaxis]
             D50_mob[t,:] = D_finder(Fi_mob_t, 50, SedimSys.psi)

@@ -118,12 +118,12 @@ def test_Vjosa_Engelund_all_new_options_false():
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([412785., 167443., 119024.,  13990.,  84997.,   7461.,  12781.])
+    expected_result = np.array([431292., 174049., 124598.,  16895.,  88802.,   7794.,  13352.])
     np.testing.assert_array_equal(test_result, expected_result)
 
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([     0., 439792., 189076.,  30151.,      0.,      0.,      0.])
+    expected_result = np.array([     0., 454923., 194467.,  34665.,      0.,      0.,      0.])
     # the absolute tolerance is fixed to 1e6, because the expected results
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
@@ -164,12 +164,14 @@ def test_Vjosa_Wilcock_all_new_options_false():
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([2142257.,  497025.,  271124.,   68684.,  770800.,  113202.,  175644.])
+    expected_result = np.array([2.245782e+06, 5.208630e+05, 2.840860e+05, 7.198300e+04,
+                                8.078890e+05, 1.185800e+05, 1.840180e+05])
     np.testing.assert_array_equal(test_result, expected_result)
 
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([      0.,  104110., 3181869.,  309202.,       0.,       0.,      0.])
+    expected_result = np.array([0.000000e+00, 1.041100e+05, 3.315064e+06, 3.255060e+05,
+                                0.000000e+00, 0.000000e+00, 0.000000e+00])
     np.testing.assert_array_equal(test_result, expected_result)
 
     # #----Test D50 active layer
@@ -208,12 +210,12 @@ def test_Vjosa_Engelund_all_true_no_tlag():
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([412785., 170864., 132974.,  66981.,  84997.,   7461.,  12781.])
+    expected_result = np.array([431292., 177463., 138996.,  71630.,  88802.,   7794.,  13352.])
     np.testing.assert_array_equal(test_result, expected_result)
 
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([     0., 497782., 178325., 145755.,      0.,      0.,      0.])
+    expected_result = np.array([     0., 520094., 185257., 152348.,      0.,      0.,      0.])
     # the absolute tolerance is fixed to 1e6, because the expected results
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
@@ -255,13 +257,15 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     # expected_result = np.array([2142257.,  497025.,  271124.,   68684.,  770800.,  113202.,  175644.])
-    expected_result = np.array([2142257.,  502028.,  274379.,   68723.,  770800.,  113202., 175644.])
+    expected_result = np.array([2.245782e+06, 5.261160e+05, 2.874930e+05, 7.204900e+04,
+                                8.078890e+05, 1.185800e+05, 1.840180e+05])
 
     np.testing.assert_array_equal(test_result, expected_result)
 
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([      0., 2913057.,  615230.,  450023., 0., 0., 0.])
+    expected_result = np.array([0.000000e+00, 3.053671e+06, 6.446960e+05, 4.715110e+05,
+                                0.000000e+00, 0.000000e+00, 0.000000e+00])
     np.testing.assert_array_equal(test_result, expected_result)
 
     # #----Test D50 active layer
@@ -302,12 +306,12 @@ def test_Vjosa_Engelund_all_new_options_true():
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([412785., 172325., 132695.,  63984.,  84997.,   7461.,  12781.])
+    expected_result = np.array([431292., 178924., 139355.,  68516.,  88802.,   7794.,  13352.])
     np.testing.assert_array_equal(test_result, expected_result)
 
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([     0., 497782., 179786., 145476.,      0.,      0.,      0.])
+    expected_result = np.array([     0., 520094., 186718., 152707.,      0.,      0.,      0.])
     # the absolute tolerance is fixed to 1e6, because the expected results
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
@@ -349,13 +353,15 @@ def test_Vjosa_Wilcock_all_new_options_true():
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([2142257.,  502395.,  274267.,   70052.,  770800.,  113202., 175644.])
+    expected_result = np.array([2.245782e+06, 5.265410e+05, 2.874110e+05, 7.340700e+04,
+                                8.078890e+05, 1.185800e+05, 1.840180e+05])
 
     np.testing.assert_array_equal(test_result, expected_result)
 
     #----Test the total transported volume per reach
     test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([      0., 2913057.,  615597.,  449911., 0., 0., 0.])
+    expected_result = np.array([0.000000e+00, 3.053671e+06, 6.451210e+05, 4.714290e+05,
+                                0.000000e+00, 0.000000e+00, 0.000000e+00])
     np.testing.assert_array_equal(test_result, expected_result)
 
     # #----Test D50 active layer

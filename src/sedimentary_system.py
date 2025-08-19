@@ -254,12 +254,16 @@ class SedimentarySystem:
         """ Initialize all matrices used for storing sediment transport during the simulations
         """
         # Create Qbi dep matrix with size size depending on how often we want to save it:
+        # Note: Qbi_dep stores the state of the deposit layer Vdep at the beginning of the time step 
+        # Note: t = 0 is the initial deposit layer 
+        # Note: an extra time column (+1) is used to represent the state of Vdep at the end of the last time step
+        
         if self.save_dep_layer=='never':
             dep_save_number = 1
         if self.save_dep_layer=='yearly':
-            dep_save_number = int(self.timescale / 365) + 1  # +1 because we also keep t0.
+            dep_save_number = int(self.timescale / 365) + 1  
         if self.save_dep_layer=='always':
-            dep_save_number = self.timescale
+            dep_save_number = self.timescale + 1
         self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]
 
         # Initial Qbi_dep:
@@ -1329,7 +1333,7 @@ class SedimentarySystem:
 
     def update_node_elevation_with_deposit(self, t, n):
         """
-        Update node elevation according to deposits in the reach just downstream of the node.
+        Update node elevation at t+1 according to deposits at t in the reach just downstream of the node.
         """
         # Total sediment budget (deposited or eroded) of reach n at time step t
         sed_budg_t_n = np.sum(self.sediment_budget[t,n,:])
