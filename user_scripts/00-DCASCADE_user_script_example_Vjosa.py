@@ -41,11 +41,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'
 
 from GSD_curvefit import GSDcurvefit
 from main import DCASCADE_main
-from preprocessing import extract_Q, graph_preprocessing, read_network, check_sediment_sizes
+from plot_function import dynamic_plot
+from preprocessing import (check_sediment_sizes, extract_Q,
+                           graph_preprocessing, read_network)
 from reach_data import ReachData
 from widget import read_user_input
-from plot_function import dynamic_plot
-
 
 '''user defined input data'''
 
@@ -235,16 +235,16 @@ data_output, extended_output = DCASCADE_main(reach_data, network, Q, psi, timesc
 import pickle
 
 path_results = Path("../cascade_results/")
-if not os.path.exists(path_results):   
-    os.makedirs(path_results)          
+if not os.path.exists(path_results):
+    os.makedirs(path_results)
 
 name_file = path_results / Path(str(name_output) + '.p')
 pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-if save_extended: 
+if save_extended:
     name_file_ext = path_results / Path(str(name_output) + '_ext.p')
     pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
-    
+
 
 # Plot results
 if dynamic_display:

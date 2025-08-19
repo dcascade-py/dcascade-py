@@ -13,25 +13,25 @@ from tkinter import Label, OptionMenu, StringVar, Tk  # for widget
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.widgets import Button, Slider
 from matplotlib import cm
 from matplotlib.lines import Line2D
+from matplotlib.widgets import Button, Slider
 
 
 def dynamic_plot(data_output, ReachData, psi, **kwargs):
     '''
     Plot input data and show reach features and sediment transport processes by clicking on it
     '''
-    
-    # 
+
+    #
 
     # ##input data
-    # dmi = 2**(-psi)    
-    
-    
+    # dmi = 2**(-psi)
+
+
     # List of output available for display
     list_outputs = ['D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]']
-    
+
 
     # # output selection
     # def output_selection(event):
@@ -57,8 +57,8 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
         # elif clicked.get() == "Reach Slope":
         #     indx = "Reach Slope"
         # root.destroy()
-        
-        
+
+
     def output_selection(event):
         global indx
         selection = clicked.get()
@@ -67,8 +67,8 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
         else:
             indx = None  # or some default fallback
         root.destroy()
-        
-        
+
+
 
     root = Tk() # create the little window
     myLabel = Label(root, text = 'Outputs')
@@ -92,7 +92,7 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
 
     # lengths_values = {key: len(value) for key, value in data_output.items() if key != 'Transported + deposited sed in the reach [m^3/s]' }
     # lengths_values = {key: len(value) for key, value in data_output.items()}
-    
+
     lengths_values = {key: len(data_output[key]) for key in list_outputs}
     sim_length = min(lengths_values.values())
 

@@ -254,14 +254,14 @@ class SedimentarySystem:
         """ Initialize all matrices used for storing sediment transport during the simulations
         """
         # Create Qbi dep matrix with size size depending on how often we want to save it:
-        # Note: Qbi_dep stores the state of the deposit layer Vdep at the beginning of the time step 
-        # Note: t = 0 is the initial deposit layer 
+        # Note: Qbi_dep stores the state of the deposit layer Vdep at the beginning of the time step
+        # Note: t = 0 is the initial deposit layer
         # Note: an extra time column (+1) is used to represent the state of Vdep at the end of the last time step
-        
+
         if self.save_dep_layer=='never':
             dep_save_number = 1
         if self.save_dep_layer=='yearly':
-            dep_save_number = int(self.timescale / 365) + 1  
+            dep_save_number = int(self.timescale / 365) + 1
         if self.save_dep_layer=='always':
             dep_save_number = self.timescale + 1
         self.Qbi_dep = [[np.expand_dims(np.zeros(self.n_metadata + self.n_classes), axis = 0) for _ in range(self.n_reaches)] for _ in range(dep_save_number)]

@@ -13,8 +13,6 @@ import numpy as np
 import pandas as pd
 
 
-
-
 def read_network(file_path):
     # Get the file extension
     file_extension = os.path.splitext(file_path)[1].lower()
@@ -61,17 +59,17 @@ def extract_Q(filename_q):
 def check_sediment_sizes(reach_data, dmi):
     ''' Warns the user in case the modeled sediment size range excludes input sizes.
     Classes must be compatible with D16, D50, D84 defined for the reaches.
-    '''    
+    '''
     if min(reach_data.D16) * 1000 < np.percentile(dmi, 10, method='midpoint'):
         print("\n Warning: the minimum input D16, " + str(min(reach_data.D16) * 1000) + "mm, is lower "
                "than the 10th percentile of the defined sediment "
                "range, " + str(np.percentile(dmi, 10, method='midpoint')) + "mm \n")
-                            
+
     if max(reach_data.D84) * 1000 > np.percentile(dmi, 90, method='midpoint'):
         print("\n Warning: the maximum input D84, " + str(max(reach_data.D84) * 1000) + "mm, is larger "
                "than the 90th percentile of the defined sediment "
-               "range, " + str(np.percentile(dmi, 90, method='midpoint')) + "mm \n")        
-        
+               "range, " + str(np.percentile(dmi, 90, method='midpoint')) + "mm \n")
+
 
 
 def write_adj_matrix(FromN, ToN , Lngt):
