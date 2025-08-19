@@ -11,6 +11,8 @@ This repository contains:
 
 The model is written in python.
 
+Developers: Diane Doolaeghe, Anne-Laure Argentin, Elisa Bozzolan, Felix Pitscheider
+
 
 # Installation
 
