@@ -9,6 +9,7 @@ This script was adapted from the Matlab version by Marco Tangi
 @author: Elisa Bozzolan
 """
 
+
 from tkinter import Label, OptionMenu, StringVar, Tk  # for widget
 
 import matplotlib.pyplot as plt
@@ -23,41 +24,8 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     Plot input data and show reach features and sediment transport processes by clicking on it
     '''
 
-    #
-
-    # ##input data
-    # dmi = 2**(-psi)
-
-
     # List of output available for display
     list_outputs = ['D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]']
-
-
-    # # output selection
-    # def output_selection(event):
-    #     global indx
-    #     if clicked.get() == "D50 active layer [m]":
-    #         indx = "D50 active layer [m]"
-        # elif clicked.get() == "Daily trasport capacity [m^3/day]":
-        #     indx = "Daily trasport capacity [m^3/day]"
-        # elif clicked.get() == "D50 deposited layer [m]":
-        #     indx = "D50 deposited layer [m]"
-        # elif clicked.get() == "D50 mobilised layer [m]":
-        #     indx = "D50 mobilised layer [m]"
-        # elif clicked.get() == "Deposited volume[m^3]":
-        #     indx = "Deposited volume[m^3]"
-        # elif clicked.get() == "Mobilized volume [m^3]":
-        #     indx = "Mobilized volume [m^3]"
-        # #elif clicked.get() == "Transported + deposited sed - per class [m^3/s]":
-        #  #   indx = "Transported + deposited sed - per class [m^3/s]"
-        # #elif clicked.get() == "Transported + deposited sed in the reach [m^3]":
-        #  #   indx = "Transported + deposited sedin the reach [m^3]"
-        # elif clicked.get() == "Channel Width [m]":
-        #     indx = "Channel Width [m]"
-        # elif clicked.get() == "Reach Slope":
-        #     indx = "Reach Slope"
-        # root.destroy()
-
 
     def output_selection(event):
         global indx
@@ -68,16 +36,10 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
             indx = None  # or some default fallback
         root.destroy()
 
-
-
     root = Tk() # create the little window
     myLabel = Label(root, text = 'Outputs')
     myLabel.pack()
     root.geometry("300x300")
-    #indx_tr_cap = 3 # default value
-    # options = ["D50 active layer [m]"]#, "Daily trasport capacity [m^3/day]","D50 deposited layer [m]", "D50 mobilised layer [m]",
-    #            #  "Deposited volume[m^3]", "Mobilized volume [m^3]",
-    #            # "Channel Width [m]", "Reach Slope"]
 
     clicked = StringVar()
     clicked.set("Choose an option")
@@ -89,10 +51,6 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     #start_time = 1
     plot_class = indx # default plot variables
 
-
-    # lengths_values = {key: len(value) for key, value in data_output.items() if key != 'Transported + deposited sed in the reach [m^3/s]' }
-    # lengths_values = {key: len(value) for key, value in data_output.items()}
-
     lengths_values = {key: len(data_output[key]) for key in list_outputs}
     sim_length = min(lengths_values.values())
 
@@ -102,8 +60,6 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     n_class = 10
     i_class = 100/n_class - 0.00001 #interval between classestext
 
-    #cClass = {key: np.unique(np.percentile(value[np.nonzero(value)], np.arange(0,100,i_class))) for key, value in data_output.items() if key != 'Transported + deposited sed in the reach [m^3/s]'}
-    # cClass = {key: np.unique(np.percentile(value[np.nonzero(value)], np.arange(0,100,i_class))) for key, value in data_output.items()}
     cClass = {key: np.unique(np.percentile(data_output[key][np.nonzero(data_output[key])], np.arange(0,100,i_class))) for key in list_outputs}
 
     # add tot_sed_class for the class defined in def_sed_class
@@ -147,10 +103,9 @@ def dynamic_plot(data_output, ReachData, psi, **kwargs):
     slider.on_changed(value_update)
     button1.on_clicked(backward)
     button2.on_clicked(forward)
-
+    
+    plt.show()
     return slider, button1, button2
-
-
 
 
 # Supporting functions

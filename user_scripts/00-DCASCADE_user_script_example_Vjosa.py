@@ -47,7 +47,7 @@ from preprocessing import (check_sediment_sizes, extract_Q,
 from reach_data import ReachData
 from widget import read_user_input
 
-'''user defined input data'''
+
 
 
 #--------------------1) Pathes
@@ -67,7 +67,8 @@ filename_q = path_q / name_q
 #---Nome of the output
 name_output = 'Vjosa_test'
 
-#---Option to save extended outputs or not
+#---Option to save extended outputs or not 
+# Note: saving the extended outputs can require memory, but allow you to access more outputs (see README file)
 save_extended = True
 
 #---Option to display dynamic output plots at the end
@@ -103,7 +104,7 @@ al_depth = 0.3              # Active layer depth [m] (Possibilities: '2D90', or 
 save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to save the deposit layer matrix
 
 
-#-------------------2) List of optional defined parameters of the simulation
+#-------------------3) List of optional defined parameters of the simulation
 # These parameter are setted by default in the model with the following values
 # But they can also be changed by the user
 
@@ -137,7 +138,7 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 
 
 
-################ MAIN ###############
+################ PREPROCESSING ###############
 # If the transport capacity formula is not chosen manually:
 if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
     indx_tr_cap, indx_tr_partition = read_user_input()
@@ -224,14 +225,14 @@ if 'save_dep_layer' in globals():
 
 
 
-# Call dcascade main
+################ CALL MAIN ###############
 data_output, extended_output = DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
                                              indx_tr_cap, indx_tr_partition, Qbi_dep_in,
                                              **kwargs)
 
 
 
-# Save results as pickled files
+################ SAVE OUTPUTS ###############
 import pickle
 
 path_results = Path("../cascade_results/")
@@ -246,7 +247,7 @@ if save_extended:
     pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
 
-# Plot results
+# Plot dynamic results
 if dynamic_display:
     keep_slider = dynamic_plot(data_output, reach_data_df, psi)
 
