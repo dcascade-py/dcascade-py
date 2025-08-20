@@ -32,7 +32,7 @@ Copy-paste the project somewhere convenient on your computer.
 
 ## Instructions for installing the conda environment
 
-We recommand to use python 3.11. Additionnaly, some python packages must be installed before a given version (e.g. pandas 2.2).
+We recommand to use python 3.12. Additionnaly, some python packages must be installed before a given version (e.g. pandas 2.2).
 To respect these requirements we propose you to install a conda environment to run D-CASCADE on your computer.
 
 You will need to have Anaconda or Miniconda installed on your computer. If not, please install [Anaconda](https://docs.anaconda.com/free/anaconda/install/index.html), for your operating system.
@@ -52,15 +52,36 @@ cd name_of_the_path
 
 The change should be visualised in brackets in your conda shell. To check whether the cascade.yml file is in there you can type: `dir` and it should appear.
 
-Then, create the environment (called here "dcascade") with the required python version, and activate it:
+Then, create the environment (called here "dcascade") with the required python version and packages. This may take a few minuts. 
 
 ```console
 conda env create -f environment.yml -n dcascade
 ```
 
+And activate it:
+
 ```console
 conda activate dcascade
 ```
+
+If the environment installation from the "environment.yml" file does not work, or is anormally to long, try these lines one after the other: 
+
+```console
+conda env create -n dcascade python=3.12.3
+conda activate dcascade
+```
+
+```console
+conda install spyder
+conda install numpy
+conda install tqdm
+conda install matplotlib
+conda install pandas=2.3.1
+conda install networkx=3.5
+conda install -c conda-forge geopandas=1.1.1
+conda install -c conda-forge shapely=2.0.5
+```
+
 
 Now you can call spyder, or open it directly from your start menu (spyder(dcascade)).
 ```console
