@@ -273,8 +273,8 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     name_file = Path(path_results) / 'RR_VFW_Init_6.p'
     pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-    #name_file_ext = path_results + 'save_all_ext.p'
-    #pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+    name_file_ext = Path(path_results) + 'save_all_ext.p'
+    pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
     
     
     # ## Plot results
