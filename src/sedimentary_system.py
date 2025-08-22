@@ -95,11 +95,13 @@ class SedimentarySystem:
         self.al_depth_method = None
         self.vl_height = self.create_2d_zero_array()
         self.mass_balance = self.create_3d_zero_array()
+        self.reach_bottom_count = 0
 
 
         # temporary ?
         self.Qbi_dep_0 = None
         self.Qc_class_all = None        # DD: can it be optional ?
+        
 
 
     def sediments(self, matrix):
@@ -1003,7 +1005,8 @@ class SedimentarySystem:
             #  (i've reached the bottom)
             # and I put all the deposit into the active layer
             if (np.argwhere(csum_Vdep > V_lim_dep)).size == 0 :  # the vector is empty
-                print(' reach the bottom ....')
+                self.reach_bottom_count += 1
+                
                 V_dep2act = V_dep_old
                 # Leave an empty layer in Vdep
                 V_dep = np.c_[reach_metadata, np.zeros((1, self.n_classes))]

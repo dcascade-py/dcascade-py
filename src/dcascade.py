@@ -331,6 +331,10 @@ class DCASCADE:
             if self.update_slope == True and t != self.timescale - 1:
                 # DD: see what min slope value should be
                 SedimSys.change_slope(t)
+        
+        # How many time the bottom was reached during the simulation
+        if SedimSys.reach_bottom_count != 0:
+            print("\n The deposit layer bottom was reached " + str(SedimSys.reach_bottom_count) + " times. \n")
 
         """End of the time loop"""
 
