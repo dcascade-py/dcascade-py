@@ -425,7 +425,7 @@ class DCASCADE:
             # Sum over provenances (axe 0)
             mobilised_per_class[t,:,:] = np.sum(SedimSys.Qbi_mob[t], axis = (0))
             transported_per_class[t,:,:] = np.sum(SedimSys.Qbi_tr[t], axis = (0))
-            deposited_per_class[t,:,:] = np.sum(SedimSys.direct_connectivity[t][:, :-1, :], axis = (0)) # exclude outlet
+            deposited_per_class[t,:,:] = np.sum(SedimSys.direct_connectivity[t][:, :-1, :], axis = (0)) # - 1 to exclude outlet
 
         # Complete matrices:
         extended_output = {'Volume out per grain sizes [m^3]': mobilised_per_class,

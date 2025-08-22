@@ -5,7 +5,17 @@ Created on Wed Aug 20 17:17:11 2025
 @author: diane
 
 
-Plot D-CASCADE outputs: 
+Plot basic D-CASCADE outputs: 
+one graph per reach, along time
+
+Choose between:
+'Volume out [m^3]':         total volume of sediment leaving a reach per time step (= sediment flux x time step)
+'Volume in [m^3]':          total volume of sediment entering a reach per time step
+'Transport capacity [m^3]': total transport capacity computed in a reach per time step (= volume out if the supply is not limited)
+'Sediment budget [m^3]':    total sediment budget per time step (+ deposition, - erosion) (= vol in - vol out)
+'D50 active layer [m]':     D50 of the active layer per time step (used to computed the transport capacity)
+'D50 volume out [m]' :      D50 of the volume leaving the reach per time step 
+
 """
 
 # Libraries 
@@ -32,11 +42,13 @@ figure_folder = path+'figures_per_reach\\' # where you will store the figure
 if not os.path.exists(figure_folder):       
     os.makedirs(figure_folder)
        
-#--------------------Output name
+#--------------------Output name you want to plot
 output_name = 'Volume out [m^3]'   # Output available in pickle file
 #'D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]'
 
 
+
+##############################################################################
 
 ##### Usefull function for naming figures
 
@@ -72,7 +84,7 @@ for i in range(my_data.shape[1]):
     fig = plt.figure()
     ax = plt.subplot(111)
         
-    ax.plot(np.arange(1, len(my_data[:, i])+1, 1), my_data[:, i], linewidth = 2)
+    ax.plot(np.arange(1, len(my_data[:, i]) + 1, 1), my_data[:, i], linewidth = 2)
     
     if output_name == 'D50 active layer [m]':       
         D50_real = ReachData.loc[ReachData['FromN'] == i+1, 'D50'].unique()[0]
@@ -83,7 +95,8 @@ for i in range(my_data.shape[1]):
     ax.set_ylabel(output_name,fontsize = 16)
     ax.tick_params(axis='both', labelsize = 14)
     
-    ax.legend(fontsize = 9)
+    if output_name == 'D50 active layer [m]':
+        ax.legend(fontsize = 9)
     
     fig.set_tight_layout(True)
     fig.set_size_inches(900./fig.dpi,600./fig.dpi)
