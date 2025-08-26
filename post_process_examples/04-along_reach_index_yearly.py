@@ -46,7 +46,6 @@ if not os.path.exists(figure_folder):
 output_name = 'Volume out [m^3]'   # Output available in pickle file
 #'D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]'
 
-
 #--------------------First year simulated (for legend)
 year_0 = 2019
 
@@ -89,7 +88,7 @@ rest_days = n_time%365
 
 #create figure and graph axes
 fig = plt.figure()
-ax = plt.subplot(111) # subplot to have Po results on the left and tributary results on the right  
+ax = plt.subplot(111) 
 
 if rest_days != 0:
     year_number =  full_years_number + 1
@@ -157,6 +156,39 @@ fig.set_tight_layout(True)
 fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
 new_name = rename_names(output_name)
 fig.savefig(figure_folder+str(new_name)+'_yearly')
+
+
+
+
+# -------- Additional plot: all D50 active layer lines, x axis is the reach index
+output_name = 'D50 active layer [m]'
+my_data = data_output[output_name]
+n_reach = my_data.shape[1]
+FromN_idx = np.arange(1, n_reach + 1, 1)
+n_time = my_data.shape[0]
+
+#create figure and graph axes
+fig = plt.figure()
+ax = plt.subplot(111) 
+   
+color = iter(plt.cm.viridis(np.linspace(0, 1, n_time)))
+
+for t in range(n_time):        
+    c=next(color)        
+    ax.plot(FromN_idx, my_data[t,:], label = str(t), color = c)
+                
+ax.legend(fontsize = 12)#, bbox_to_anchor=(1, 1))
+            
+ax.set_xlabel('Reach index (FromN)', fontsize = 18)
+ax.set_ylabel(output_name, fontsize = 16)
+ax.tick_params(axis='y', which='major', labelsize=15)
+ax.tick_params(axis='x', which='major', labelsize=12)
+         
+fig.set_tight_layout(True)
+fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
+new_name = rename_names(output_name)
+fig.savefig(figure_folder+str(new_name)+'_yearly')
+
 
 
 
