@@ -27,12 +27,10 @@ import geopandas as gpd
 
 
 #---------------------Path to the pickle output
-
 path = "..\\cascade_results\\" 
 name_simu = 'Vjosa_test'
 
 #---------------------Path to the input river network (.shp) or (.csv)
-
 path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
 name_river_network = "River_Network.shp"
 
@@ -101,7 +99,7 @@ for i in range(my_data.shape[1]):
     fig.set_tight_layout(True)
     fig.set_size_inches(900./fig.dpi,600./fig.dpi)
     new_name = rename_names(output_name)
-    fig.savefig(figure_folder + str(new_name)+'_'+str(reach_FromN))
+    fig.savefig(figure_folder + str(new_name)+'_with_time_FromN-'+str(reach_FromN))
     fig.clf()
     plt.close("all")
 

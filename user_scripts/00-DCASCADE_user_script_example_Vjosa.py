@@ -249,5 +249,5 @@ if save_extended:
 
 # Plot dynamic results
 if dynamic_display:
-    keep_slider = dynamic_plot(data_output, reach_data_df, psi)
+    keep_slider = dynamic_plot(data_output, reach_data_df)
 

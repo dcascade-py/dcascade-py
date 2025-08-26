@@ -7,7 +7,7 @@ Created on Wed Aug 20 17:17:11 2025
 
 Plot D-CASCADE basic outputs
 
-yearly sum or median, plotted along reach indexes
+yearly sum or median (for D50), plotted along reach indexes
 
 Choose between:
 'Volume out [m^3]':         total volume of sediment leaving a reach per time step (= sediment flux x time step)
@@ -28,14 +28,16 @@ import pandas as pd
 import geopandas as gpd
 
 
-#---------------------Path to the extended pickle output
-
+#---------------------Path to the pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'AW'
-name_simu_ext = 'AW_ext'
+name_simu = 'Vjosa_test'
+
+#---------------------Path to the input river network (.shp) or (.csv)
+path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
+name_river_network = "River_Network.shp"
 
 #---------------------Folder to store the plots
-figure_folder = path+'figures_all_reaches\\'          # where you will store the figure
+figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure
 
 if not os.path.exists(figure_folder):       
     os.makedirs(figure_folder)
@@ -78,16 +80,23 @@ def rename_names(output_name):
 data_output = pd.read_pickle(open( path + name_simu + '.p' , "rb"))
 my_data = data_output[output_name]
 n_reach = my_data.shape[1]
+FromN_idx = np.arange(1, n_reach + 1, 1)
 n_time = my_data.shape[0]
 
-years_number = n_time // 365 # change it to the total number of years you are simulating (excluding the non-complete year)
+full_years_number = n_time // 365 
 rest_days = n_time%365
 
 
 #create figure and graph axes
 fig = plt.figure()
-ax = plt.subplot(111) # subplot to have Po results on the left and tributary results on the right   
-color = iter(plt.cm.viridis(np.linspace(0, 1, years_number + 1)))
+ax = plt.subplot(111) # subplot to have Po results on the left and tributary results on the right  
+
+if rest_days != 0:
+    year_number =  full_years_number + 1
+else:
+    year_number =  full_years_number 
+    
+color = iter(plt.cm.viridis(np.linspace(0, 1, year_number)))
 
 sum_all = np.zeros(n_reach)  
  
@@ -95,7 +104,7 @@ t_0 = 0
 t_end = 364 #(365 - 1) since time 0 is the first day
 year = year_0
 
-for idx_year in range(years_number + 1):
+for idx_year in range(year_number):
     
     if t_0 == n_time:
         continue
@@ -104,22 +113,30 @@ for idx_year in range(years_number + 1):
         t_end = n_time - (t_0 + 1)
     
     time_list = [i for i in range(t_0, t_end + 1, 1)]
-    my_sum = np.nansum(my_data[time_list, :], axis = 0)      
     c=next(color)
-    ax.plot(my_sum, label = str(year), color = c)
     
-    if ((t_end + 1) - t_0) == 365: # add to average only if it is a full year
-        sum_all+=my_sum
+    if output_name in ['Volume out [m^3]', 'Volume in [m^3]', 'Transport capacity [m^3]', 'Sediment budget [m^3]']:
+        my_sum = np.sum(my_data[time_list, :], axis = 0)          
+        ax.plot(FromN_idx, my_sum, label = str(year), color = c)
+        
+        if ((t_end + 1) - t_0) == 365: # add to average only if it is a full year
+            sum_all+=my_sum
+            
+    if output_name in ['D50 active layer [m]', 'D50 volume out [m]']:
+        my_median = np.median(my_data[time_list, :], axis = 0)
+        ax.plot(FromN_idx, my_median, label = str(year), color = c)
+        
     
     t_0 = t_end + 1
     t_end = t_end + 365
     year += 1    
 
-      
-if years_number > 0:           
-    sum_all/=years_number
-
-    ax.plot(sum_all, linewidth = 2.5, color = 'black', label = 'Average')
+# Plot the average for certain outputs type:
+if output_name in ['Volume out [m^3]', 'Volume in [m^3]', 'Transport capacity [m^3]', 'Sediment budget [m^3]']:      
+    if full_years_number > 1:           
+        sum_all /= full_years_number
+    
+        ax.plot(FromN_idx, sum_all, linewidth = 2.5, color = 'black', label = 'Average')
     
     
 # Add an horizontal line at 0
@@ -139,7 +156,7 @@ ax.tick_params(axis='x', which='major', labelsize=12)
 fig.set_tight_layout(True)
 fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
 new_name = rename_names(output_name)
-fig.savefig(figure_folder+str(new_name)+'_sum_per_year')
+fig.savefig(figure_folder+str(new_name)+'_yearly')
 
 
 

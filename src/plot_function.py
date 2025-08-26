@@ -19,7 +19,7 @@ from matplotlib.lines import Line2D
 from matplotlib.widgets import Button, Slider
 
 
-def dynamic_plot(data_output, ReachData, psi, **kwargs):
+def dynamic_plot(data_output, ReachData, **kwargs):
     '''
     Plot input data and show reach features and sediment transport processes by clicking on it
     '''
