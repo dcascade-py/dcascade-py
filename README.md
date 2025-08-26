@@ -8,6 +8,7 @@ This repository contains:
 - all the core function necessary to run the model (src folder).
 - one example of user script (user_scripts folder), that can be runned to test the model installation.
 - examples of inputs to the model (inputs folder)
+- examples of python script to post-process and analyse the results
 
 The model is written in python.
 
@@ -26,7 +27,7 @@ Copy-paste the project somewhere convenient on your computer.
 
 ## Installation WITH Github versionning
 
---> TODO
+You may ask to create a branch, or fork the repository, if you wish to use github versionning. For this, contact: ...
 
 
 
@@ -101,8 +102,17 @@ These are pickle files containing all outputs of the model.
 
 ## First checking of outputs
 
---> TODO
---> propose output processing examples
+In the folder "post_process_examples", there is a list of python script, that are examples on how to post-process the results, and make graphs:
+
+- scripts that show how to analyse each reach sediment transport along time (total, per grain size, and by initial provenance, (01, 02, 03))
+
+- scripts that show how to analyse yearly sediment transport along the river network (total yearly sum, per grain size, and by initial provenance, (04, 05, 06))
+
+- a script to create a dynamic map of the outputs (07)
+
+- a script to analyse connectivity and sediment path-length per time step (08)
+
+You can run them and check the type of plot they generate for the example case. 
 
 
 ## Making your own project
@@ -112,9 +122,12 @@ If you are under Github versionning, please duplicate in the same folder the exa
 
 Inputs to the model (reachdata and discharge) are generated externally. Examples are provided in the folder "inputs", and instruction for generating them are available at: TODO.
 In your user script, modify the path to point at your input location.
-Modify also the output path to store your own outputs in the dcascade_results folder (TODO).
 
-You can modify the simulation parameters to correspond to your river network.
+Modify also the output path to store your own outputs in the dcascade_results folder.
+
+You can modify the simulation parameters to correspond to your river network, and then run your case study. 
+
+Modify also the paths in the post-process example scripts, so that they coincide with your output file name in the "dcascade_result" folder. 
 
 
 # Documentation of D-CASCADE code functions
