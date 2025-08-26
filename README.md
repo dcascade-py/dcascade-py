@@ -123,7 +123,7 @@ If you are under Github versionning, please duplicate in the same folder the exa
 Inputs to the model (reachdata and discharge) are generated externally. Examples are provided in the folder "inputs", and instruction for generating them are available at: TODO.
 In your user script, modify the path to point at your input location.
 
-Modify also the output path to store your own outputs in the dcascade_results folder.
+Modify also the output name to store your own outputs in the dcascade_results folder.
 
 You can modify the simulation parameters to correspond to your river network, and then run your case study. 
 
