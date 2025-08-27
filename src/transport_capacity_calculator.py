@@ -73,8 +73,12 @@ class TransportCapacityCalculator:
         }
         self.D50 = index_to_partitioning.get(indx_partition)
 
-        # Qtr_cap = np.zeros(len(self.psi))[None]
         Qtr_cap, Qc = self.choose_formula(indx_tr_cap)
+        
+        # In case the water discharge is 0, some formula may return Qtr_cap = nans (e.g. A&W)
+        # so instead, Qtr_cap = zeros
+        if self.Q == 0:
+            Qtr_cap = np.zeros(Qtr_cap.shape)
 
         if indx_partition == 2:
             Qtr_cap = self.fi_r_reach * Qtr_cap
