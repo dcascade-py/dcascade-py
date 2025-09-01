@@ -284,17 +284,13 @@ class SedimentarySystem:
         self.sediment_budget = self.create_3d_zero_array()
 
         self.tr_cap = self.create_3d_zero_array()  # transport capacity per each sediment class
-        self.tr_cap_before_tlag = self.create_3d_zero_array()
 
         self.Fi_al = self.create_3d_zero_array() # contains grain size distribution of the active layer
         self.Fi_al[:,0] = np.nan #DD: why ?
-        self.Fi_al_before_tlag = self.create_3d_zero_array()
-        self.Fi_al_before_tlag[:,0] = np.nan #DD: why ?
         self.Qc_class_all = self.create_3d_zero_array()
 
         # 2D arrays
         self.D50_al = self.create_2d_zero_array()  # D50 of the active layer in each reach in each timestep
-        self.D50_al_before_tlag = self.create_2d_zero_array()
         self.tr_cap_sum = self.create_2d_zero_array()  # total transport capacity
         self.flow_depth = self.create_2d_zero_array()
 
@@ -849,7 +845,7 @@ class SedimentarySystem:
 
 
     def compute_mobilised_volumes(self, Vdep, tr_cap_per_s, n, t, roundpar,
-                                 passing_cascades = None, time_fraction = None):
+                                 passing_cascades = None):
 
         """
         Compute the mobilised volumes in reach n at time step t.
@@ -873,8 +869,6 @@ class SedimentarySystem:
             Transport capacity
         @param passing_cascades
             List of cascade (the ones that did not end the time step in this reach = continuing cascades)
-        @param time_fraction
-            Fraction of the time step we are actually mobilising (created to consider the time lag option)
 
         @return Vmob
             New volume mobilised from the reach deposit layer
@@ -885,17 +879,11 @@ class SedimentarySystem:
 
         """
 
-        # Case where we don't consider a time lag, the time for mobilising is the complete time step:
-        if time_fraction is None:
-            time_fraction = np.ones(self.n_classes)
 
-        # Real time to mobilise:
-        time_to_mobilise = time_fraction * self.ts_length
         # Mobilisable volume:
-        volume_mobilisable = tr_cap_per_s * time_to_mobilise
+        volume_mobilisable = tr_cap_per_s * self.ts_length
         # Erosion maximum during the time lag
-        # (we take the mean time lag among the classes)
-        e_max_vol_ = self.eros_max_vol[t,n] * np.mean(time_fraction)
+        e_max_vol_ = self.eros_max_vol[t,n] 
 
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:

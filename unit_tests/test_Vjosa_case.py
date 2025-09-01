@@ -90,101 +90,6 @@ for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
 
 
-
-def test_Vjosa_Engelund_all_new_options_false():
-    '''20 days are simulated.
-    We use Engelund. With the "Bed Material Fraction" partitioning.
-    '''
-    # indexes
-    indx_tr_cap = 3         # Engelund and Hansen
-    indx_tr_partition = 2   # BMF
-
-    # options in v2
-    op1 = False
-    op2 = False
-    op3 = False
-
-    # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
-                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method,
-                                                 eros_max = eros_max,
-                                                 passing_cascade_in_outputs = op1,
-                                                 passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
-
-
-
-
-    #----Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([431292., 174049., 124598.,  16895.,  88802.,   7794.,  13352.])
-    np.testing.assert_array_equal(test_result, expected_result)
-
-    #----Test the total transported volume per reach
-    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([     0., 454923., 194467.,  34665.,      0.,      0.,      0.])
-    # the absolute tolerance is fixed to 1e6, because the expected results
-    # were displayed by spyder, and have 6 significative numbers
-    np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
-
-    # #----Test D50 active layer
-    # test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    # expected_result = np.array([0.00235723, 0.00115333, 0.00110481,
-    #                             0.00050879, 0.002357, 0.00235716, 0.00235696])
-    # # the relative tolerance is fixed to 1e-05, because the expected results
-    # # were displayed by spyder, and have 6 significative numbers
-    # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
-
-    print('\n Tuto bene with Vjosa case test using Engelund formula, all option false \n')
-
-
-
-def test_Vjosa_Wilcock_all_new_options_false():
-    '''20 days are simulated.
-    We use Wilcock and Crowes.
-    '''
-    # indexes
-    indx_tr_cap = 2         # Wilcock
-    indx_tr_partition = 4   # Shear stress p
-
-    # options in v2
-    op1 = False
-    op2 = False
-    op3 = False
-
-    # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
-                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method,
-                                                 eros_max = eros_max,
-                                                 passing_cascade_in_outputs = op1,
-                                                 passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
-
-    #----Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([2.245782e+06, 5.208630e+05, 2.840860e+05, 7.198300e+04,
-                                8.078890e+05, 1.185800e+05, 1.840180e+05])
-    np.testing.assert_array_equal(test_result, expected_result)
-
-    #----Test the total transported volume per reach
-    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([0.000000e+00, 1.041100e+05, 3.315064e+06, 3.255060e+05,
-                                0.000000e+00, 0.000000e+00, 0.000000e+00])
-    np.testing.assert_array_equal(test_result, expected_result)
-
-    # #----Test D50 active layer
-    # test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    # expected_result = np.array([0.00235723, 0.00235714, 0.00228797, 0.00228537, 0.002357  ,
-    #                             0.00235716, 0.00235696])
-    # the relative tolerance is fixed to 1e-05, because the expected results
-    # were displayed by spyder, and have 6 significative numbers
-    np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
-
-    print('\n Tuto bene with Vjosa case test using Wilcock formula, all option false  \n')
-
-
 def test_Vjosa_Engelund_all_true_no_tlag():
     '''20 days are simulated.
     We use Engelund. With the "Bed Material Fraction" partitioning.
@@ -193,19 +98,12 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     indx_tr_cap = 3         # Engelund and Hansen
     indx_tr_partition = 2   # BMF
 
-    # options in v2
-    op1 = True
-    op2 = True
-    op3 = False
 
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
                                                  al_depth_method = al_depth_method,
-                                                 eros_max = eros_max,
-                                                 passing_cascade_in_outputs = op1,
-                                                 passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
+                                                 eros_max = eros_max)
 
 
     #----Test the total mobilised volume per reach
@@ -228,9 +126,6 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     # # were displayed by spyder, and have 6 significative numbers
     # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
 
-    print('\n Tuto bene with Vjosa case test using Engelund formula, all option true, no time lag \n')
-
-
 
 def test_Vjosa_Wilcock_all_true_no_tlag():
     '''20 days are simulated.
@@ -240,19 +135,12 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     indx_tr_cap = 2         # Wilcock
     indx_tr_partition = 4   # Shear stress p
 
-    # options in v2
-    op1 = True
-    op2 = True
-    op3 = False
 
     # Run definition
     data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
                                                  al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
                                                  al_depth_method = al_depth_method,
-                                                 eros_max = eros_max,
-                                                 passing_cascade_in_outputs = op1,
-                                                 passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
+                                                 eros_max = eros_max)
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
@@ -276,115 +164,11 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
 
-    print('\n Tuto bene with Vjosa case test using Wilcock formula, all option true, no time lag  \n')
-
-
-
-
-def test_Vjosa_Engelund_all_new_options_true():
-    '''20 days are simulated.
-    We use Engelund. With the "Bed Material Fraction" partitioning.
-    '''
-    # indexes
-    indx_tr_cap = 3         # Engelund and Hansen
-    indx_tr_partition = 2   # BMF
-
-    # options in v2
-    op1 = True
-    op2 = True
-    op3 = True
-
-    # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
-                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method,
-                                                 eros_max = eros_max,
-                                                 passing_cascade_in_outputs = op1,
-                                                 passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
-
-
-    #----Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([431292., 178924., 139355.,  68516.,  88802.,   7794.,  13352.])
-    np.testing.assert_array_equal(test_result, expected_result)
-
-    #----Test the total transported volume per reach
-    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([     0., 520094., 186718., 152707.,      0.,      0.,      0.])
-    # the absolute tolerance is fixed to 1e6, because the expected results
-    # were displayed by spyder, and have 6 significative numbers
-    np.testing.assert_allclose(test_result, expected_result, atol = 1e06)
-
-    # #----Test D50 active layer
-    # test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    # expected_result = np.array([0.00235723, 0.00115333, 0.00110481, 0.00037359,
-    #                             0.002357, 0.00235716, 0.00235696])
-
-    # # the relative tolerance is fixed to 1e-05, because the expected results
-    # # were displayed by spyder, and have 6 significative numbers
-    # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
-
-    print('\n Tuto bene with Vjosa case test using Engelund formula, all option true \n')
-
-
-
-def test_Vjosa_Wilcock_all_new_options_true():
-    '''20 days are simulated.
-    We use Wilcock and Crowes.
-    '''
-    # indexes
-    indx_tr_cap = 2         # Wilcock
-    indx_tr_partition = 4   # Shear stress p
-
-    # options in v2
-    op1 = True
-    op2 = True
-    op3 = True
-
-    # Run definition
-    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
-                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
-                                                 al_depth_method = al_depth_method,
-                                                 eros_max = eros_max,
-                                                 passing_cascade_in_outputs = op1,
-                                                 passing_cascade_in_trcap = op2,
-                                                 time_lag_for_mobilised = op3)
-
-    #----Test the total mobilised volume per reach
-    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    expected_result = np.array([2.245782e+06, 5.265410e+05, 2.874110e+05, 7.340700e+04,
-                                8.078890e+05, 1.185800e+05, 1.840180e+05])
-
-    np.testing.assert_array_equal(test_result, expected_result)
-
-    #----Test the total transported volume per reach
-    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
-    expected_result = np.array([0.000000e+00, 3.053671e+06, 6.451210e+05, 4.714290e+05,
-                                0.000000e+00, 0.000000e+00, 0.000000e+00])
-    np.testing.assert_array_equal(test_result, expected_result)
-
-    # #----Test D50 active layer
-    # test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
-    # expected_result = np.array([0.00235723, 0.00228442, 0.0022429 , 0.00223255,
-    #                             0.002357, 0.00235716, 0.00235696])
-
-    # # the relative tolerance is fixed to 1e-05, because the expected results
-    # # were displayed by spyder, and have 6 significative numbers
-    # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
-
-    print('\n Tuto bene with Vjosa case test using Wilcock formula, all option true  \n')
-
-
-
 
 
 if __name__ == "__main__":
-    test_Vjosa_Engelund_all_new_options_false()
-    test_Vjosa_Wilcock_all_new_options_false()
     test_Vjosa_Engelund_all_true_no_tlag()
     test_Vjosa_Wilcock_all_true_no_tlag()
-    test_Vjosa_Engelund_all_new_options_true()
-    test_Vjosa_Wilcock_all_new_options_true()
+
 
     print("All tests successfully run.")

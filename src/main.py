@@ -34,10 +34,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
                   external_inputs = None,
                   force_pass_external_inputs = False,
-
-                  passing_cascade_in_outputs = True,
-                  passing_cascade_in_trcap = True,
-                  time_lag_for_mobilised = False):
+                  ):
 
 
     if eros_max is None:
@@ -74,13 +71,8 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     indx_vel_partition  = the index indicating the type of partitioning in the section used to compute velocity
     indx_slope_red      = the index indicating the slope reduction formula, default 1 is no reduction
 
-    Options for the dcascade algorithm (if all False, we reproduce the version 1)
-    passing_cascade_in_outputs          = if True, we consider ovepassing sediment in the output (Qbimob and Qbitr).
-                                            But this does not change the way sediment move. (default True)
-    passing_cascade_in_trcap            = If True, we now include present cascades from upstream + reach material
-                                            in the transport capacity calculation, to check if they should pass or not. (default True)
-    time_lag_for_mobilised              = option in progress (default False). If True, we consider a time lag between the beginning of the time step,
-                                            and the arrival of the first cascade to the ToN of the reach, during which we are able to mobilise from the reach itself
+    Options for the dcascade algorithm 
+
 
     OUTPUT:
     data_output      = struct collecting the main aggregated output matrices
@@ -109,8 +101,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     dcascade.set_hydraulic_options(indx_flo_depth)
     dcascade.set_transport_indexes(indx_tr_cap, indx_tr_partition)
     dcascade.set_velocity_options(indx_velocity, indx_vel_partition, vel_height)
-    dcascade.set_algorithm_options(passing_cascade_in_outputs, passing_cascade_in_trcap,
-                                   time_lag_for_mobilised)
+
     # Run
     dcascade.run(Q, roundpar)
 
