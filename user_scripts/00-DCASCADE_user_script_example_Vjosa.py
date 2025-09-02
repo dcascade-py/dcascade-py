@@ -24,7 +24,7 @@ per class of sediments. This variable is defined by Qbi_input
 
 This script was adapted from the Matlab version by Marco Tangi
 
-@author: Elisa Bozzolan, Diane Doolaeghe, Anne Laure Argentin
+@author: Diane Doolaeghe, Anne Laure Argentin, Elisa Bozzolan 
 """
 
 
@@ -67,12 +67,7 @@ filename_q = path_q / name_q
 #---Nome of the output
 name_output = 'Vjosa_test'
 
-#---Option to save extended outputs or not 
-# Note: saving the extended outputs can require memory, but allow you to access more outputs (see README file)
-save_extended = True
 
-#---Option to display dynamic output plots at the end
-dynamic_display = True
 
 #-------------------2) User-defined main parameters of the simulation
 
@@ -102,6 +97,14 @@ al_depth = 0.3              # Active layer depth [m] (Possibilities: '2D90', or 
 
 #---Storing Deposit layer
 save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to save the deposit layer matrix
+
+
+#---Option to save extended outputs or not 
+# Note: saving the extended outputs can require memory, but allow you to access more outputs (see README file)
+save_extended = False
+
+#---Option to display dynamic output plots at the end
+dynamic_display = False
 
 
 #-------------------3) List of optional defined parameters of the simulation
