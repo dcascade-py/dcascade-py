@@ -305,6 +305,7 @@ class DCASCADE:
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
                        'Volume out per grain sizes [m^3]': mobilised_per_class,
+                       'Qbi_mob [m^3]': SedimSys.Qbi_mob,
 
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
