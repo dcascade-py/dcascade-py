@@ -89,10 +89,8 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     sedimentary_system.initialize_storing_matrices()
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)
+    sedimentary_system.set_active_layer(al_depth, al_depth_method)    
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
-    sedimentary_system.set_active_layer(al_depth, al_depth_method)
-
-
 
     # Create DCASCADE solver
     dcascade = DCASCADE(sedimentary_system)
