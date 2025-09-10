@@ -47,93 +47,10 @@ from widget import read_user_input
 '''user defined input data'''
 
 
-# #-------River shape files
-# path_river_network = Path('../inputs/input_solda_workshop_insbruck/')
-# # path_river_network = Path('C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\RN4Model\\')
-# name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok.shp'
-# # name_river_network = 'Solda_RN_Straightlines_ETRS89UTM_ok_PS.shp' # Only PS reach - For test tr_cap
-# filename_river_network = path_river_network / name_river_network
-
-# #--------Discharge files
-# path_q = Path('C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\DischargeSims\\')
-# # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-# # name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29.csv'
-# # name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29_2015_22_x2.csv'
-# #name_q = 'Sims_2014-22_v2\\discharges_allReaches_m3_per_s_noNode29_1Yinit.csv' # 365 days of initiation - same as 2014
-# # name_q = 'Sims_2014-22_v2\\discharges_reach28_PS.csv' # Only PS reach - For test tr_cap
-# name_q = 'discharge_2009_15_20.csv'
-# # name_q = 'discharge_2009_15_20_PSonly.csv'
-# # q_init = [
-# #     # 'discharge_15_20.xlsx',                    # just 2015–2020
-# #     # 'discharge_2014_15_20.xlsx',               # 1x 2015
-# #     # 'discharge_2013_15_20.xlsx',               # 2x 2015
-# #     # 'discharge_2012_15_20.xlsx',               # 1x 2016 + 2x 2015
-# #     # 'discharge_2011_15_20.xlsx',
-# #     # 'discharge_2010_15_20.xlsx',
-# #     'discharge_2009_15_20.xlsx',
-# #     # 'discharge_2008_15_20.xlsx',
-# #     # 'discharge_2007_15_20.xlsx',
-# #     # 'discharge_2006_15_20.xlsx',
-# #     # 'discharge_2005_15_20.xlsx',
-# #     # 'discharge_2004_15_20.xlsx',
-# #     # 'discharge_2003_15_20.xlsx',
-# #     # 'discharge_2002_15_20.xlsx',
-# #     # 'discharge_2001_15_20.xlsx',
-# #     # 'discharge_2000_15_20.xlsx'
-# # ]
-# # name_q = q_init
 
 
-# path_q = Path('../inputs/input_solda_workshop_insbruck/')
-# # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-# name_q = 'discharges_allReaches_m3_per_s_noNode29.csv'
-
-# filename_q = path_q / name_q
-# filename_q = path_q / name_q
-
-# # #--------Path to the output folder
-# # path_results = Path("C:\\Users\\FPitscheider\\OneDrive - Scientific Network South Tyrol\Desktop\\Projects\\ALTROCLIMA\\Solda\\dCascade_Results\\Simualtions\\2015_20_v1Apr25\\")
-
-# #---Path to the output folder
-# path_results = Path("../cascade_results/")
-# name_file = path_results / 'save_all.p'
-
-
-# #--------Parameters of the simulation
-
-# #---Sediment classes definition
-# # defines the sediment sizes considered in the simulation
-# #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-# sed_range = [-10, -1]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5).
-# n_classes = 10       # number of classes
-
-# #---Timescale
-# timescale = 365#len(name_q) #5844 #3287 # 3652
-# # print(timescale)
-# ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
-
-# #---Change slope or not
-# update_slope = False # if False: slope is constant, if True, slope changes according to sediment deposit
-
-# #---Initial layer sizes
-# deposit_layer = 0.1     # Initial deposit layer [m]. Warning: will overwrite the deposit column in the reach_data file
-# eros_max = 0.3               # Maximum depth (threshold) that can be eroded in one time step (here one day), in meters.
-# al_depth = '2D90'              # Active layer depth (Possibilities: '2D90', or any fixed value)
-# vel_height = '2D90'         # Section for velocity calculation
-#                             #Possibilities: '2D90', '0.1_hw' (10% of water height), or any fixed value)
-
-# #---Storing Deposit layer
-# save_dep_layer = 'always' # 'yearly', 'always', 'never'.  Choose to save or not, the entire time deposit matrix
-
-# #---Others
-# roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
-
-
-# indx_tr_cap = 7
-# indx_tr_partition = 2
-
-
-def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, sed_range, n_classes, indx_tr_cap , indx_tr_partition, al_depth = 0.3, vel_height = '2D90'):
+def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, sed_range, n_classes, indx_tr_cap , indx_tr_partition, Q_factor = None, roughness_factor = None, 
+                 width_type = 'bankfull', al_depth = 0.3, vel_height = '2D90'):
     
     # Parameters that I did not set in the colab, but we could:
     ts_length = 60 * 60 * 24
@@ -141,9 +58,6 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
 
 
     ################ MAIN ###############
-    # # If the transport capacity formula is not chosen manually:
-    # if 'indx_tr_cap' not in globals() or 'indx_tr_partition' not in globals():
-    #     indx_tr_cap, indx_tr_partition = read_user_input()
 
     # Read the network
     reach_data_df = read_network(filename_river_network)
@@ -164,8 +78,12 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     ])
 
     reach_data.deposit[deposit_nodes-1] = 100000
+    
+    # Choose width
+    if width_type == 'bankfull':
+        reach_data.wac = reach_data.wac_bf 
 
-    reach_data.wac = reach_data.wac_bf
+    
 
     # Read/define the water discharge
     Q = extract_Q(filename_q)
@@ -176,10 +94,16 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     for i, idx in enumerate(sorted_indices):
         Q_new[:,i] = Q.iloc[:,idx]
     Q = Q_new
-
-    # timescale = len(Q) #5844 #3287 # 3652
-    # print(timescale)
-
+    
+    # Change Q
+    if Q_factor is not None:
+        Q *= Q_factor
+        
+    # Change roughness
+    if roughness_factor is not None:
+        reach_data.D84 *= roughness_factor
+        reach_data.D90 *= roughness_factor
+    
     # Extract network properties
     network = graph_preprocessing(reach_data)
     
