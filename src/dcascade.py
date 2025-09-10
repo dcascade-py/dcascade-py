@@ -314,7 +314,7 @@ class DCASCADE:
                        
                        # Added for the workshop
                        'Volume out per grain sizes [m^3]': mobilised_per_class,
-                       'Volume out per grain initial provenance [m^3]': mobilised_per_provenance,
+                       'Volume out per init provenance [m^3]': mobilised_per_provenance,
 
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
