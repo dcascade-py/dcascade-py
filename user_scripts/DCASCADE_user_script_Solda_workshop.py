@@ -82,6 +82,9 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     # Choose width
     if width_type == 'bankfull':
         reach_data.wac = reach_data.wac_bf 
+        
+    if indx_tr_cap == 7:
+        indx_slope_red = 2
 
     
 
