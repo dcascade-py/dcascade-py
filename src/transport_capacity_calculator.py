@@ -346,8 +346,13 @@ class TransportCapacityCalculator:
         # Coefficient in the rough turbulent equation
         # (value of 10 in Stevens & Yang, 1989)
         alpha = 10
+        
         # Dimensionless mobility number (Eq. 60 of Stevens & Yang, 1989)
         F_gr = (u_ast**n / np.sqrt(GRAV * self.D50 * R_VAR)) * (self.v / (np.sqrt(32) * np.log10(alpha * self.h / self.D50)))**(1 - n)
+        
+        # Dealing with nans appearing when (alpha * self.h / self.D50) < 1 
+        # and (1 - n) is not integer (intermediate size range combined with super low flow)
+        invalid_mask = ((alpha * self.h / self.D50) < 1) & (~np.isclose(1 - n, np.round((1 - n))))
 
         # Dimensionless sediment transport of Ackers and White
         # (Eq. 63 of Stevens & Yang, 1989) TOCHECK: WHY THE MAXIMUM, HERE?
@@ -364,6 +369,8 @@ class TransportCapacityCalculator:
         # Transport capacity [m3/s]
         QS = QS_kg / RHO_S
         tr_cap = QS
+        
+        tr_cap[invalid_mask] = 0
 
         # If we compute the total load based on the bed D50 (float),
         # I put tr_cap back to be a float:
