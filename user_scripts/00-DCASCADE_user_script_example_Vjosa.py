@@ -101,7 +101,7 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 
 #---Option to save extended outputs or not 
 # Note: saving the extended outputs can require memory, but allow you to access more outputs (see README file)
-save_extended = False
+save_extended = True
 
 #---Option to display dynamic output plots at the end
 dynamic_display = False
