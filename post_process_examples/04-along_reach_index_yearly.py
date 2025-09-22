@@ -30,11 +30,11 @@ import geopandas as gpd
 
 #---------------------Path to the pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'Vjosa_test'
+name_simu = 'Rhone_test'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
-name_river_network = "River_Network.shp"
+name_river_network = "Rhone.shp"
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure

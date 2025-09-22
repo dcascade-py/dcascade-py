@@ -55,17 +55,17 @@ from widget import read_user_input
 #---River shape files
 path_river_network = Path('../inputs/input_trial/')
 # Reach data file (shp, but can also be a csv)
-name_river_network = 'River_Network.shp'
+name_river_network = 'Rhone.shp'
 filename_river_network = path_river_network / name_river_network
 
 #---Discharge files
 path_q = Path('../inputs/input_trial/')
 # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
-name_q = 'Q_Vjosa.csv'
+name_q = 'Q_rhone2004.csv'
 filename_q = path_q / name_q
 
 #---Nome of the output
-name_output = 'Vjosa_test'
+name_output = 'Rhone_test'
 
 
 
@@ -78,7 +78,7 @@ sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (cla
 n_classes = 6        # number of classes
 
 #---Timescale
-timescale = 20 # days
+timescale = 364 # days
 ts_length = 60 * 60 * 24 # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
 
 #---Transport capacity formula and partitioning
@@ -104,7 +104,7 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 save_extended = True
 
 #---Option to display dynamic output plots at the end
-dynamic_display = False
+dynamic_display = True
 
 
 #-------------------3) List of optional defined parameters of the simulation

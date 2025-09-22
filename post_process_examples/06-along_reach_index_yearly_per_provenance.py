@@ -29,8 +29,8 @@ import geopandas as gpd
 
 #---------------------Path to the extended pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'Vjosa_test'
-name_simu_ext = 'Vjosa_test_ext'
+name_simu = 'Rhone_test'
+name_simu_ext = 'Rhone_test_ext'
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure
