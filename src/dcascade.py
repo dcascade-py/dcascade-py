@@ -210,6 +210,13 @@ class DCASCADE:
                 # Note: sediment budget at t, will update the node elevation at t+1
                 if self.update_slope == True and t != self.timescale - 1:
                     SedimSys.update_node_elevation_with_deposit(t, n)
+                
+                # For the sand analysis, I store the top of Vdep at the end of the time step    
+                AL_volume = SedimSys.al_vol[t, n]
+                nothing, Vdep_top, Vdep_left, _ = SedimSys.layer_search(Vdep_end, AL_volume, roundpar = roundpar)
+                Vdep_top_c = SedimSys.matrix_compact(Vdep_top)
+                
+                SedimSys.Vdep_top_all[t][[SedimSys.provenance(Vdep_top_c).astype(int)], n, :] += SedimSys.sediments(Vdep_top_c)
 
             """End of the reach loop"""
 
@@ -298,6 +305,11 @@ class DCASCADE:
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
+                       
+                        # For Po
+                        'Vdep top [m^3]': SedimSys.Vdep_top_all,
+                        # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
+                        # 'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
 
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }

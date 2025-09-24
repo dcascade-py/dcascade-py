@@ -293,6 +293,9 @@ class SedimentarySystem:
         self.D50_al = self.create_2d_zero_array()  # D50 of the active layer in each reach in each timestep
         self.tr_cap_sum = self.create_2d_zero_array()  # total transport capacity
         self.flow_depth = self.create_2d_zero_array()
+        
+        # For Po case:
+        self.Vdep_top_all = self.create_4d_zero_array()
 
 
 
