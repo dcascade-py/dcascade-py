@@ -27,10 +27,18 @@ import pandas as pd
 import geopandas as gpd
 
 
+index = '0_eW&C_03m_noDams' # value of result folder
+ref2 = 'median'
+year = 2004
+
 #---------------------Path to the extended pickle output
-path = "..\\cascade_results\\" 
-name_simu = 'Rhone_test'
-name_simu_ext = 'Rhone_test_ext'
+# path = "..\\cascade_results\\" 
+# name_simu = 'Rhone_test'
+# name_simu_ext = 'Rhone_test_ext'
+
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Result_Cascade_21_67reaches_{ref2}GSD-silt/res_E{index}/res_hy{year}_E{index}/'
+name_simu = f'save_all_E{index}'
+name_simu_ext = f'save_all_ext_E{index}'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
@@ -43,7 +51,7 @@ if not os.path.exists(figure_folder):
     os.makedirs(figure_folder)
        
 #--------------------Output name you want to plot
-output_name = 'Volume out per grain sizes [m^3]'   # Output available in pickle file
+output_name = 'Volume out per class [m^3]'   # Output available in pickle file
 # 'Volume out per grain sizes [m^3]', 'Volume in per grain sizes [m^3]', 'Deposited per grain sizes [m^3]'
 
 

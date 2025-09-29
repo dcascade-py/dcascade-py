@@ -26,6 +26,7 @@ from matplotlib.legend_handler import HandlerTuple
 from matplotlib.lines import Line2D
 from shapely.geometry import Point
 from shapely.geometry import LineString, MultiLineString
+import matplotlib.animation as animation
 
 # Add source (src) folder in the python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
@@ -38,16 +39,16 @@ from reach_data import ReachData
 
 #---------------------Path to the extended pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'Vjosa_test'
-name_simu_ext = 'Vjosa_test_ext'
+name_simu = 'Rhone_test'
+name_simu_ext = 'Rhone_test_ext'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
-name_river_network = "River_Network.shp"
+name_river_network = "Rhone.shp"
 
 #---------------------Path to the discharge file
 path_Q = "..\\inputs\\input_trial\\"
-name_q = 'Q_Vjosa.csv' 
+name_q = 'Q_rhone2004.csv' 
 
 
 #---------------------Folder to store the plots
@@ -58,12 +59,12 @@ if not os.path.exists(figure_folder):
         
 #--------------------Define time range (i.e. the time step you want to plot)
 start_timestep = 0      # start time step
-end_timestep = 19       # end time step
+end_timestep = 363        # end time step
       
-start_date = np.datetime64('2019-01-01') # date of the starting time step, for the legend
+start_date = np.datetime64('2003-09-21') # date of the starting time step, for the legend
 
 #--------------------Indicate outlet reach index (FromN)
-outlet_FromN = 4
+outlet_FromN = 67
 
 #--------------------Gap to adjust for plotting
 gap_plot = 15000
@@ -100,13 +101,13 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
     
     # Create figure and its subplots
     fig = plt.figure(figsize=(7.48, 8), dpi=300)
-    gs = gridspec.GridSpec(nrows=2, ncols=3, height_ratios=[1, 2], width_ratios=[1, 2, 1])
+    gs = gridspec.GridSpec(nrows=3, ncols=3, height_ratios=[1,2,1], width_ratios=[1,1,1])
 
     # Discharge plot: Top plot spans the middle column only, making it narrower and centered
-    ax_q = fig.add_subplot(gs[0, 1])
+    ax_q = fig.add_subplot(gs[1,:-1])
     
     # Network plot: Bottom plot spans all three columns, making it wider
-    ax = fig.add_subplot(gs[1, :])
+    ax = fig.add_subplot(gs[:,2])
     
     fig.subplots_adjust(left=0.07, right=0.97, top=0.97, bottom=0.07, hspace=0.3)
         
@@ -210,16 +211,16 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
     ax.scatter(*end_of_network_coords, color='none', marker='o', s=50, edgecolors='red', linewidth=1.5, label="Monitoring Station")
 
     # Add north arrow
-    ax.annotate('N', xy=(0.95, 0.95), xycoords='axes fraction', fontsize=13, fontweight='bold', ha='center')
+    ax.annotate('N', xy=(0.05, 0.9), xycoords='axes fraction', fontsize=13, fontweight='bold', ha='center')
 
-    arrow = FancyArrow(0.95, 0.90, 0, 0, 
+    arrow = FancyArrow(0.05, 0.85, 0, 0, 
                        width=0, head_width=0.03, head_length=0.03, 
                        color='black', fill=False, overhang=0.2,
                        transform=ax.transAxes)  # Use axes-relative coordinates
     ax.add_patch(arrow)
         
     # Add scale, next to north arrow
-    scale_x, scale_y = 0.85, 0.95
+    scale_x, scale_y = 0.15, 0.9
     scale_bar_length = 1000  # Fixed to 1 km (you can change this if needed)    
     ax.plot([scale_x, scale_x + 0.05], [scale_y, scale_y], color='black', lw=2, transform=ax.transAxes)    
     # scale bar label (1 km)
@@ -241,7 +242,7 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
         Line2D([], [], color='black', label='River Network'),
     ]
   
-    ax.legend(handles=legend_handles, loc='lower left', fontsize = 15)
+    ax.legend(handles=legend_handles, loc='lower right', fontsize = 15)
     
     # Plot the date in the top left
     date_plotted = np.datetime64(start_date) + np.timedelta64(timestep, 'D')
@@ -264,3 +265,4 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
 #---Loop through selected timesteps and call the plotting definition "plot_connectivity"
 for t in range(start_timestep, end_timestep + 1):
     plot_connectivity(t, start_date, reach_data, direct_connectivity, figure_folder, Q_outlet, gap_plot)
+

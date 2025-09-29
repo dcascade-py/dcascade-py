@@ -28,18 +28,17 @@ import geopandas as gpd
 
 #---------------------Path to the extended pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'Rhone_test'
-name_simu_ext = 'Rhone_test_ext'
-
+name_simu = 'Rhone_Martinez_res2004_2006'
+name_simu_ext = 'Rhone_Martinez_res2004_2006_ext'
 
 #---------------------Folder to store the plots
-figure_folder = path+'figures_per_reach\\'          # where you will store the figure
+figure_folder = path+'figures_per_reach_2004_2006\\'          # where you will store the figure
 
 if not os.path.exists(figure_folder):       
     os.makedirs(figure_folder)
        
 #--------------------Output name you want to plot
-output_name = 'Volume out per grain sizes [m^3]'   # Output available in pickle file
+output_name = 'Sediment budget per class [m^3]'   # Output available in pickle file
 # 'Volume out per grain sizes [m^3]', 'Volume in per grain sizes [m^3]', 'Deposited per grain sizes [m^3]'
 
 

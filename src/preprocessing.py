@@ -45,6 +45,8 @@ def extract_Q(filename_q):
     Q_check2 = pd.read_csv(filename_q, header=None, sep=my_delimiter)
     if Q_check2.iloc[0,0]=='yyyy/mm/dd':
         Q_matrix = pd.read_csv(filename_q, header = 0, sep=my_delimiter, index_col = 'yyyy/mm/dd')
+        number_days = Q_matrix.shape[0] # count number the days in the data frame
+
     else:
         print("\n Warning: you did not provide headers with reach names "
               "in the Q file. We will proceed as if the Q file column order "
@@ -52,8 +54,10 @@ def extract_Q(filename_q):
               "input network shape file. \n"
               )
         Q_matrix = pd.read_csv(filename_q, header = None, sep=my_delimiter)
+        number_days = Q_matrix.shape[0] # count number the days in the data frame
 
-    return Q_matrix
+
+    return Q_matrix, number_days
 
 
 def check_sediment_sizes(reach_data, dmi):

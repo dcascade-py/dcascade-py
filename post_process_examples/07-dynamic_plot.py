@@ -26,15 +26,22 @@ import geopandas as gpd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 from plot_function import dynamic_plot
 
+# index = '0_eW&C_03m_noDams' # value of result folder
+# ref2 = 'median'
+# year = 2004
+
+
+# path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Result_Cascade_21_67reaches_{ref2}GSD-silt/res_E{index}/res_hy{year}_E{index}/'
+# name_simu = f'save_all_E{index}'
 
 #---------------------Path to the pickle output
 
-path = "..\\cascade_results\\" 
-name_simu = 'Rhone_test'
+path = "K:/Labo/20_OSR/Rhone_Fabio_Schneider/Result_Martinez/" 
+name_simu = 'Rhone_Martinez_res2004_2006'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 
-path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
+path_river_network = "../inputs/Rhone_river/Network/" #Path to the shp
 name_river_network = "Rhone.shp"
 
 

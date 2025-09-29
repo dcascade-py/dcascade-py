@@ -884,7 +884,15 @@ class SedimentarySystem:
         volume_mobilisable = tr_cap_per_s * self.ts_length
         # Erosion maximum during the time lag
         e_max_vol_ = self.eros_max_vol[t,n] 
-
+        
+        
+        ###########
+        # Dam trapping
+        if self.reach_data.has_dam[n] == 1:
+            volume_mobilisable = volume_mobilisable * (1 - self.reach_data.trap_eff[n])
+        ###########
+        
+        
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0
@@ -901,7 +909,6 @@ class SedimentarySystem:
             else:
                 passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
                 sum_pass = np.sum(self.sediments(passing_volume), axis=0)
-
 
         # Compare sum of passing cascade to the mobilisable volume (for each sediment class)
         diff_with_capacity = volume_mobilisable - sum_pass

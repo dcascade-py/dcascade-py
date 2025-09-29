@@ -27,10 +27,18 @@ import matplotlib.cm as cm
 import pandas as pd
 import geopandas as gpd
 
+index = '0_eW&C_03m_noDams' # value of result folder
+ref2 = 'median'
+year = 2004
+
+#---------------------Path to the extended pickle output
+
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Result_Cascade_21_67reaches_{ref2}GSD-silt/res_E{index}/res_hy{year}_E{index}/'
+name_simu = f'save_all_E{index}'
 
 #---------------------Path to the pickle output
-path = "..\\cascade_results\\" 
-name_simu = 'Rhone_test'
+# path = "..\\cascade_results\\" 
+# name_simu = 'Rhone_test'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
