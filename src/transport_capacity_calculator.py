@@ -270,8 +270,8 @@ class TransportCapacityCalculator:
         QS_ppm = 10**(log_C) # in ppm
 
         QS_grams = QS_ppm # in g/m3
-        QS_grams_per_sec = QS_grams * self.Q # in g/s
-        QS_kg = QS_grams_per_sec / 1000 # in kg/s
+        QS_grams_per_sec = QS_grams * self.Q    # in g/s
+        QS_kg = QS_grams_per_sec / 1000         # in kg/s
 
         QS_Yang = QS_kg / RHO_S # m3/s
 

@@ -96,7 +96,7 @@ deposit_layer = 100000      # Initial deposit layer [m]. Warning: will overwrite
 al_depth = 0.3              # Active layer depth [m] (Possibilities: '2D90', or any fixed value)
 
 #---Storing Deposit layer
-save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to save the deposit layer matrix
+save_dep_layer = 'never' # options: 'yearly', 'always', 'never'. Choose when to save the deposit layer matrix
 
 
 #---Option to save extended outputs or not 
