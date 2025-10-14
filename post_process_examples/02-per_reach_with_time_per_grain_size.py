@@ -25,14 +25,17 @@ import matplotlib.cm as cm
 import pandas as pd
 import geopandas as gpd
 
+years = '2016_2018'
+eq = 'W&P'
+dep_l = 2
 
-#---------------------Path to the extended pickle output
-path = "..\\cascade_results\\" 
-name_simu = 'Rhone_Martinez_res2004_2006'
-name_simu_ext = 'Rhone_Martinez_res2004_2006_ext'
+# ---------------------Path to the pickle output
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_res{years}_{eq}/' 
+name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m'
+name_simu_ext = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_ext'
 
 #---------------------Folder to store the plots
-figure_folder = path+'figures_per_reach_2004_2006\\'          # where you will store the figure
+figure_folder = path+f'figures_per_reach_{years}_{eq}\\'          # where you will store the figure
 
 if not os.path.exists(figure_folder):       
     os.makedirs(figure_folder)

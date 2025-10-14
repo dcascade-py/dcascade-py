@@ -69,7 +69,7 @@ for reach_id in reaches:
     df_Sed_budget_class_def = df_Sed_budget_class.iloc[:, -1:]
 
     # Process discharge stats
-    df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}.csv')
+    df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}_dam.csv')
     df_Q = df_discharge.iloc[::,[0,reach_id]]
     
     # To correct the index

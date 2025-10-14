@@ -14,20 +14,18 @@ import pandas as pd
 import geopandas as gpd
 from pathlib import Path
 
-years = '2004_2006'
+years = '1999_2019'
 eq = 'W&C'
-dep_l = 10
+dep_l = 2
 
 #---------------------Path to the extended pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Martinez_res{years}_{eq}/' 
-# path = "..\\cascade_results\\" 
-
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_res{years}_{eq}/' 
 name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m'
 
 #---River shape files
 path_river_network = Path('../inputs/Rhone_river/Network/')
 # Reach data file (shp, but can also be a csv)
-name_river_network = 'Rhone.shp'
+name_river_network = 'rhone_DCASCADE.shp'
 filename_river_network = path_river_network / name_river_network
 
 with open( path + name_simu + '.p' , "rb") as readF:
@@ -53,7 +51,7 @@ df_Dep = pd.DataFrame({'Dep': aDep})
 df_Tr = pd.DataFrame({'Tr': aTr})
 
 # Process discharge stats
-df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}.csv')
+df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/discharge_rhone_1999-2019_dams.csv')
 df_Q = df_discharge.iloc[:,1:]
 
 stats_df_Q = pd.DataFrame({
