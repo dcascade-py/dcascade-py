@@ -14,13 +14,17 @@ import pandas as pd
 import geopandas as gpd
 from pathlib import Path
 
-years = '1999_2019'
+trib = '15'
+years = '2004_2006'
 eq = 'W&C'
-dep_l = 2
+dep_l = 10
+layer = 30
+
+
 
 #---------------------Path to the extended pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_res{years}_{eq}/' 
-name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m'
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_trib{trib}_res{years}_{eq}_layer{layer}cm/'
+name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm'
 
 #---River shape files
 path_river_network = Path('../inputs/Rhone_river/Network/')
@@ -51,7 +55,7 @@ df_Dep = pd.DataFrame({'Dep': aDep})
 df_Tr = pd.DataFrame({'Tr': aTr})
 
 # Process discharge stats
-df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/discharge_rhone_1999-2019_dams.csv')
+df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}_dam.csv')
 df_Q = df_discharge.iloc[:,1:]
 
 stats_df_Q = pd.DataFrame({
@@ -76,7 +80,7 @@ df_res_output = pd.concat([
     df_Tr
 ], axis=1)
 
-csv_path = path + f'df_Martinez_res{years}_{eq}_{dep_l}m.csv'
+csv_path = path + f'df_Martinez_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm.csv'
 df_res_output.to_csv(csv_path, index=False)
 
 gdf_rhone = gpd.read_file(filename_river_network)
@@ -85,5 +89,5 @@ gdf_cascade = pd.concat([gdf_rhone, df_res_cascade], axis=1)
 gdf_cascade.rename(columns={'fid': 'id'}, inplace=True)
 
 # gdf_cascade.to_file(path_base + f'df_res_output_ext_{year}.shp', driver='ESRI Shapefile')
-gdf_cascade.to_file(path + f'Martinez_res{years}_{eq}_{dep_l}m.gpkg', driver='GPKG')
+gdf_cascade.to_file(path + f'Martinez_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm_S.gpkg', driver='GPKG')
 

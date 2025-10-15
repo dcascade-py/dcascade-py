@@ -27,14 +27,16 @@ import pandas as pd
 import geopandas as gpd
 
 
-years = '2016_2018'
+years = '2004_2006'
 eq = 'W&P'
-dep_l = 2
+dep_l = 10
+layer = 30
+trib = '15'
 
 # ---------------------Path to the pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_res{years}_{eq}/' 
-name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m'
-name_simu_ext = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_ext'
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_trib{trib}_res{years}_{eq}_layer{layer}cm/'
+name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm'
+name_simu_ext = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm_ext'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 path_river_network = '../inputs/Rhone_river/Network/' #Path to the shp

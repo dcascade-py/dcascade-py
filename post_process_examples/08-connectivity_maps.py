@@ -37,15 +37,16 @@ from reach_data import ReachData
 %matplotlib inline
 
 
-
-years = '2016_2018'
-eq = 'W&P'
-dep_l = 2
+years = '2004_2006'
+eq = 'W&C'
+dep_l = 10
+layer = 30
+trib = '15'
 
 # ---------------------Path to the pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_res{years}_{eq}/' 
-name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m'
-name_simu_ext = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_ext'
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_trib{trib}_res{years}_{eq}_layer{layer}cm/'
+name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm'
+name_simu_ext = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm_ext'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 path_river_network = '../inputs/Rhone_river/Network/' #Path to the shp
@@ -65,7 +66,7 @@ if not os.path.exists(figure_folder):
         
 #--------------------Define time range (i.e. the time step you want to plot)
 start_timestep = 0      # start time step
-end_timestep = 363        # end time step
+end_timestep = 10        # end time step
       
 start_date = np.datetime64('2003-09-21') # date of the starting time step, for the legend
 
@@ -83,7 +84,7 @@ gap_plot = 15000
 reach_data = read_network(path_river_network + name_river_network)
 
 # Read/define the water discharge
-Q = extract_Q(path_Q + name_q)
+Q, number_days = extract_Q(path_Q + name_q)
 
 # Sort reach_data according to the from_n, and organise the Q file accordingly
 sorted_indices = reach_data.sort_values(by="FromN").index
@@ -92,6 +93,7 @@ for i, idx in enumerate(sorted_indices):
     Q_new[:,i] = Q.iloc[:,idx]
 Q = Q_new
 reach_data = reach_data.sort_values(by="FromN", ignore_index = True)
+
 
 # Discharge at the outlet
 Q_outlet = Q[start_timestep : end_timestep + 1, outlet_FromN - 1]
