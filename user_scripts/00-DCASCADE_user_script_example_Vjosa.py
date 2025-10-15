@@ -136,9 +136,15 @@ dynamic_display = False
 
 # update_slope = False          # if False: slope is constant, if True, slope changes according to sediment deposit
 
-# roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+# roundpar = 0                  # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
 
 
+# external_inputs = None        # External sediment for all reaches, all sediment classes and all timesteps
+                                # If you want to add external input you need to specify a 3d matrix of size (time, reach, classes)
+                                # e.g.: external_inputs = np.ones((timescale, reach_data.n_reaches, n_classes))
+                                
+# force_pass_external_inputs = False  # Flag to force external input to entirely pass to the next reach
+                                
 
 
 ################ PREPROCESSING ###############
@@ -173,8 +179,6 @@ psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).asty
 dmi = 2**(-psi).reshape(-1,1)
 check_sediment_sizes(reach_data, dmi)
 
-# External sediment for all reaches, all classes and all timesteps
-external_inputs = np.zeros((timescale, reach_data.n_reaches, n_classes))
 
 # Define input sediment load in the deposit layer
 deposit = reach_data.deposit * reach_data.length
@@ -225,6 +229,12 @@ if 'roundpar' in globals():
 
 if 'save_dep_layer' in globals():
     kwargs['save_dep_layer'] = globals().get('save_dep_layer')
+    
+if 'external_inputs' in globals():
+    kwargs['external_inputs'] = globals().get('external_inputs')
+
+if 'force_pass_external_inputs' in globals():
+    kwargs['force_pass_external_inputs'] = globals().get('force_pass_external_inputs')
 
 
 
