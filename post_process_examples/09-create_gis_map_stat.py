@@ -15,7 +15,7 @@ import geopandas as gpd
 from pathlib import Path
 
 years = '2004_2006'
-eq = 'W&C'
+eq = 'A&W'
 dep_l = 100000
 layer = 30
 trib = '100000'
@@ -23,8 +23,8 @@ trib = '100000'
 
 
 #---------------------Path to the extended pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/MAGE_1D_trib{trib}_res{years}_{eq}_layer{layer}cm/'
-name_simu = f'MAGE_1D_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm'
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/MAGE_1D_trib{trib}_res{years}_{eq}_layer{layer}cm_old/'
+name_simu = f'MAGE_1D_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm_old'
 
 #---River shape files
 path_river_network = Path('../inputs/Rhone_river/Network/MAGE_1D/')
@@ -58,7 +58,7 @@ df_Tr = pd.DataFrame({'Tr': aTr})
 df_Qc = pd.DataFrame({'Qc': aQ})
 
 # Process discharge stats
-df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}_dam_j.csv')
+df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}_dam_old.csv')
 df_Q = df_discharge.iloc[:,1:]
 
 stats_df_Q = pd.DataFrame({
@@ -84,7 +84,7 @@ df_res_output = pd.concat([
     df_Qc
 ], axis=1)
 
-csv_path = path + f'df_MAGE_1D_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm.csv'
+csv_path = path + f'df_MAGE_1D_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm_old.csv'
 df_res_output.to_csv(csv_path, index=False)
 
 gdf_rhone = gpd.read_file(filename_river_network)
@@ -93,5 +93,5 @@ gdf_cascade = pd.concat([gdf_rhone, df_res_cascade], axis=1)
 gdf_cascade.rename(columns={'fid': 'id'}, inplace=True)
 
 # gdf_cascade.to_file(path_base + f'df_res_output_ext_{year}.shp', driver='ESRI Shapefile')
-gdf_cascade.to_file(path + f'MAGE_1D_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm.gpkg', driver='GPKG')
+gdf_cascade.to_file(path + f'Ssmooth05MAGE_1D_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm_old.gpkg', driver='GPKG')
 
