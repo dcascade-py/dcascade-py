@@ -14,22 +14,22 @@ import pandas as pd
 import geopandas as gpd
 from pathlib import Path
 
-trib = '15'
 years = '2004_2006'
 eq = 'W&C'
-dep_l = 10
+dep_l = 100000
 layer = 30
+trib = '100000'
 
 
 
 #---------------------Path to the extended pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_trib{trib}_res{years}_{eq}_layer{layer}cm/'
-name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm'
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/MAGE_1D_trib{trib}_res{years}_{eq}_layer{layer}cm/'
+name_simu = f'MAGE_1D_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm'
 
 #---River shape files
-path_river_network = Path('../inputs/Rhone_river/Network/')
+path_river_network = Path('../inputs/Rhone_river/Network/MAGE_1D/')
 # Reach data file (shp, but can also be a csv)
-name_river_network = 'rhone_DCASCADE.shp'
+name_river_network = 'rhone_network.shp'
 filename_river_network = path_river_network / name_river_network
 
 with open( path + name_simu + '.p' , "rb") as readF:
@@ -40,6 +40,7 @@ aVout = a['Volume out [m^3]']
 aVin = a['Volume in [m^3]']
 aDep = a['Deposited [m^3]']
 aTr = a['Transport capacity [m^3]']
+aQ = a['Discharge [m^3/s]']
 
 
 aSed_budget = np.sum(aSed_budget, axis=0)
@@ -47,15 +48,17 @@ aVout = np.sum(aVout, axis=0)
 aVin = np.sum(aVin, axis=0)
 aDep = np.sum(aDep, axis=0)
 aTr = np.sum(aTr, axis=0)
+aQ = np.max(aQ, axis=0)
 
 df_Sed_budget = pd.DataFrame({'SedBudget': aSed_budget})
 df_Vout = pd.DataFrame({'Vout': aVout})
 df_Vin = pd.DataFrame({'Vin': aVin})
 df_Dep = pd.DataFrame({'Dep': aDep})
 df_Tr = pd.DataFrame({'Tr': aTr})
+df_Qc = pd.DataFrame({'Qc': aQ})
 
 # Process discharge stats
-df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}_dam.csv')
+df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}_dam_j.csv')
 df_Q = df_discharge.iloc[:,1:]
 
 stats_df_Q = pd.DataFrame({
@@ -77,10 +80,11 @@ df_res_output = pd.concat([
     df_Vout,
     df_Vin,
     df_Dep,
-    df_Tr
+    df_Tr,
+    df_Qc
 ], axis=1)
 
-csv_path = path + f'df_Martinez_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm.csv'
+csv_path = path + f'df_MAGE_1D_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm.csv'
 df_res_output.to_csv(csv_path, index=False)
 
 gdf_rhone = gpd.read_file(filename_river_network)
@@ -89,5 +93,5 @@ gdf_cascade = pd.concat([gdf_rhone, df_res_cascade], axis=1)
 gdf_cascade.rename(columns={'fid': 'id'}, inplace=True)
 
 # gdf_cascade.to_file(path_base + f'df_res_output_ext_{year}.shp', driver='ESRI Shapefile')
-gdf_cascade.to_file(path + f'Martinez_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm_S.gpkg', driver='GPKG')
+gdf_cascade.to_file(path + f'MAGE_1D_res{years}_{eq}_{dep_l}m_trib_layer{layer}cm.gpkg', driver='GPKG')
 
