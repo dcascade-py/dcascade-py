@@ -39,27 +39,27 @@ from reach_data import ReachData
 
 years = '2004_2006'
 eq = 'W&C'
-dep_l = 10
+dep_l = 100000
 layer = 30
-trib = '15'
+trib = '100000'
 
 # ---------------------Path to the pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/Rhone_Slocal_trib{trib}_res{years}_{eq}_layer{layer}cm/'
-name_simu = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm'
-name_simu_ext = f'Rhone_Martinez_res{years}_{eq}_{dep_l}m_trib{trib}_layer{layer}cm_ext'
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/DCASCADE_res{years}_{eq}/'
+name_simu = f'DCASCADE_res{years}_{eq}'
+name_simu_ext = f'DCASCADE_res{years}_{eq}_ext'
 
 #---------------------Path to the input river network (.shp) or (.csv)
-path_river_network = '../inputs/Rhone_river/Network/' #Path to the shp
-name_river_network = "rhone_DCASCADE.shp"
+path_river_network = '../inputs/Rhone_river/Network/DCASCADE/' #Path to the shp
+name_river_network = 'Network_dcascade.shp'
 
 
 #---------------------Path to the discharge file
 path_Q = '../inputs/Rhone_river/discharge_martinez/'
-name_q = f'Q_{years}_dam.csv' 
+name_q = f'Q_{years}_dam_old.csv' 
 
 
 #---------------------Folder to store the plots
-figure_folder = path+'figures_connectivity_maps_{years}_{eq}\\'          # where you will store the figure
+figure_folder = path+f'figures_connectivity_maps_{years}_{eq}\\'          # where you will store the figure
 
 if not os.path.exists(figure_folder):       
     os.makedirs(figure_folder)
