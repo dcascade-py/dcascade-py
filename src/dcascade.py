@@ -299,6 +299,7 @@ class DCASCADE:
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
                        'Discharge [m^3/s]': Q,
+                       'Flow depth [m]': SedimSys.flow_depth
 
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
