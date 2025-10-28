@@ -322,21 +322,21 @@ class DCASCADE:
                            'Deposited per grain sizes [m^3]': deposited_per_class,
 
 
-                           'Qbi_mob [m^3]': SedimSys.Qbi_mob,
-                           'Qbi_tr [m^3]': SedimSys.Qbi_tr,
-                           'Qbi_mob_from_reach [m^3]': SedimSys.Qbi_mob_from_r,
-                           'Qbi_dep [m^3]': SedimSys.Qbi_dep,
-                           'Qout per class [m^3]': SedimSys.Q_out.astype(np.float32),
+                           # 'Qbi_mob [m^3]': SedimSys.Qbi_mob,
+                           # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
+                           # 'Qbi_mob_from_reach [m^3]': SedimSys.Qbi_mob_from_r,
+                           # 'Qbi_dep [m^3]': SedimSys.Qbi_dep,
+                           # 'Qout per class [m^3]': SedimSys.Q_out.astype(np.float32),
                            'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32),
                            'Tr_cap per class [m^3]': SedimSys.tr_cap.astype(np.float32),
-                           'Node_el [m]': SedimSys.node_el,
-                           'Fi_al': SedimSys.Fi_al.astype(np.float32),
-                           'AL depth [m]': SedimSys.al_depth.astype(np.float32),
-                           'Velocity section height [m]': SedimSys.vl_height.astype(np.float32),
-                           'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
-                           'Widths [m]': SedimSys.width.astype(np.float32),
-                           'Slopes': SedimSys.slope.astype(np.float32),
-                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
+                           # 'Node_el [m]': SedimSys.node_el,
+                           # 'Fi_al': SedimSys.Fi_al.astype(np.float32),
+                           # 'AL depth [m]': SedimSys.al_depth.astype(np.float32),
+                           # 'Velocity section height [m]': SedimSys.vl_height.astype(np.float32),
+                           # 'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
+                           # 'Widths [m]': SedimSys.width.astype(np.float32),
+                           # 'Slopes': SedimSys.slope.astype(np.float32),
+                           # 'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
                            }
 
 
