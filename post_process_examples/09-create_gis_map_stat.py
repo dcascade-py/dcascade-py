@@ -14,8 +14,8 @@ import pandas as pd
 import geopandas as gpd
 from pathlib import Path
 
-years = '1999_2019'
-eq = 'W&C'
+years = '2018_2019'
+eq = 'R'
 dep_l = 100000
 layer = 30
 trib = '100000'
@@ -23,14 +23,14 @@ trib = '100000'
 
 
 #---------------------Path to the extended pickle output
-path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/DCASCADE_res{years}_{eq}_classes/'
-name_simu = f'DCASCADE_res{years}_{eq}'
-name_simu_ext = f'DCASCADE_res{years}_{eq}_ext'
+path = f'K:/Labo/20_OSR/Rhone_Fabio_Schneider/DCASCADE_res{years}_{eq}_classes_noDams2000/'
+name_simu = f'DCASCADE_res{years}_{eq}_noDams2000'
+name_simu_ext = f'DCASCADE_res{years}_{eq}_noDams2000_ext'
 
 #---River shape files
 path_river_network = Path('../inputs/Rhone_river/Network/DCASCADE/')
 # Reach data file (shp, but can also be a csv)
-name_river_network = 'Network_dcascade.shp'
+name_river_network = 'Network_dcascade_noDams2000.shp'
 filename_river_network = path_river_network / name_river_network
 
 # open simulate
@@ -63,7 +63,7 @@ df_Qc = pd.DataFrame({'Qc': aQ})
 df_Qh = pd.DataFrame({'Qh': aQh})
 
 # Process discharge stats
-df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}_dam_old.csv')
+df_discharge = pd.read_csv(f'../inputs/Rhone_river/discharge_martinez/Q_{years}.csv')
 df_Q = df_discharge.iloc[:,1:]
 
 stats_df_Q = pd.DataFrame({
@@ -90,7 +90,7 @@ df_res_output = pd.concat([
     df_Qh
 ], axis=1)
 
-csv_path = path + f'df_DCASCADE_res{years}_{eq}_classes.csv'
+csv_path = path + f'df_DCASCADE_res{years}_{eq}_noDams2000.csv'
 df_res_output.to_csv(csv_path, index=False)
 
 gdf_rhone = gpd.read_file(filename_river_network)
@@ -99,7 +99,7 @@ gdf_cascade = pd.concat([gdf_rhone, df_res_cascade], axis=1)
 gdf_cascade.rename(columns={'fid': 'id'}, inplace=True)
 
 # gdf_cascade.to_file(path_base + f'df_res_output_ext_{year}.shp', driver='ESRI Shapefile')
-gdf_cascade.to_file(path + f'DCASCADE_res{years}_{eq}_classes.gpkg', driver='GPKG')
+gdf_cascade.to_file(path + f'DCASCADE_res{years}_{eq}_noDams2000.gpkg', driver='GPKG')
 
 
 
@@ -152,6 +152,7 @@ df_Dep_class_def = df_Dep_class_ext.iloc[:, -4:]
 df_Sed_budget_class_def = df_Sed_budget_class_ext.iloc[:, -4:]
 
 df_res_output_ext = pd.concat([
+    stats_df_Q,
     df_Vin_class_def,
     df_Vout_class_def,
     df_Dep_class_def,
@@ -159,7 +160,7 @@ df_res_output_ext = pd.concat([
     df_Tr_class_def
 ], axis=1)
 
-csv_path_ext = path + f'df_DCASCADE_res{years}_{eq}_gravel_per_classes.csv'
+csv_path_ext = path + f'df_DCASCADE_res{years}_{eq}_classes_noDams2000.csv'
 df_res_output_ext.to_csv(csv_path_ext, index=False)
 
 gdf_rhone = gpd.read_file(filename_river_network)
@@ -168,5 +169,5 @@ gdf_cascade_ext = pd.concat([gdf_rhone, df_res_cascade_ext], axis=1)
 gdf_cascade_ext.rename(columns={'fid': 'id'}, inplace=True)
 
 # gdf_cascade.to_file(path_base + f'df_res_output_ext_{year}.shp', driver='ESRI Shapefile')
-gdf_cascade_ext.to_file(path + f'DCASCADE_res{years}_{eq}_gravel_per_classes.gpkg', driver='GPKG')
+gdf_cascade_ext.to_file(path + f'DCASCADE_res{years}_{eq}_classes_noDams2000.gpkg', driver='GPKG')
 
