@@ -541,6 +541,7 @@ class TransportCapacityCalculator:
         froude = self.v / np.sqrt(GRAV * self.h)        # Froude number
 
         # Accounting for scaling size of bed material (from Wu et al. (2003)) (DD: better understand why)
+        # DD: To check, I get a nan if GSD std is < 1 ...
         Dn = (1 + (self.GSD_std(dmi) - 1)**1.5) * total_D50
 
         # Geometric standard deviation of bed material
