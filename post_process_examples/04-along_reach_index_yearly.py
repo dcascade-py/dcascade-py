@@ -30,11 +30,11 @@ import geopandas as gpd
 
 #---------------------Path to the pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'Vjosa_test'
+name_simu = 'WC_bankfull'
 
 #---------------------Path to the input river network (.shp) or (.csv)
-path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
-name_river_network = "River_Network.shp"
+path_river_network = "..\\inputs\\Input_Po_case_PGS_2025\\shp_slope_DEM_2021_smoothed\\" #Path to the shp
+name_river_network = "Po_river_network.shp"
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure
@@ -47,7 +47,7 @@ output_name = 'Volume out [m^3]'   # Output available in pickle file
 #'D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]'
 
 #--------------------First year simulated (for legend)
-year_0 = 2019
+year_0 = 2008
 
 
 
