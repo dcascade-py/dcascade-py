@@ -144,7 +144,7 @@ class DCASCADE:
 
                 ###------Step 2 : Mobilise volumes from the reach considering the
                 # eventual continuing cascades.
-
+                    
                 # Compute transport capacity
                 tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
@@ -154,7 +154,7 @@ class DCASCADE:
                 SedimSys.Fi_al[t, n, :] = Fi_al
                 SedimSys.D50_al[t, n] = D50_al
                 SedimSys.Qc_class_all[t, n] = Qc
-                SedimSys.tr_cap[t, n, :] = tr_cap_per_s * self.ts_length
+                SedimSys.tr_cap[t, n, :] = tr_cap_per_s * self.ts_length  
 
                 # Mobilise:
                 Vmob, Qbi_pass[n], Vdep_end = SedimSys.compute_mobilised_volumes(Vdep_init, tr_cap_per_s,
