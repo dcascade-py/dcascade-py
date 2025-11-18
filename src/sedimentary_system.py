@@ -885,7 +885,7 @@ class SedimentarySystem:
 
         # Mobilisable volume:
         volume_mobilisable = tr_cap_per_s * self.ts_length
-        # Erosion maximum during the time lag
+        # Erosion maximum (by default equal to the active layer volume). 
         e_max_vol_ = self.eros_max_vol[t,n] 
 
         # Eventual total volume arriving
@@ -915,9 +915,23 @@ class SedimentarySystem:
             # Search for layers to be put in the erosion max (e_max_vol_)
             V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
-
+            
+            # If Vmob is all 0 (may happen with some rounding rules)
             if np.all(self.sediments(V_mob) == 0):
                 V_mob = None
+                
+            # Which proportion is mobilised from e_max ?
+            mob_vol_gs = np.sum(self.sediments(V_mob), axis = 0) #Vmob per GS
+            
+            e_max_layers = np.vstack((V_inc_el, V_dep_el))
+            e_max_vol_gs = np.sum(self.sediments(e_max_layers), axis = 0)  # emax layers per GS
+            
+            fr_mob_in_emax = mob_vol_gs/e_max_vol_gs
+            
+            # Which proportion is mobilised in tr_cap remaining  ---> DD: to test !!
+            fr_mob_in_tr_cap_r = mob_vol_gs/diff_pos
+            
+            
         else:
             Vdep_new  = Vdep
             V_mob = None
