@@ -297,9 +297,8 @@ class DCASCADE:
                        'D50 volume out [m]': D50_mob.astype(np.float32),
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
-                       'Transport capacity [m^3]': transport_capacity.astype(np.float32),
-
-                       # TODO: 'Touch erosion max': touch_eros_max,
+                       'Transport capacity [m^3]': transport_capacity.astype(np.float32),                                             
+                        'Fraction taken from AL': SedimSys.fr_mob_in_al   # Active layer fraction metric
                         }
 
         # Sum quantities by provenance
@@ -334,7 +333,7 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
                            'Widths [m]': SedimSys.width.astype(np.float32),
                            'Slopes': SedimSys.slope.astype(np.float32),
-                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
+                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)                           
                            }
 
 
