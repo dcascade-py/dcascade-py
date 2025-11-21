@@ -310,8 +310,9 @@ class DCASCADE:
                         'Vdep top [m^3]': SedimSys.Vdep_top_all,
                         # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
                         # 'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
-
-                       # TODO: 'Touch erosion max': touch_eros_max,
+                                                  
+                        # Active layer info
+                        'Fraction taken from AL': SedimSys.fr_mob_in_al   
                         }
 
         # Sum quantities by provenance
@@ -346,7 +347,7 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
                            'Widths [m]': SedimSys.width.astype(np.float32),
                            'Slopes': SedimSys.slope.astype(np.float32),
-                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
+                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)                           
                            }
 
 
