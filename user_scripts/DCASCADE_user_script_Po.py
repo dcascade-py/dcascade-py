@@ -53,8 +53,8 @@ from plot_function import dynamic_plot
 #  - Ackers and White - Bed Material Fraction partitionning
 #  - Ackers and White - Molinas rates partitionning
 
-transport_law = [(2, 4), (6, 2), (6, 3)]  
-name_list = ['WC', 'AW_BMF', 'AW_Molinas']              
+transport_law = [(6, 2)]    # [(2, 4), (6, 2), (6, 3)]  
+name_list = ['AW_BMF']      #['WC', 'AW_BMF', 'AW_Molinas']              
 
 # List to loop over the two width scenarios:
 #  - Bankfull
@@ -107,7 +107,7 @@ for width_input_name, width_output_name in zip(width_input_name_list, width_outp
         n_classes = 12          # number of classes
         
         #---Timescale 
-        timescale = 1865       # 5843 days 1095, 1825
+        timescale = 1095       # 5843 days 1095, 1825
         ts_length = 60 * 60 * 24    # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
         
         #---Transport capacity formula and partitioning
@@ -172,6 +172,12 @@ for width_input_name, width_output_name in zip(width_input_name_list, width_outp
         
         # Define the initial deposit layer per each reach in [m3/m]
         reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
+        
+        # # I want to put to 0 the reaches that are not sources
+        # fromn_start = 4
+        # fromn_end = 44
+        # for n in range(fromn_start - 1, fromn_end - 1):
+        #     reach_data.deposit[n] = 0
         
         
         # # Set reach deposit to 0 except sources

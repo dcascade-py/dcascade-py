@@ -29,7 +29,7 @@ import geopandas as gpd
 
 
 #---------------------Path to the pickle output
-path = "..\\cascade_results\\" 
+path = "..\\..\\03-Po_case_16y\\62_test_deposit0_3y\\"
 name_simu = 'WC_bankfull'
 
 #---------------------Path to the input river network (.shp) or (.csv)
