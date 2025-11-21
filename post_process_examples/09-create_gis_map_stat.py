@@ -14,12 +14,12 @@ import pandas as pd
 import geopandas as gpd
 from pathlib import Path
 
-years = '2018_2020'
+years = '2004_2022'
 eq = 'R'
 dep_l = 100000
 layer = 30
 trib = '100000'
-Dams = 'noDams'
+Dams = 'Dams'
 
 
 
@@ -31,7 +31,7 @@ name_simu_ext = f'DCASCADE_res{years}_{eq}_{Dams}_Laval_ext'
 #---River shape files
 path_river_network = Path('../inputs/Rhone_river/Network/Laval_data/')
 # Reach data file (shp, but can also be a csv)
-name_river_network = f'Network_Laval_{Dams}.shp'
+name_river_network = f'Network_Laval_{Dams}_cal.shp'
 filename_river_network = path_river_network / name_river_network
 
 # open simulate
