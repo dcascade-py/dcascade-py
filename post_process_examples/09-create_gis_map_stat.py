@@ -15,7 +15,7 @@ import geopandas as gpd
 from pathlib import Path
 
 years = '2004_2022'
-eq = 'R'
+eq = 'P&K'
 dep_l = 100000
 layer = 30
 trib = '100000'
