@@ -53,16 +53,16 @@ from plot_function import dynamic_plot
 #  - Ackers and White - Bed Material Fraction partitionning
 #  - Ackers and White - Molinas rates partitionning
 
-transport_law = [(6, 2)]    # [(2, 4), (6, 2), (6, 3)]  
-name_list = ['AW_BMF']      #['WC', 'AW_BMF', 'AW_Molinas']              
+transport_law = [(2, 4), (6, 2), (6, 3)]  
+name_list = ['WC', 'AW_BMF', 'AW_Molinas']              
 
 # List to loop over the two width scenarios:
 #  - Bankfull
 #  - Mean flow
 # Note that, width is given externally from a csv file.
 
-width_input_name_list = ['smoothed_bf_w', 'smoothed_wat_w']          
-width_output_name_list = ['bankfull', 'meanflow'] 
+width_input_name_list = ['smoothed_bf_w']#, 'smoothed_wat_w']          
+width_output_name_list = ['bankfull']#, 'meanflow'] 
 
 
 for width_input_name, width_output_name in zip(width_input_name_list, width_output_name_list):
@@ -103,11 +103,11 @@ for width_input_name, width_output_name in zip(width_input_name_list, width_outp
         #---Sediment classes definition 
         # defines the sediment sizes considered in the simulation
         #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-        sed_range = [-6, 2]     # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+        sed_range = [-6, 3]     # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
         n_classes = 12          # number of classes
         
         #---Timescale 
-        timescale = 1095       # 5843 days 1095, 1825
+        timescale = 5843       # 5843 days, 1095, 1825
         ts_length = 60 * 60 * 24    # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
         
         #---Transport capacity formula and partitioning
@@ -170,19 +170,6 @@ for width_input_name, width_output_name in zip(width_input_name_list, width_outp
         reach_data_df = read_network(filename_river_network)
         reach_data = ReachData(reach_data_df)
         
-        # Define the initial deposit layer per each reach in [m3/m]
-        reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
-        
-        # # I want to put to 0 the reaches that are not sources
-        # fromn_start = 4
-        # fromn_end = 44
-        # for n in range(fromn_start - 1, fromn_end - 1):
-        #     reach_data.deposit[n] = 0
-        
-        
-        # # Set reach deposit to 0 except sources
-        # not_source_idx = np.where(np.isin(ReachData.from_n, np.arange(3, 44+1, 1)))
-        # ReachData.deposit[not_source_idx] = 0
         
         # Read/define the water discharge  
         Q = extract_Q(filename_q)
@@ -193,7 +180,17 @@ for width_input_name, width_output_name in zip(width_input_name_list, width_outp
         for i, idx in enumerate(sorted_indices): 
             Q_new[:,i] = Q.iloc[:,idx]
         Q = Q_new
-                
+        
+        
+        # Define the initial deposit layer per each reach in [m3/m]
+        reach_data.deposit = np.repeat(deposit_layer, reach_data.n_reaches)
+        
+        # # I want to put to 0 the reaches that are not sources
+        # fromn_start = 4
+        # fromn_end = 44
+        # for FromN in range(fromn_start, fromn_end + 1):
+        #     reach_data.deposit[FromN - 1] = 0
+        
         
         # Extract network properties
         network = graph_preprocessing(reach_data)
