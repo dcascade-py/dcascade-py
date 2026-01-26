@@ -34,6 +34,8 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
                   external_inputs = None,
                   force_pass_external_inputs = False,
+                  
+                  dam_trap_efficiency = None
                   ):
 
 
@@ -91,6 +93,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
     sedimentary_system.set_active_layer(al_depth, al_depth_method)
+    sedimentary_system.set_dams(dam_trap_efficiency)
 
 
 

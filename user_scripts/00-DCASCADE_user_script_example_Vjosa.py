@@ -4,7 +4,8 @@ Created on Mon Oct 10 15:21:34 2022
 Input that are required in the ReachData class which define your river network:
 - reach FromN - ToN (From Node - To Node) which define the relation between
   reaches (from upstream to downstream), these must be ordered from the smaller
-  to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
+  to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2). 
+  Warning: FromN and ToN are numbered from 1 (not 0 !)
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
 - deposit = initial deposit layer expressed in m3/m2 - this value will be then
@@ -144,8 +145,16 @@ dynamic_display = False
                                 # e.g.: external_inputs = np.ones((timescale, reach_data.n_reaches, n_classes))
                                 
 # force_pass_external_inputs = False  # Flag to force external input to entirely pass to the next reach
-                                
 
+
+
+# dam_trap_efficiency = None   # Option to simulate sediment barriers or dams, with a trapping efficiency per grain size class.
+                               # If you want to add dams you need to specify the reach index (FromN) just UPSTREAM of the dam, 
+                               # and the trapping efficencies per size class in a dictionnary: 
+                               # e.g.,   dam_trap_efficiency = {2: 0.5 * np.ones(n_classes), 4: 0.2 * np.ones(n_classes)}
+                               # will put a trapping efficiency of 0.5 after reach with FromN 2, and 0.2 after reach 4 (to all sediment size classes).
+                               # Other example, dam_trap_efficiency = {2: np.array([1, 0, 0, 0, 0, 0])} will trap fully the coarsest class only, in reach with FromN 2. 
+                                                          
 
 ################ PREPROCESSING ###############
 # If the transport capacity formula is not chosen manually:
@@ -190,8 +199,7 @@ Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
 Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
 for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
-
-
+    
 
 
 # Prepare optionnal paramaters (possibly not given by the user) for calling the DCASCADE_main function
@@ -236,6 +244,8 @@ if 'external_inputs' in globals():
 if 'force_pass_external_inputs' in globals():
     kwargs['force_pass_external_inputs'] = globals().get('force_pass_external_inputs')
 
+if 'dam_trap_efficiency' in globals():
+    kwargs['dam_trap_efficiency'] = globals().get('dam_trap_efficiency')
 
 
 ################ CALL MAIN ###############
