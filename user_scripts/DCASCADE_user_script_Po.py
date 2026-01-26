@@ -47,22 +47,24 @@ from reach_data import ReachData
 from widget import read_user_input
 from plot_function import dynamic_plot
 
+from d_finder import D_finder
+
 
 # List to loop over transport-capacity + partitionning formulas: 
 #  - Wilcock and Crowes
 #  - Ackers and White - Bed Material Fraction partitionning
 #  - Ackers and White - Molinas rates partitionning
 
-transport_law = [(2, 4), (6, 2), (6, 3)]  
-name_list = ['WC', 'AW_BMF', 'AW_Molinas']              
+transport_law = [(2, 4)]#, (6, 2), (6, 3)]  
+name_list = ['WC']#, 'AW_BMF', 'AW_Molinas']              
 
 # List to loop over the two width scenarios:
 #  - Bankfull
 #  - Mean flow
 # Note that, width is given externally from a csv file.
 
-width_input_name_list = ['smoothed_bf_w']#, 'smoothed_wat_w']          
-width_output_name_list = ['bankfull']#, 'meanflow'] 
+width_input_name_list = ['smoothed_bf_w']  #, 'smoothed_wat_w']          
+width_output_name_list = ['bankfull']      #, 'meanflow'] 
 
 
 for width_input_name, width_output_name in zip(width_input_name_list, width_output_name_list):
@@ -279,6 +281,20 @@ for width_input_name, width_output_name in zip(width_input_name_list, width_outp
         # Define initial sediment fractions per class in each reaches, using a Rosin distribution
         Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
         
+        D50_init = D_finder(Fi_r, 50, psi)
+        
+        df = pd.DataFrame()
+        df['D50_init'] = D50_init
+        df['D50_meas'] = reach_data.D50
+        
+        df.to_csv('D50_check_init.csv')
+        
+        import matplotlib.pyplot as plt
+        
+        plt.plot(D50_init, '*', label = 'init')
+        plt.plot(reach_data.D50, 'v', label = 'measured')
+        plt.legend()
+        plt.show()
         
             
         # Initialise deposit layer 
