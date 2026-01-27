@@ -307,13 +307,13 @@ class DCASCADE:
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
                        
                         # For Po
-                        'Vdep top [m^3]': SedimSys.Vdep_top_all,
+                        # 'Vdep top [m^3]': SedimSys.Vdep_top_all,
                         # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
                         # 'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
                                                   
                         # Active layer info
-                        'Fraction taken from AL': SedimSys.fr_mob_in_al   
-                        'mob_vol_gs': SedimSys.mob_vol_gs
+                        'Fraction taken from AL': SedimSys.fr_mob_in_al,   
+                        'mob_vol_gs': SedimSys.mob_vol_gs,
                         'e_max_vol_gs': SedimSys.e_max_vol_gs
                         }
 
