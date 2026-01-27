@@ -313,6 +313,8 @@ class DCASCADE:
                                                   
                         # Active layer info
                         'Fraction taken from AL': SedimSys.fr_mob_in_al   
+                        'mob_vol_gs': SedimSys.mob_vol_gs
+                        'e_max_vol_gs': SedimSys.e_max_vol_gs
                         }
 
         # Sum quantities by provenance

@@ -97,6 +97,8 @@ class SedimentarySystem:
         self.mass_balance = self.create_3d_zero_array()
         self.reach_bottom_count = 0
         self.fr_mob_in_al = self.create_3d_zero_array() # fraction of AL that is mobilised
+        self.e_max_vol_gs = self.create_3d_zero_array()
+        self.mob_vol_gs = self.create_3d_zero_array()
 
         # temporary ?
         self.Qbi_dep_0 = None
@@ -932,7 +934,8 @@ class SedimentarySystem:
             
             # Which proportion is mobilised from e_max (or active layer) ?
             self.fr_mob_in_al[t, n, :] = mob_vol_gs/e_max_vol_gs
-            
+            self.mob_vol_gs[t, n, :] = mob_vol_gs
+            self.e_max_vol_gs[t, n, :] = e_max_vol_gs
             
         # Sediment classes with negative values in diff_with_capacity are over capacity
         # They are deposited, i.e. directly added to Vdep
