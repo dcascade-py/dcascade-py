@@ -177,7 +177,7 @@ check_sediment_sizes(reach_data, dmi)
 external_inputs = np.zeros((timescale, reach_data.n_reaches, n_classes))
 
 # Define input sediment load in the deposit layer
-deposit = reach_data.deposit * reach_data.length
+deposit = reach_data.deposit * reach_data.length * reach_data.wac
 
 # Define initial sediment fractions per class in each reaches, using a Rosin distribution
 Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
