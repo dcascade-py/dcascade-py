@@ -55,10 +55,10 @@ from d_finder import D_finder
 #  - Ackers and White - Bed Material Fraction partitionning
 #  - Ackers and White - Molinas rates partitionning
 
-GSD_perc_list = [0.8, 0.9, 1.0, 1.1, 1.2]
+GSD_perc_list = [1.0] # [0.8, 0.9, 1.0, 1.1, 1.2]
 
-transport_law = [(6, 2)]   #(6, 2),(2, 4) , (6, 3)]  
-name_list = ['AW_BMF']         #'WC', , 'AW_Molinas']              
+transport_law = [(6, 3)]   #(6, 2),(2, 4) , (6, 3)]  
+name_list = ['AW_Molinas']         #'WC', , 'AW_Molinas']              
 
 # List to loop over the two width scenarios:
 #  - Bankfull
