@@ -75,18 +75,18 @@ class TransportCapacityCalculator:
         self.D50 = index_to_partitioning.get(indx_partition)
 
         Qtr_cap, Qc = self.choose_formula(indx_tr_cap)
-        
-        # In case the water discharge is 0, some formula may return Qtr_cap = nans (e.g. A&W)
-        # so instead, Qtr_cap = zeros
-        if self.Q == 0:
-            Qtr_cap = np.zeros(Qtr_cap.shape)
-
+          
         if indx_partition == 2:
             Qtr_cap = self.fi_r_reach * Qtr_cap
-
+    
         elif indx_partition == 3:
             pci = self.Molinas_rates(self.class_D50*1000, self.total_D50*1000)
             Qtr_cap = pci * Qtr_cap
+        
+        # In case the water discharge or height is 0, some transport formula may return Qtr_cap = nans (e.g. A&W or Molinas partitionning)
+        # so instead, Qtr_cap = zeros
+        if self.Q == 0 or self.h == 0:
+            Qtr_cap = np.zeros(Qtr_cap.shape)
 
         return Qtr_cap, Qc
 

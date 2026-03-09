@@ -4,7 +4,8 @@ Created on Mon Oct 10 15:21:34 2022
 Input that are required in the ReachData class which define your river network:
 - reach FromN - ToN (From Node - To Node) which define the relation between
   reaches (from upstream to downstream), these must be ordered from the smaller
-  to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2)
+  to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2). 
+  Warning: FromN and ToN are numbered from 1 (not 0 !)
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
 - deposit = initial deposit layer expressed in m3/m2 - this value will be then
@@ -136,10 +137,24 @@ dynamic_display = False
 
 # update_slope = False          # if False: slope is constant, if True, slope changes according to sediment deposit
 
-# roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+# roundpar = 0                  # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
+
+
+# external_inputs = None        # External sediment for all reaches, all sediment classes and all timesteps
+                                # If you want to add external input you need to specify a 3d matrix of size (time, reach, classes)
+                                # e.g.: external_inputs = np.ones((timescale, reach_data.n_reaches, n_classes))
+                                
+# force_pass_external_inputs = False  # Flag to force external input to entirely pass to the next reach
 
 
 
+# dam_trap_efficiency = None   # Option to simulate sediment barriers or dams, with a trapping efficiency per grain size class.
+                               # If you want to add dams you need to specify the reach index (FromN) just UPSTREAM of the dam, 
+                               # and the trapping efficencies per size class in a dictionnary: 
+                               # e.g.,   dam_trap_efficiency = {2: 0.5 * np.ones(n_classes), 4: 0.2 * np.ones(n_classes)}
+                               # will put a trapping efficiency of 0.5 after reach with FromN 2, and 0.2 after reach 4 (to all sediment size classes).
+                               # Other example, dam_trap_efficiency = {2: np.array([1, 0, 0, 0, 0, 0])} will trap fully the coarsest class only, in reach with FromN 2. 
+                                                          
 
 ################ PREPROCESSING ###############
 # If the transport capacity formula is not chosen manually:
@@ -173,8 +188,6 @@ psi = np.linspace(sed_range[0], sed_range[1], num=n_classes, endpoint=True).asty
 dmi = 2**(-psi).reshape(-1,1)
 check_sediment_sizes(reach_data, dmi)
 
-# External sediment for all reaches, all classes and all timesteps
-external_inputs = np.zeros((timescale, reach_data.n_reaches, n_classes))
 
 # Define input sediment load in the deposit layer
 deposit = reach_data.deposit * reach_data.length * reach_data.wac
@@ -186,8 +199,7 @@ Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
 Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
 for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
-
-
+    
 
 
 # Prepare optionnal paramaters (possibly not given by the user) for calling the DCASCADE_main function
@@ -225,7 +237,15 @@ if 'roundpar' in globals():
 
 if 'save_dep_layer' in globals():
     kwargs['save_dep_layer'] = globals().get('save_dep_layer')
+    
+if 'external_inputs' in globals():
+    kwargs['external_inputs'] = globals().get('external_inputs')
 
+if 'force_pass_external_inputs' in globals():
+    kwargs['force_pass_external_inputs'] = globals().get('force_pass_external_inputs')
+
+if 'dam_trap_efficiency' in globals():
+    kwargs['dam_trap_efficiency'] = globals().get('dam_trap_efficiency')
 
 
 ################ CALL MAIN ###############

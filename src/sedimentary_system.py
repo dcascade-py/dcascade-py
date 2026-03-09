@@ -99,6 +99,10 @@ class SedimentarySystem:
         self.fr_mob_in_al = self.create_3d_zero_array() # fraction of AL that is mobilised
         self.e_max_vol_gs = self.create_3d_zero_array()
         self.mob_vol_gs = self.create_3d_zero_array()
+        
+        # Dam informations
+        self.dam_trap_efficiency = None
+        self.reach_has_dam = None
 
         # temporary ?
         self.Qbi_dep_0 = None
@@ -467,6 +471,22 @@ class SedimentarySystem:
             cascade_list.append(ext_cascade)
 
         return cascade_list
+    
+    def set_dams(self, dam_trap_efficiency):
+        ''' Set the dam options
+        @param dam_trap_efficiency
+            dictionnary of reach FromN and associated trapping efficiency per size classes
+        '''
+        if dam_trap_efficiency != None: 
+            self.dam_trap_efficiency = dam_trap_efficiency
+            self.reach_has_dam = np.zeros(self.n_reaches)
+            for FromN in dam_trap_efficiency.keys():
+                self.reach_has_dam[FromN - 1] = 1
+                # Check if the vector of trapping efficiency has good size
+                if dam_trap_efficiency[FromN].size != self.n_classes:
+                    raise ValueError("The dam trapping efficiency vector for reach " + str(FromN) + 
+                                     " does not have the size of size class number.")
+                
 
 
     def compute_cascades_velocities(self, cascades_list, Vdep,
@@ -888,7 +908,12 @@ class SedimentarySystem:
         volume_mobilisable = tr_cap_per_s * self.ts_length
         # Erosion maximum (by default equal to the active layer volume). 
         e_max_vol_ = self.eros_max_vol[t,n] 
-
+        
+        # Dam trapping 
+        if self.dam_trap_efficiency != None: 
+            if self.reach_has_dam[n] == 1:
+                volume_mobilisable = volume_mobilisable * (1 - self.dam_trap_efficiency[n + 1]) # +1 because it is the FromN here
+        
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0

@@ -56,7 +56,7 @@ def h_ferguson(reach_data, SedimSys, Q, t):
     p = np.where(q_star < 100, 0.24, 0.31)
 
     h = 0.015 * reach_data.D84 * (q_star**(2*p)) / (p**2.5)
-    v = (np.sqrt(GRAV * h * SedimSys.slope[t])* 6.5 * 2.5 * (h / reach_data.D84)) / np.sqrt((6.2 ** 2) * (2.5 ** 2) * ((h / reach_data.D84) ** (5/3)))
+    v = (np.sqrt(GRAV * h * SedimSys.slope[t])* 6.5 * 2.5 * (h / reach_data.D84)) / np.sqrt((6.5 ** 2) + (2.5 ** 2) * ((h / reach_data.D84) ** (5/3)))
 
     return h, v
 
