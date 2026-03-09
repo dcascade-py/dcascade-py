@@ -503,7 +503,7 @@ class TransportCapacityCalculator:
 
     def Molinas_rates(self, dmi, total_D50):
         """
-        Method for paritionning the transport capacity among sediment size classes.
+        Method for partitioning the transport capacity among sediment size classes.
         Falls into the transport capacity fraction approaches (TCF approaches), i.e. it
         directly distribute the sediment transport rates into size groups through a transport
         capacity distribution function.
@@ -539,20 +539,34 @@ class TransportCapacityCalculator:
         vstar = np.sqrt(GRAV * self.h * self.slope)     # Shear velocity
 
         froude = self.v / np.sqrt(GRAV * self.h)        # Froude number
-
-        # Accounting for scaling size of bed material (from Wu et al. (2003)) (DD: better understand why)
-        # DD: To check, I get a nan if GSD std is < 1 ...
-        Dn = (1 + (self.GSD_std(dmi) - 1)**1.5) * total_D50
-
+        
         # Geometric standard deviation of bed material
         gsd_std = self.GSD_std(dmi)
 
-        # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
-        alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+        if gsd_std < 1: 
+            raise Exception("The geometric std should not be less than 1, because D84 is always larger than D16")
 
+        # Accounting for scaling size of bed material (from Wu et al. (2003))
+        Dn = (1 + (gsd_std - 1)**1.5) * total_D50
+        
+        # Dn = total_D50
+                
+        # # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
+        # alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+        # beta = 0.2 * gsd_std
+        # zeta = 2.8 * froude**(-1.2) *  gsd_std**(-3)
+        # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
+        
+        # # Alpha, beta, and zeta parameters (eq 17, 18, 19, in Wu et al. (2003))
+        # alpha = - 2.2 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+        # beta = 0.2 * gsd_std
+        # zeta = 2.4 * froude**(-1)
+        # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
+        
+        # Alpha, beta, and zeta parameters (eq 21, 22, 23, in Wu et al. (2003))
+        alpha = - 2.85 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
         beta = 0.2 * gsd_std
-
-        zeta = 2.8 * froude**(-1.2) *  gsd_std**(-3)
+        zeta = 2.16 * froude**(-1)
         zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
 
         # Fractioning factor for each grain size (rows) (eq 23 in Molinas and Wu (2000))
