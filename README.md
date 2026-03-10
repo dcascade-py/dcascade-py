@@ -62,7 +62,7 @@ conda activate dcascade
 
 ```console
 conda install spyder
-conda install numpy
+conda install numpy=2.3.2
 conda install tqdm
 conda install matplotlib
 conda install pandas=2.3.1
