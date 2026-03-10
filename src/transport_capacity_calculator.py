@@ -510,6 +510,8 @@ class TransportCapacityCalculator:
 
         Here, the TC distribution function is from Wu and Molinas (1996),
         described also in Molinas and Wu (2000).
+        An alternative expression for D50 is used (Dn) from Wu et al. (2003)
+        Alternative coefficients are commented, they are from Wu et al. (2003).
 
         Input grain sizes must be in mm.
 
@@ -530,6 +532,9 @@ class TransportCapacityCalculator:
         Wu B, Molinas A. (1996). Modeling of alluvial river sediment transport.
         Proceedings of the International Conference on Reservoir Sedimentation,
         Vol. I, Albertson ML, Molinas A, Hotchkiss R (eds).
+        
+        Wu et al. (2003). Fractional transport of sediment mixtures. 
+        International Journal of Sediement Research. 
 
         """
 
@@ -549,11 +554,11 @@ class TransportCapacityCalculator:
         # Accounting for scaling size of bed material (from Wu et al. (2003))
         Dn = (1 + (gsd_std - 1)**1.5) * total_D50        
                 
-        # # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
-        # alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
-        # beta = 0.2 * gsd_std
-        # zeta = 2.8 * froude**(-1.2) *  gsd_std**(-3)
-        # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
+        # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
+        alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+        beta = 0.2 * gsd_std
+        zeta = 2.8 * froude**(-1.2) *  gsd_std**(-3)
+        zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
         
         # # Alpha, beta, and zeta parameters (eq 17, 18, 19, in Wu et al. (2003))
         # alpha = - 2.2 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
@@ -561,11 +566,11 @@ class TransportCapacityCalculator:
         # zeta = 2.4 * froude**(-1)
         # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
         
-        # Alpha, beta, and zeta parameters (eq 21, 22, 23, in Wu et al. (2003))
-        alpha = - 2.85 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
-        beta = 0.2 * gsd_std
-        zeta = 2.16 * froude**(-1)
-        zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
+        # # Alpha, beta, and zeta parameters (eq 21, 22, 23, in Wu et al. (2003))
+        # alpha = - 2.85 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+        # beta = 0.2 * gsd_std
+        # zeta = 2.16 * froude**(-1)
+        # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
 
         # Fractioning factor for each grain size (rows) (eq 23 in Molinas and Wu (2000))
         frac = self.fi_r_reach * ((dmi / Dn)**alpha + zeta * (dmi / Dn)**beta)
