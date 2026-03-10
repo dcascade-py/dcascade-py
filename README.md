@@ -41,7 +41,7 @@ cd name_of_the_path
 
 To check whether the "environment.yml" file is in there you can type: `dir` and it should appear.
 
-Then, create the environment (called here "dcascade") with the required python version and packages. This may take a few minuts. 
+Then, create the environment (called here "dcascade") with the required python version and packages. This may take a few minuts.
 
 ```console
 conda env create -f environment.yml -n dcascade
@@ -53,7 +53,7 @@ And activate it:
 conda activate dcascade
 ```
 
-If the environment installation from the "environment.yml" file does not work, or is anormally to long, try these lines one after the other: 
+If the environment installation from the "environment.yml" file does not work, or is anormally to long, try these lines one after the other:
 
 ```console
 conda env create -n dcascade python=3.12.3
@@ -100,7 +100,7 @@ In the folder "post_process_examples", there is a list of python script, that ar
 
 - a script to analyse connectivity and sediment path-length per time step (08)
 
-You can run them and check the type of plot they generate for the example case. 
+You can run them and check the type of plot they generate for the example case.
 
 
 ## Making your own project
@@ -112,9 +112,9 @@ In your user script, modify the path to point at your input location.
 
 Modify also the output name to store your own outputs in the "cascade_results" folder.
 
-You can modify the simulation parameters to correspond to your river network, and then run your case study. 
+You can modify the simulation parameters to correspond to your river network, and then run your case study.
 
-Modify also the paths in the post-process example scripts, so that they coincide with your output file name in the "dcascade_result" folder. 
+Modify also the paths in the post-process example scripts, so that they coincide with your output file name in the "dcascade_result" folder.
 
 
 # Documentation of D-CASCADE code functions

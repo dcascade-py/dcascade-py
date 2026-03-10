@@ -99,7 +99,7 @@ class DCASCADE:
 
             # loop for all reaches:
             for n in self.network['n_hier']:
-                
+
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
 
@@ -225,7 +225,7 @@ class DCASCADE:
             if self.update_slope == True and t != self.timescale - 1:
                 # DD: see what min slope value should be
                 SedimSys.change_slope(t)
-        
+
         # How many time the bottom was reached during the simulation
         if SedimSys.reach_bottom_count != 0:
             print("\n The deposit layer bottom was reached " + str(SedimSys.reach_bottom_count) + " times. \n")
@@ -297,7 +297,7 @@ class DCASCADE:
                        'D50 volume out [m]': D50_mob.astype(np.float32),
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
-                       'Transport capacity [m^3]': transport_capacity.astype(np.float32),                                             
+                       'Transport capacity [m^3]': transport_capacity.astype(np.float32),
                         'Fraction taken from AL': SedimSys.fr_mob_in_al   # Active layer fraction metric
                         }
 
@@ -333,7 +333,7 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
                            'Widths [m]': SedimSys.width.astype(np.float32),
                            'Slopes': SedimSys.slope.astype(np.float32),
-                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)                           
+                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
                            }
 
 

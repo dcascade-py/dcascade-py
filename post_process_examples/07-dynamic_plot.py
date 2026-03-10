@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Aug 20 17:17:11 2025
 
@@ -13,23 +12,24 @@ Choose between:
 'Transport capacity [m^3]': total transport capacity computed in a reach per time step (= volume out if the supply is not limited)
 'Sediment budget [m^3]':    total sediment budget per time step (+ deposition, - erosion) (= vol in - vol out)
 'D50 active layer [m]':     D50 of the active layer per time step (used to computed the transport capacity)
-'D50 volume out [m]' :      D50 of the volume leaving the reach per time step 
+'D50 volume out [m]' :      D50 of the volume leaving the reach per time step
 
 """
 
+import os
 # Libraries
-import sys, os
-import pandas as pd
+import sys
+
 import geopandas as gpd
+import pandas as pd
 
 # Add source (src) folder in the python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 from plot_function import dynamic_plot
 
-
 #---------------------Path to the pickle output
 
-path = "..\\cascade_results\\" 
+path = "..\\cascade_results\\"
 name_simu = 'Vjosa_test'
 
 #---------------------Path to the input river network (.shp) or (.csv)
@@ -38,7 +38,7 @@ path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
 name_river_network = "River_Network.shp"
 
 
-       
+
 
 ###########################################################################
 

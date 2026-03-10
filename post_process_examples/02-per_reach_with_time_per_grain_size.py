@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Aug 20 17:17:11 2025
 
@@ -8,7 +7,7 @@ Created on Wed Aug 20 17:17:11 2025
 Plot D-CASCADE extented outputs --> per grain sizes
 one graph per reach, along time
 
-You need to have saved the extended outputs to make these plots. 
+You need to have saved the extended outputs to make these plots.
 
 Choose between:
 'Volume out per grain sizes [m^3]': total volume of sediment leaving a reach per time step per grain size (= sediment flux x time step)
@@ -17,17 +16,17 @@ Choose between:
 
 """
 
-# Libraries 
+# Libraries
 import os
-import numpy as np 
-from matplotlib import pyplot as plt 
-import matplotlib.cm as cm 
-import pandas as pd
-import geopandas as gpd
 
+import geopandas as gpd
+import matplotlib.cm as cm
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
 
 #---------------------Path to the extended pickle output
-path = "..\\cascade_results\\" 
+path = "..\\cascade_results\\"
 name_simu = 'Vjosa_test'
 name_simu_ext = 'Vjosa_test_ext'
 
@@ -35,9 +34,9 @@ name_simu_ext = 'Vjosa_test_ext'
 #---------------------Folder to store the plots
 figure_folder = path+'figures_per_reach\\'          # where you will store the figure
 
-if not os.path.exists(figure_folder):       
+if not os.path.exists(figure_folder):
     os.makedirs(figure_folder)
-       
+
 #--------------------Output name you want to plot
 output_name = 'Volume out per grain sizes [m^3]'   # Output available in pickle file
 # 'Volume out per grain sizes [m^3]', 'Volume in per grain sizes [m^3]', 'Deposited per grain sizes [m^3]'
@@ -48,7 +47,7 @@ output_name = 'Volume out per grain sizes [m^3]'   # Output available in pickle 
 ##### Usefull function for naming figures
 
 def rename_names(output_name):
-    '''For exemple, renames 'Volume out [m^3]' into 'Volume_out' 
+    '''For exemple, renames 'Volume out [m^3]' into 'Volume_out'
     to use for saving csv and plots
     '''
     new_name = ''
@@ -80,27 +79,27 @@ dmi = np.squeeze(dmi)
 times = np.arange(1, len(my_data[:, 0, 0]) + 1, 1)
 
 # Choose the colormap (viridis in this case)
-cmap = cm.viridis  
+cmap = cm.viridis
 
 for i in range(my_data.shape[1]): #Loop over each reach
     reach_FromN = i + 1 #+1 because python starts at 0
 
     #create figure and graph axes
     fig = plt.figure()
-    ax = plt.subplot(111)       
+    ax = plt.subplot(111)
 
-    colors = [cmap(i / n_class) for i in range(n_class)]    
+    colors = [cmap(i / n_class) for i in range(n_class)]
     labels = [f'd = {d:.3g} mm' for d in dmi]
-        
+
     ax.stackplot(times, my_data[:, i, :].T, linewidth = 2.5, labels = labels, colors = colors)
-                    
+
     ax.set_title('FromN: '+str(reach_FromN), fontsize = 16)
     ax.set_xlabel('Time', fontsize = 13)
     ax.set_ylabel(output_name,fontsize = 13)
     ax.tick_params(axis='both', labelsize = 12)
-    
+
     ax.legend(fontsize = 6)
-    
+
     fig.set_tight_layout(True)
     fig.set_size_inches(900./fig.dpi,600./fig.dpi)
     new_name = rename_names(output_name)

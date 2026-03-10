@@ -159,8 +159,8 @@ def test_v2_Vjosa_Wilcock():
     # the relative tolerance is fixed to 1e-05, because the expected results
     # were displayed by spyder, and have 6 significative numbers
     np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
-    
-    
+
+
 def test_v2_Vjosa_Ackers_and_White_Molinas():
     '''20 days are simulated.
     We use Ackers and White with Molinas partitioning.
@@ -181,7 +181,7 @@ def test_v2_Vjosa_Ackers_and_White_Molinas():
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
     expected_result = np.array([4.65e+03, 3.49e+02, 3.20e+01, 0.00e+00, 8.19e+02, 0.00e+00,
                                 4.00e+00])
-    
+
     np.testing.assert_array_equal(test_result, expected_result)
 
     #----Test the total transported volume per reach

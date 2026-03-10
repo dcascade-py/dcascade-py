@@ -34,7 +34,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
                   external_inputs = None,
                   force_pass_external_inputs = False,
-                  
+
                   dam_trap_efficiency = None
                   ):
 
@@ -73,7 +73,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     indx_vel_partition  = the index indicating the type of partitioning in the section used to compute velocity
     indx_slope_red      = the index indicating the slope reduction formula, default 1 is no reduction
 
-    Options for the dcascade algorithm 
+    Options for the dcascade algorithm
 
 
     OUTPUT:

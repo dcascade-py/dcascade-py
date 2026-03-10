@@ -97,7 +97,7 @@ class SedimentarySystem:
         self.mass_balance = self.create_3d_zero_array()
         self.reach_bottom_count = 0
         self.fr_mob_in_al = self.create_3d_zero_array() # fraction of AL that is mobilised
-        
+
         # Dam informations
         self.dam_trap_efficiency = None
         self.reach_has_dam = None
@@ -105,7 +105,7 @@ class SedimentarySystem:
         # temporary ?
         self.Qbi_dep_0 = None
         self.Qc_class_all = None        # DD: can it be optional ?
-        
+
 
 
     def sediments(self, matrix):
@@ -466,22 +466,22 @@ class SedimentarySystem:
             cascade_list.append(ext_cascade)
 
         return cascade_list
-    
+
     def set_dams(self, dam_trap_efficiency):
         ''' Set the dam options
         @param dam_trap_efficiency
             dictionnary of reach FromN and associated trapping efficiency per size classes
         '''
-        if dam_trap_efficiency != None: 
+        if dam_trap_efficiency != None:
             self.dam_trap_efficiency = dam_trap_efficiency
             self.reach_has_dam = np.zeros(self.n_reaches)
             for FromN in dam_trap_efficiency.keys():
                 self.reach_has_dam[FromN - 1] = 1
                 # Check if the vector of trapping efficiency has good size
                 if dam_trap_efficiency[FromN].size != self.n_classes:
-                    raise ValueError("The dam trapping efficiency vector for reach " + str(FromN) + 
+                    raise ValueError("The dam trapping efficiency vector for reach " + str(FromN) +
                                      " does not have the size of size class number.")
-                
+
 
 
     def compute_cascades_velocities(self, cascades_list, Vdep,
@@ -902,13 +902,13 @@ class SedimentarySystem:
         # Mobilisable volume:
         volume_mobilisable = tr_cap_per_s * self.ts_length
         # Erosion maximum during the time lag
-        e_max_vol_ = self.eros_max_vol[t,n] 
-        
-        # Dam trapping 
-        if self.dam_trap_efficiency != None: 
+        e_max_vol_ = self.eros_max_vol[t,n]
+
+        # Dam trapping
+        if self.dam_trap_efficiency != None:
             if self.reach_has_dam[n] == 1:
                 volume_mobilisable = volume_mobilisable * (1 - self.dam_trap_efficiency[n + 1]) # +1 because it is the FromN here
-        
+
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0
@@ -938,23 +938,23 @@ class SedimentarySystem:
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
 
             if np.all(self.sediments(V_mob) == 0):
-                V_mob = None                
-            
+                V_mob = None
+
         else:
             Vdep_new  = Vdep
             V_mob = None
-        
+
         # Adding metric to measure how much is taken from the AL (or erosion max):
-        if V_mob is not None:           
+        if V_mob is not None:
             mob_vol_gs = np.sum(self.sediments(V_mob), axis = 0) #Vmob per GS
-            
+
             e_max_layers = np.vstack((V_inc_el, V_dep_el))
             e_max_vol_gs = np.sum(self.sediments(e_max_layers), axis = 0)  # emax layers per GS
-            
+
             # Which proportion is mobilised from e_max (or active layer) ?
             self.fr_mob_in_al[t, n, :] = mob_vol_gs/e_max_vol_gs
-            
-            
+
+
         # Sediment classes with negative values in diff_with_capacity are over capacity
         # They are deposited, i.e. directly added to Vdep
         diff_neg = -np.where(diff_with_capacity > 0, 0, diff_with_capacity)
@@ -1030,7 +1030,7 @@ class SedimentarySystem:
             # and I put all the deposit into the active layer
             if (np.argwhere(csum_Vdep > V_lim_dep)).size == 0 :  # the vector is empty
                 self.reach_bottom_count += 1
-                
+
                 V_dep2act = V_dep_old
                 # Leave an empty layer in Vdep
                 V_dep = np.c_[reach_metadata, np.zeros((1, self.n_classes))]

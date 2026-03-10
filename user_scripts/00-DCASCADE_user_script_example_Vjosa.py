@@ -4,7 +4,7 @@ Created on Mon Oct 10 15:21:34 2022
 Input that are required in the ReachData class which define your river network:
 - reach FromN - ToN (From Node - To Node) which define the relation between
   reaches (from upstream to downstream), these must be ordered from the smaller
-  to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2). 
+  to the greater (e.g. first reach Id = 0, fromN = 1, ToN = 2).
   Warning: FromN and ToN are numbered from 1 (not 0 !)
 - el_FN and el_TN (elevation fromN and ToN)
 - Length, Wac (active channel width) in meters and Slope of the reach
@@ -25,7 +25,7 @@ per class of sediments. This variable is defined by Qbi_input
 
 This script was adapted from the Matlab version by Marco Tangi
 
-@author: Diane Doolaeghe, Anne Laure Argentin, Elisa Bozzolan 
+@author: Diane Doolaeghe, Anne Laure Argentin, Elisa Bozzolan
 """
 
 
@@ -47,9 +47,6 @@ from preprocessing import (check_sediment_sizes, extract_Q,
                            graph_preprocessing, read_network)
 from reach_data import ReachData
 from widget import read_user_input
-
-
-
 
 #--------------------1) Pathes
 
@@ -100,7 +97,7 @@ al_depth = 0.3              # Active layer depth [m] (Possibilities: '2D90', or 
 save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to save the deposit layer matrix
 
 
-#---Option to save extended outputs or not 
+#---Option to save extended outputs or not
 # Note: saving the extended outputs can require memory, but allow you to access more outputs (see README file)
 save_extended = True
 
@@ -143,18 +140,18 @@ dynamic_display = False
 # external_inputs = None        # External sediment for all reaches, all sediment classes and all timesteps
                                 # If you want to add external input you need to specify a 3d matrix of size (time, reach, classes)
                                 # e.g.: external_inputs = np.ones((timescale, reach_data.n_reaches, n_classes))
-                                
+
 # force_pass_external_inputs = False  # Flag to force external input to entirely pass to the next reach
 
 
 
 # dam_trap_efficiency = None   # Option to simulate sediment barriers or dams, with a trapping efficiency per grain size class.
-                               # If you want to add dams you need to specify the reach index (FromN) just UPSTREAM of the dam, 
-                               # and the trapping efficencies per size class in a dictionnary: 
+                               # If you want to add dams you need to specify the reach index (FromN) just UPSTREAM of the dam,
+                               # and the trapping efficencies per size class in a dictionnary:
                                # e.g.,   dam_trap_efficiency = {2: 0.5 * np.ones(n_classes), 4: 0.2 * np.ones(n_classes)}
                                # will put a trapping efficiency of 0.5 after reach with FromN 2, and 0.2 after reach 4 (to all sediment size classes).
-                               # Other example, dam_trap_efficiency = {2: np.array([1, 0, 0, 0, 0, 0])} will trap fully the coarsest class only, in reach with FromN 2. 
-                                                          
+                               # Other example, dam_trap_efficiency = {2: np.array([1, 0, 0, 0, 0, 0])} will trap fully the coarsest class only, in reach with FromN 2.
+
 
 ################ PREPROCESSING ###############
 # If the transport capacity formula is not chosen manually:
@@ -199,7 +196,7 @@ Fi_r, _, _ = GSDcurvefit(reach_data.D16, reach_data.D50, reach_data.D84, psi)
 Qbi_dep_in = np.zeros((reach_data.n_reaches, 1, n_classes))
 for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
-    
+
 
 
 # Prepare optionnal paramaters (possibly not given by the user) for calling the DCASCADE_main function
@@ -237,7 +234,7 @@ if 'roundpar' in globals():
 
 if 'save_dep_layer' in globals():
     kwargs['save_dep_layer'] = globals().get('save_dep_layer')
-    
+
 if 'external_inputs' in globals():
     kwargs['external_inputs'] = globals().get('external_inputs')
 
