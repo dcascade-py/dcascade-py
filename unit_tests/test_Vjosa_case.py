@@ -29,12 +29,9 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 ''' List of tests performed here:
 
-        test_Vjosa_Engelund_all_new_options_false
-        test_Vjosa_Wilcock_all_new_options_false
-        (reproducing algorithme of the version 1 of dcascade)
 
-        test_Vjosa_Engelund_all_new_options_true
-        test_Vjosa_Wilcock_all_new_options_true
+        test_v2_Vjosa_Engelund
+        test_v2_Vjosa_Wilcock
 
 '''
 
@@ -90,7 +87,7 @@ for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
 
 
-def test_Vjosa_Engelund_all_true_no_tlag():
+def test_v2_Vjosa_Engelund():
     '''20 days are simulated.
     We use Engelund. With the "Bed Material Fraction" partitioning.
     '''
@@ -127,7 +124,7 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
 
 
-def test_Vjosa_Wilcock_all_true_no_tlag():
+def test_v2_Vjosa_Wilcock():
     '''20 days are simulated.
     We use Wilcock and Crowes.
     '''
@@ -167,8 +164,8 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
 
 
 if __name__ == "__main__":
-    test_Vjosa_Engelund_all_true_no_tlag()
-    test_Vjosa_Wilcock_all_true_no_tlag()
+    test_v2_Vjosa_Engelund()
+    test_v2_Vjosa_Wilcock()
 
 
     print("All tests successfully run.")
