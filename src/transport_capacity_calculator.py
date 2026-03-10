@@ -552,7 +552,7 @@ class TransportCapacityCalculator:
             raise Exception("The geometric std should not be less than 1, because D84 is always larger than D16")
 
         # Accounting for scaling size of bed material (from Wu et al. (2003))
-        Dn = (1 + (gsd_std - 1)**1.5) * total_D50        
+        Dn = (1 + (gsd_std - 1)**1.5) * total_D50 
                 
         # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
         alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
