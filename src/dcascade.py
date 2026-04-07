@@ -73,7 +73,7 @@ class DCASCADE:
         SedimSys = self.sedim_sys
 
         # start waiting bar
-        for t in tqdm(range(self.timescale)):
+        for t in tqdm(range(self.timescale), disable=True):
 
             # Channel width calculation
             SedimSys.width = choose_width_variation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
