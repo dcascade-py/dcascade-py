@@ -57,15 +57,15 @@ from d_finder import D_finder
 
 GSD_perc_list = [1.0] # [0.8, 0.9, 1.0, 1.1, 1.2]
 
-transport_law = [(6, 3)]   #(6, 2),(2, 4) , (6, 3)]  
-name_list = ['AW_Molinas']         #'WC', , 'AW_Molinas']              
+transport_law = [(6, 2)]   #(6, 2),(2, 4) , (6, 3)]  
+name_list = ['AW_BMF']         #'WC', , 'AW_Molinas']              
 
 # List to loop over the two width scenarios:
 #  - Bankfull
 #  - Mean flow
 # Note that, width is given externally from a csv file.
 
-width_input_name_list = ['smoothed_bf_w']#, 'smoothed_wat_w']          
+width_input_name_list = ['bf_width']#, 'smoothed_wat_w']          
 width_output_name_list = ['BF_smooth']#, 'MF_smooth'] 
 
 for GSD_perc in GSD_perc_list:
@@ -103,7 +103,7 @@ for GSD_perc in GSD_perc_list:
             name_width_type = width_input_name
         
             #---Option to save extended outputs or not
-            save_extended = True
+            save_extended = False
             dynamic_display = False
             
             
@@ -112,11 +112,11 @@ for GSD_perc in GSD_perc_list:
             #---Sediment classes definition 
             # defines the sediment sizes considered in the simulation
             #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
-            sed_range = [-6, 3]     # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
+            sed_range = [-6, 2]     # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5). 
             n_classes = 12          # number of classes
             
             #---Timescale 
-            timescale = 1095       # 5843 days, 1095, 1825
+            timescale = 5843       # 5843 days, 1095, 1825
             ts_length = 60 * 60 * 24    # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
             
             #---Transport capacity formula and partitioning

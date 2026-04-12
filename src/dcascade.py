@@ -307,7 +307,7 @@ class DCASCADE:
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
                        
                         # For Po
-                        # 'Vdep top [m^3]': SedimSys.Vdep_top_all,
+                        'Vdep top [m^3]': SedimSys.Vdep_top_all,
                         # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
                         # 'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
                                                   
