@@ -51,12 +51,12 @@ D16_0 = best_params['parbase_0'][0]
 D50_0 = best_params['parbase_0'][0] + best_params['pardelta1_0'][0]
 D84_0 = best_params['parbase_0'][0] + best_params['pardelta1_0'][0] + best_params['pardelta2_0'][0]
 
-D16_1 = best_params['parbase_1'][0]
-D50_1 = best_params['parbase_1'][0] + best_params['pardelta1_1'][0]
-D84_1 = best_params['parbase_1'][0] + best_params['pardelta1_1'][0] + best_params['pardelta2_1'][0]
+# D16_1 = best_params['parbase_1'][0]
+# D50_1 = best_params['parbase_1'][0] + best_params['pardelta1_1'][0]
+# D84_1 = best_params['parbase_1'][0] + best_params['pardelta1_1'][0] + best_params['pardelta2_1'][0]
 
 print(f"First Reach, Best D16: {D16_0:.4f}, D50: {D50_0:.4f}, D84: {D84_0:.4f}")
-print(f"Second Reach, Best D16: {D16_1:.4f}, D50: {D50_1:.4f}, D84: {D84_1:.4f}")
+# print(f"Second Reach, Best D16: {D16_1:.4f}, D50: {D50_1:.4f}, D84: {D84_1:.4f}")
 
 # ------------------------ 4. Plot Objective Function Trace ------------------------
 fig= plt.figure(1,figsize=(9,5))
@@ -72,7 +72,7 @@ plt.show()
 path = "../cascade_results/"
 name_simu = 'Vjosa_test'
 data_output = pd.read_pickle(open( path + name_simu + '.p' , "rb"))
-evaluation = data_output['Volume out [m^3]'].sum(axis=1) 
+evaluation = data_output['Volume out [m^3]'][:,0] 
 
 # Plot the best model run vs evaluation
 spotpy.analyser.plot_bestmodelrun(results, evaluation, fig_name="../cascade_results/Spotpy_calibration_Best_model_run.png")

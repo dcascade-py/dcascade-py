@@ -21,24 +21,24 @@ from reach_data import ReachData
 import spotpy
 
 class spotpy_setup(object):
-    def __init__(self, dim=2):
+    def __init__(self, dim=1):
 
         # This should be your observed data, e.g., sediment transport in m3/s, for the same time period as your simulation. Here we just use random data for demonstration purposes.
         #---------------------Path to the pickle output
         path = "../cascade_results/"
         name_simu = 'Vjosa_test'
         data_output = pd.read_pickle(open( path + name_simu + '.p' , "rb"))
-        self.observations = data_output['Volume out [m^3]'].sum(axis=1) 
+        self.observations = data_output['Volume out [m^3]'][:, 0] 
 
         self.dim = dim
         self.params = []
         for i in range(self.dim):
             parname = "base_" + str(i)  # Used for D16, D50, D84
-            self.params.append(spotpy.parameter.Uniform(parname, 0.0001, 1.0)) # A step and a guess can also be given.
+            self.params.append(spotpy.parameter.Uniform(parname, 0.001, 0.3)) # A step and a guess can also be given.
             parname = "delta1_" + str(i)  # Used for D50, 84
-            self.params.append(spotpy.parameter.Uniform(parname, 0.0001, 1.0)) # A step and a guess can also be given.
+            self.params.append(spotpy.parameter.Uniform(parname, 0.001, 0.3)) # A step and a guess can also be given.
             parname = "delta2_" + str(i)  # Used for D84
-            self.params.append(spotpy.parameter.Uniform(parname, 0.0001, 1.0)) # A step and a guess can also be given.
+            self.params.append(spotpy.parameter.Uniform(parname, 0.001, 0.3)) # A step and a guess can also be given.
             # The D16 < D50 < D84 constraint is implemented in the simulation function
 
     def parameters(self):           
@@ -226,16 +226,16 @@ class spotpy_setup(object):
         ################ SAVE OUTPUTS ###############
         import pickle
 
-        path_results = Path("../cascade_results/")
-        if not os.path.exists(path_results):
-            os.makedirs(path_results)
+        # path_results = Path("../cascade_results/")
+        # if not os.path.exists(path_results):
+        #     os.makedirs(path_results)
 
-        name_file = path_results / Path(str(name_output) + '.p')
-        pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
+        # name_file = path_results / Path(str(name_output) + '.p')
+        # pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
 
-        if save_extended:
-            name_file_ext = path_results / Path(str(name_output) + '_ext.p')
-            pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+        # if save_extended:
+        #     name_file_ext = path_results / Path(str(name_output) + '_ext.p')
+        #     pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
-        return data_output['Volume out [m^3]'].sum(axis=1)
+        return data_output['Volume out [m^3]'][:,0]
 
