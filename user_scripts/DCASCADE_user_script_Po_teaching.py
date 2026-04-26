@@ -325,13 +325,42 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
         os.makedirs(path_results)          
     
 
-    pickle.dump(data_output, open(name_file , "wb"))  # save it into a file named save.p
+    pickle.dump(data_output, open( os.path.join(path_results, 'save_all.p') , "wb"))  # save it into a file named save.p
     
     if save_extended: 
-        pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
+        pickle.dump(extended_output , open(os.path.join(path_results, 'save_all_ext.p') , "wb"))  # save it into a file named save.p
         
     # Plot results
     if dynamic_display:
         keep_slider = dynamic_plot(data_output, reach_data_df)
+
+
+# #-------River shape files 
+# path_river_network = Path('../inputs/Input_Po/shp/')
+# name_river_network = 'Po_river_network.shp'
+# filename_river_network = path_river_network / name_river_network
+
+# #--------Discharge files
+# path_q = Path('../inputs/Input_Po/')
+# # csv file that specifies the water flows in m3/s as a (nxm) matrix, where n = number of time steps; m = number of reaches (equal to the one specified in the river network)
+# name_q = 'Po_Qdaily_3y.csv'
+# filename_q = path_q / name_q
+
+
+# #--------Path to the output folder
+# path_results = Path("../cascade_results/")        
+
+# timescale = 20
+# sed_range = [-6, 2]
+# n_classes = 12
+# al_depth = 0.3 
+
+# indx_tr_cap = 6
+# indx_tr_partition = 2
+
+
+
+        
+# DCASCADE_run(filename_river_network, filename_q, path_results, timescale, sed_range, n_classes, indx_tr_cap , indx_tr_partition, al_depth = 0.3, vel_height = '2D90')
         
         
