@@ -44,8 +44,8 @@ from GSD_curvefit import GSDcurvefit
 from main import DCASCADE_main
 from preprocessing import extract_Q, graph_preprocessing, read_network
 from reach_data import ReachData
-from widget import read_user_input
-from plot_function import dynamic_plot
+#from widget import read_user_input
+#from plot_function import dynamic_plot
 
 
 def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, sed_range, n_classes, indx_tr_cap , indx_tr_partition, al_depth = 0.3, vel_height = '2D90'):
