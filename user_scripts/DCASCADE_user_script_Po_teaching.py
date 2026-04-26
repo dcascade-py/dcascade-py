@@ -330,9 +330,9 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     if save_extended: 
         pickle.dump(extended_output , open(os.path.join(path_results, 'save_all_ext.p') , "wb"))  # save it into a file named save.p
         
-    # Plot results
-    if dynamic_display:
-        keep_slider = dynamic_plot(data_output, reach_data_df)
+    # # Plot results
+    # if dynamic_display:
+    #     keep_slider = dynamic_plot(data_output, reach_data_df)
 
 
 # #-------River shape files 
