@@ -317,6 +317,8 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
                                                  indx_tr_cap, indx_tr_partition, Qbi_dep_in,
                                                  **kwargs)
                                                     
+    # For teaching, I add the initial GSD per sediment class to data_output:
+    data_output['Fi_t0'] = Fi_r 
     
     # Save results as pickled files
     import pickle
