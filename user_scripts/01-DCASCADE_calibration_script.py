@@ -23,7 +23,7 @@ sampler = spotpy.algorithms.sceua(
 
 # ------------------------ 2. Run Calibration ------------------------
 # Number of repetitions (iterations)
-rep = 100
+rep = 1000
 # Sampling with SCE-UA algorithm
 sampler.sample(rep, ngs=7, kstop=3, peps=0.1, pcento=0.1)
 
@@ -43,7 +43,7 @@ param_names = spotpy.analyser.get_parameternames(results)
 print("Parameter names:", param_names)
 
 # Display best parameter set
-best_params = spotpy.analyser.get_best_parameterset(results)
+best_params = spotpy.analyser.get_best_parameterset(results, maximize=False)
 print("Best parameter set:", best_params)
 
 # Translate back into D16, D50, D84 for interpretation

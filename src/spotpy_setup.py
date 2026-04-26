@@ -34,11 +34,11 @@ class spotpy_setup(object):
         self.params = []
         for i in range(self.dim):
             parname = "base_" + str(i)  # Used for D16, D50, D84
-            self.params.append(spotpy.parameter.Uniform(parname, 0.001, 0.3)) # A step and a guess can also be given.
+            self.params.append(spotpy.parameter.Uniform(parname, 0, 0.01)) # A step and a guess can also be given.
             parname = "delta1_" + str(i)  # Used for D50, 84
-            self.params.append(spotpy.parameter.Uniform(parname, 0.001, 0.3)) # A step and a guess can also be given.
+            self.params.append(spotpy.parameter.Uniform(parname, 0, 0.01)) # A step and a guess can also be given.
             parname = "delta2_" + str(i)  # Used for D84
-            self.params.append(spotpy.parameter.Uniform(parname, 0.001, 0.3)) # A step and a guess can also be given.
+            self.params.append(spotpy.parameter.Uniform(parname, 0, 0.01)) # A step and a guess can also be given.
             # The D16 < D50 < D84 constraint is implemented in the simulation function
 
     def parameters(self):           
@@ -65,7 +65,7 @@ class spotpy_setup(object):
         return observations
 
     def objectivefunction(self,simulation,evaluation):
-        objectivefunction= -spotpy.objectivefunctions.rmse(evaluation, simulation)
+        objectivefunction= spotpy.objectivefunctions.rmse(evaluation, simulation)
         return objectivefunction
     
     def main_function(self, gsd16, gsd50, gsd84):
