@@ -28,7 +28,7 @@ class spotpy_setup(object):
         path = "../cascade_results/"
         name_simu = 'Vjosa_test'
         data_output = pd.read_pickle(open( path + name_simu + '.p' , "rb"))
-        self.observations = data_output['Volume out [m^3]'][:, 0] 
+        self.observations = data_output['Volume out [m^3]'][:, 1] 
 
         self.dim = dim
         self.params = []
@@ -237,5 +237,5 @@ class spotpy_setup(object):
         #     name_file_ext = path_results / Path(str(name_output) + '_ext.p')
         #     pickle.dump(extended_output , open(name_file_ext , "wb"))  # save it into a file named save.p
 
-        return data_output['Volume out [m^3]'][:,0]
+        return data_output['Volume out [m^3]'][:,1]
 

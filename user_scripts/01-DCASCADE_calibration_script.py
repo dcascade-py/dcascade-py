@@ -72,7 +72,7 @@ plt.show()
 path = "../cascade_results/"
 name_simu = 'Vjosa_test'
 data_output = pd.read_pickle(open( path + name_simu + '.p' , "rb"))
-evaluation = data_output['Volume out [m^3]'][:,0] 
+evaluation = data_output['Volume out [m^3]'][:,1] 
 
 # Plot the best model run vs evaluation
 spotpy.analyser.plot_bestmodelrun(results, evaluation, fig_name="../cascade_results/Spotpy_calibration_Best_model_run.png")
@@ -82,5 +82,16 @@ spotpy.analyser.plot_bestmodelrun(results, evaluation, fig_name="../cascade_resu
 param_cols = spotpy.analyser.get_parameter_fields(results)
 param_cols.append('like1')  # include objective function
 
-sns.pairplot(results_df[param_cols])
+results_df['D16'] = results_df['parbase_0']
+results_df['D50'] = results_df['parbase_0'] + results_df['pardelta1_0']
+results_df['D84'] = results_df['parbase_0'] + results_df['pardelta1_0'] + results_df['pardelta2_0']
+
+param_cols.append('D16')
+param_cols.append('D50')
+param_cols.append('D84')
+
+results_df_best_10 = results_df.nsmallest(10, 'like1')
+
+
+sns.pairplot(results_df_best_10[param_cols])
 plt.show()
