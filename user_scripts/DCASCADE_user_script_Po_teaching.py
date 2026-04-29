@@ -183,23 +183,23 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     
     
     # Modify some tributaries GSD
-    # # Puting Ticino back to its old GSD
-    # FromN_Ticino = 51
-    # reach_data.D16[FromN_Ticino - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Ticino, 'D16_old']
-    # reach_data.D50[FromN_Ticino - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Ticino, 'D50_old']
-    # reach_data.D84[FromN_Ticino - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Ticino, 'D84_old']
+    # Puting Ticino back to its old GSD
+    FromN_Ticino = 51
+    reach_data.D16[FromN_Ticino - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Ticino, 'D16_old']
+    reach_data.D50[FromN_Ticino - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Ticino, 'D50_old']
+    reach_data.D84[FromN_Ticino - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Ticino, 'D84_old']
     
-    # # Puting Lambro back to its old GSD
-    # FromN_Lambro = 53
-    # reach_data.D16[FromN_Lambro - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Lambro, 'D16_old']
-    # reach_data.D50[FromN_Lambro - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Lambro, 'D50_old']
-    # reach_data.D84[FromN_Lambro - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Lambro, 'D84_old']
+    # Puting Lambro back to its old GSD
+    FromN_Lambro = 53
+    reach_data.D16[FromN_Lambro - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Lambro, 'D16_old']
+    reach_data.D50[FromN_Lambro - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Lambro, 'D50_old']
+    reach_data.D84[FromN_Lambro - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Lambro, 'D84_old']
     
-    # # Puting Nure back to its old GSD
-    # FromN_Nure = 55
-    # reach_data.D16[FromN_Nure - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Nure, 'D16_old']
-    # reach_data.D50[FromN_Nure - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Nure, 'D50_old']
-    # reach_data.D84[FromN_Nure - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Nure, 'D84_old']
+    # Puting Nure back to its old GSD
+    FromN_Nure = 55
+    reach_data.D16[FromN_Nure - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Nure, 'D16_old']
+    reach_data.D50[FromN_Nure - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Nure, 'D50_old']
+    reach_data.D84[FromN_Nure - 1] = reach_data_df.loc[reach_data_df['FromN'] == FromN_Nure, 'D84_old']
     
     
     # Puting Dora Baltea back to its old GSD
