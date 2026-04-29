@@ -228,6 +228,7 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     
     
     
+    
     # # Putting all tributary GSD back to the old values
     # trib_from_n_list = [i for i in range(45, 65)]
     # for tr_fn in trib_from_n_list:
@@ -261,6 +262,13 @@ def DCASCADE_run(filename_river_network, filename_q, path_results, timescale, se
     #     print(np.sum(Fi_r[FromN-1,:]))
         
     # np.save('Fi_r_tuned.npy', Fi_r)
+    
+    # Put width from Sentinel 2 measurements (and smoothed)
+    # This will replace the width in the reach data file (measured from orthophotos)
+    
+    widths = pd.read_csv("../inputs/Input_Po/Widths_dcascade.csv")
+    for FromN in range(2, 45):
+        reach_data.wac[FromN - 1] = widths.loc[widths['FromN'] == FromN, 'smoothed_bf_w']
     
         
     # Initialise deposit layer 
