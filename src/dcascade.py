@@ -124,7 +124,7 @@ class DCASCADE:
                 if SedimSys.n_metadata == 2: # DD: see if I put a more obvious flag
                     if Qbi_pass[n] != []:
                         concat_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
-                        concat_volume = SedimSys.matrix_compact(concat_volume) # to merge same initial provenance (DD see ???)
+                        concat_volume = SedimSys.matrix_compact(concat_volume) 
                         SedimSys.Qbi_tr_eros_times[t, SedimSys.provenance(concat_volume).astype(int), n] = SedimSys.metadata(concat_volume)[:, 1]
 
                 # Compute the velocity of the cascades in this reach [m/s]
