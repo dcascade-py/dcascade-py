@@ -1210,7 +1210,7 @@ class SedimentarySystem:
             # The matrix V_dep2act_new contains the mobilized cascades from
             # the deposit layer, now corrected according to the tr_cap:
             V_dep2act_new = np.zeros(V_dep2act.shape)
-            self.provenance(V_dep2act_new)[:] = self.provenance(V_dep2act)
+            self.metadata(V_dep2act_new)[:] = self.metadata(V_dep2act)
             V_dep2act_new[:, mask] = map_perc * V_dep2act_class
             # Round the volume:
             if ~np.isnan(roundpar):
@@ -1253,8 +1253,12 @@ class SedimentarySystem:
         V_inc2act_new = V_inc2act * mask_above_capacity + V_inc2act * mask_under_capacity
 
         # Mobilised volume :
-        V_mob = np.vstack((V_dep2act_new, V_inc2act_new))
+        if np.sum(self.sediments(V_inc2act_new), axis = 1) != 0:
+            V_mob = np.vstack((V_dep2act_new, V_inc2act_new))
+        else:
+            V_mob = V_dep2act_new
         V_mob = self.matrix_compact(V_mob)
+        
         # Round:
         if ~np.isnan(roundpar):
             self.sediments(V_mob)[:] = np.around(self.sediments(V_mob), decimals = roundpar)
@@ -1453,7 +1457,7 @@ class SedimentarySystem:
         for ind, i in enumerate(provenance_ids):
             vect = volume[self.provenance(volume) == i,:] # select volume with provenance i   
             
-            # If specified, deal with erosion time by making a weigted average
+            # If specified, deal with erosion time by making a weighted average
             # when two row have the same provenance but a different erosion time
             if self.n_metadata == 2:
                 vect_tot_vol = np.sum(self.sediments(vect))
