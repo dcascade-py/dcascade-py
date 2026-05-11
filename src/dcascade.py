@@ -118,8 +118,14 @@ class DCASCADE:
                 # Note: we store the volume by original provenance
                 for cascade in Qbi_pass[n]:
                     SedimSys.Qbi_tr[t][[SedimSys.provenance(cascade.volume).astype(int)], n, :] += SedimSys.sediments(cascade.volume)
-                    # DD: If we want to store instead the direct provenance
-                    # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
+                                
+                # If specified, store also the erosion times of these cascades entering the reach 
+                # (can be a decimal number since we average the time of same provenance)
+                if SedimSys.n_metadata == 2: # DD: see if I put a more obvious flag
+                    if Qbi_pass[n] != []:
+                        concat_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
+                        concat_volume = SedimSys.matrix_compact(concat_volume) # to merge same initial provenance (DD see ???)
+                        SedimSys.Qbi_tr_eros_times[t, SedimSys.provenance(concat_volume).astype(int), n] = SedimSys.metadata(concat_volume)[:, 1]
 
                 # Compute the velocity of the cascades in this reach [m/s]
                 if Qbi_pass[n] != []:
@@ -298,8 +304,11 @@ class DCASCADE:
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
-                        'Fraction taken from AL': SedimSys.fr_mob_in_al   # Active layer fraction metric
-                        }
+                       'Fraction taken from AL': SedimSys.fr_mob_in_al,   # Active layer fraction metric
+                       }
+        
+        if SedimSys.n_metadata == 2:
+            data_output['Eros_times_full'] = SedimSys.Qbi_tr_eros_times
 
         # Sum quantities by provenance
         mobilised_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
