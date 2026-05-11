@@ -167,21 +167,21 @@ class SedimentarySystem:
             volume = volume.reshape(1,-1)
 
         return volume
-    
+
     def set_erosion_time(self, v_mob, t):
         '''
         Function developed for traveling time analysis.
         Attributes current time step to the sediments that are eroded for the first time.
-        Save their erosion time. 
-        
+        Save their erosion time.
+
         v_mob: mobilised volume
         t: current time step
         '''
         col_eros_time = 1 #if erosion time is tracked, it is saved in the second column (first column is initial provenance)
-        
-        nan_mask = np.isnan(v_mob[:, 1]) # all nans in vmob are that eroded for the first time 
+
+        nan_mask = np.isnan(v_mob[:, 1]) # all nans in vmob are that eroded for the first time
         v_mob[nan_mask, 1] = t # we only set the time 't' for those sediment eroded for the first time
-                
+
         return v_mob
 
     def create_4d_zero_array(self):
@@ -295,14 +295,14 @@ class SedimentarySystem:
         self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
         self.Qbi_mob_from_r = self.create_4d_zero_array() # Volume mobilised from reach (gives also original provenance)
         self.Qbi_tr = self.create_4d_zero_array() # Volume entering the reach (gives also original provenance)
-        
+
         if self.n_metadata == 2: # DD: see if we instead put a more specific flag
             self.Qbi_tr_eros_times = np.zeros((self.timescale, self.n_reaches, self.n_reaches + 1))
             self.Qbi_tr_eros_times[:] = np.nan
-                
+
         # Direct connectivity matrice (an extra reach column is added to consider sediment leaving the system)
         self.direct_connectivity = [np.zeros((self.n_reaches, self.n_reaches + 1, self.n_classes)) for _ in range(self.timescale)]
-        
+
 
         # 3D arrays
         self.Q_out = self.create_3d_zero_array()  # amount of material delivered outside the network in each timestep
@@ -958,10 +958,10 @@ class SedimentarySystem:
             # Search for layers to be put in the erosion max (e_max_vol_)
             V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
-            
+
             # If specified, set erosion time in Vmob:
             if self.n_metadata == 2: #DD: see if I put a more transparent flag
-                V_mob = self.set_erosion_time(V_mob, t)    
+                V_mob = self.set_erosion_time(V_mob, t)
 
             if np.all(self.sediments(V_mob) == 0):
                 V_mob = None
@@ -1258,7 +1258,7 @@ class SedimentarySystem:
         else:
             V_mob = V_dep2act_new
         V_mob = self.matrix_compact(V_mob)
-        
+
         # Round:
         if ~np.isnan(roundpar):
             self.sediments(V_mob)[:] = np.around(self.sediments(V_mob), decimals = roundpar)
@@ -1455,19 +1455,19 @@ class SedimentarySystem:
         volume_compacted = np.empty((len(provenance_ids), volume.shape[1]))
         # Loop over elements with same provenance and sum them:
         for ind, i in enumerate(provenance_ids):
-            vect = volume[self.provenance(volume) == i,:] # select volume with provenance i   
-            
+            vect = volume[self.provenance(volume) == i,:] # select volume with provenance i
+
             # If specified, deal with erosion time by making a weighted average
             # when two row have the same provenance but a different erosion time
             if self.n_metadata == 2:
                 vect_tot_vol = np.sum(self.sediments(vect))
-                weight = np.sum(self.sediments(vect), axis=1) / vect_tot_vol if vect_tot_vol != 0 else 1 
+                weight = np.sum(self.sediments(vect), axis=1) / vect_tot_vol if vect_tot_vol != 0 else 1
                 eros_time = np.sum(self.metadata(vect)[:,1] * weight)
             else:
-                eros_time = None   
+                eros_time = None
             # Compacted volume
             volume_compacted[ind,:] = self.create_volume(provenance=provenance_ids[ind], etime=eros_time, gsd=np.sum(self.sediments(vect), axis=0))
-                     
+
         if volume_compacted.shape[0] > 1: # Remove lines with 0 sediments
             volume_compacted = volume_compacted[np.sum(self.sediments(volume_compacted), axis = 1) != 0]
 
