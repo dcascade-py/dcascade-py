@@ -49,21 +49,22 @@ class SedimentarySystem:
 
 
     def __init__(self, reach_data, network, timescale, ts_length, save_dep_layer,
-                 psi, phi = 0.4, minvel = 0.0000001, n_metadata = 1):
+                 psi, phi = 0.4, minvel = 0.0000001, t_track = False):
 
         self.reach_data = reach_data
         self.network = network
         self.timescale = timescale
         self.ts_length = ts_length
         self.save_dep_layer = save_dep_layer
-        self.n_metadata = n_metadata
         self.n_classes = len(psi)
         self.n_reaches = reach_data.n_reaches
         self.psi = psi
         self.phi = phi                          # sediment porosity
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
-
+        
+        self.n_metadata = (2 if t_track == True else 1) #DD: for now only t_track activate the second metadata
+        
 
         # Storing matrices (and related options)
         self.Qbi_dep = None
