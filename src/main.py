@@ -34,8 +34,10 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
                   external_inputs = None,
                   force_pass_external_inputs = False,
+
+                  dam_trap_efficiency = None,
                   
-                  dam_trap_efficiency = None
+                  t_track = False
                   ):
 
 
@@ -65,16 +67,16 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     indx_tr_cap         = the index indicating the transport capacity formula
     indx_tr_partition   = the index indicating the type of sediment flux partitioning
     indx_flo_depth      = the index indicating the flow depth formula, default 1 is Manning
+    
 
-
-
-    OPTIONAL:
     indx_velocity       = the index indicating the method for calculating velocity (see compute_cascades_velocities)
     indx_vel_partition  = the index indicating the type of partitioning in the section used to compute velocity
     indx_slope_red      = the index indicating the slope reduction formula, default 1 is no reduction
 
-    Options for the dcascade algorithm 
-
+    external_inputs     = external input matrice (time, reach, grain size)
+    force_pass_external_inputs = bool to decide if I force the external input to pass to the next reach
+    dam_trap_efficiency = handles dams and a trapping efficiency per grain size                 
+    t_track             = bool to activate time tracking 
 
     OUTPUT:
     data_output      = struct collecting the main aggregated output matrices
@@ -83,7 +85,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
     # Create sedimentary system
     sedimentary_system = SedimentarySystem(reach_data, network, timescale, ts_length,
-                                           save_dep_layer, psi)
+                                           save_dep_layer, psi, t_track = t_track) #n_metadata=1)
 
     sedimentary_system.initialize_slopes(update_slope, indx_slope_red)
     sedimentary_system.initialize_widths(indx_width_calc)
@@ -94,7 +96,6 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
     sedimentary_system.set_active_layer(al_depth, al_depth_method)
     sedimentary_system.set_dams(dam_trap_efficiency)
-
 
 
     # Create DCASCADE solver

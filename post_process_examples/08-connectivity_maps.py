@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Mar 12 12:40:14 2025
 
@@ -10,34 +9,30 @@ Show map with sediment path-length, per each time step
 
 """
 
-import os, sys
-import numpy as np
+import os
 import pickle
+import sys
+
 import geopandas as gpd
-import networkx as nx
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import matplotlib.colors as mcolors
 import matplotlib.cm as cm
-from matplotlib.patches import FancyArrowPatch, Patch
-from matplotlib.patches import FancyArrow
+import matplotlib.colors as mcolors
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+import pandas as pd
 from matplotlib.legend_handler import HandlerTuple
 from matplotlib.lines import Line2D
-from shapely.geometry import Point
-from shapely.geometry import LineString, MultiLineString
+from matplotlib.patches import FancyArrow, FancyArrowPatch, Patch
+from shapely.geometry import LineString, MultiLineString, Point
 
 # Add source (src) folder in the python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-from preprocessing import extract_Q, read_network                     
+from preprocessing import extract_Q, read_network
 from reach_data import ReachData
 
-
-%matplotlib inline
-
-
 #---------------------Path to the extended pickle output
-path = "..\\cascade_results\\" 
+path = "..\\cascade_results\\"
 name_simu = 'Vjosa_test'
 name_simu_ext = 'Vjosa_test_ext'
 
@@ -47,19 +42,19 @@ name_river_network = "River_Network.shp"
 
 #---------------------Path to the discharge file
 path_Q = "..\\inputs\\input_trial\\"
-name_q = 'Q_Vjosa.csv' 
+name_q = 'Q_Vjosa.csv'
 
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_connectivity_maps\\'          # where you will store the figure
 
-if not os.path.exists(figure_folder):       
+if not os.path.exists(figure_folder):
     os.makedirs(figure_folder)
-        
+
 #--------------------Define time range (i.e. the time step you want to plot)
 start_timestep = 0      # start time step
 end_timestep = 19       # end time step
-      
+
 start_date = np.datetime64('2019-01-01') # date of the starting time step, for the legend
 
 #--------------------Indicate outlet reach index (FromN)
@@ -96,42 +91,42 @@ direct_connectivity = data_output['Direct connectivity [m^3]']
 
 #---Definition: plot connectivity for a specific timestep
 def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, output_folder, Q_outlet, gap_plot):
-        
-    
+
+
     # Create figure and its subplots
     fig = plt.figure(figsize=(7.48, 8), dpi=300)
     gs = gridspec.GridSpec(nrows=2, ncols=3, height_ratios=[1, 2], width_ratios=[1, 2, 1])
 
     # Discharge plot: Top plot spans the middle column only, making it narrower and centered
     ax_q = fig.add_subplot(gs[0, 1])
-    
+
     # Network plot: Bottom plot spans all three columns, making it wider
     ax = fig.add_subplot(gs[1, :])
-    
+
     fig.subplots_adjust(left=0.07, right=0.97, top=0.97, bottom=0.07, hspace=0.3)
-        
+
 
     #-----Plot discharge
-    ax_q.plot(Q_outlet)    
+    ax_q.plot(Q_outlet)
     ax_q.plot(timestep, Q_outlet[timestep], 'o')
 
     ax_q.set_xlabel('Time (day)', fontsize = 14)
     ax_q.set_ylabel('Discharge [m3/s] (outlet)', fontsize = 14)
     ax_q.tick_params(axis = 'both', which = 'major', labelsize = 14)
-    
-    
+
+
     #-----Plot map
-        
+
     # Set font properties
     plt.rcParams.update({'font.family': 'sans-serif', 'font.size': 10})
-    
-    # Plot reaches in black    
+
+    # Plot reaches in black
     for _, row in reach_data.iterrows():
         reach_id = row['FromN']
 
-        # Plot the river reach with the assigned color and label  
+        # Plot the river reach with the assigned color and label
         geom = row.geometry
-        
+
         if isinstance(geom, LineString):
             x, y = geom.xy
 
@@ -144,20 +139,20 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
     # Extract sediment transport data for given timestep
     transport_data = direct_connectivity[timestep, :, :-1] # Sediment depositing in reaches
     qout_data = direct_connectivity[timestep, :, -1] # Sediment passing the outlet
-    
+
     # Normalize color scale for transport volume
     norm = mcolors.LogNorm(vmin=1, vmax=np.max(direct_connectivity))
     cmap = cm.viridis
-    
+
     # Create network graph
     G = nx.DiGraph()
-    
+
     # Central position of reaches
-    pos = {row['FromN']: (row.geometry.centroid.x, row.geometry.centroid.y) for _, row in reach_data.iterrows()}    
-    
+    pos = {row['FromN']: (row.geometry.centroid.x, row.geometry.centroid.y) for _, row in reach_data.iterrows()}
+
     # Reach FromN index
     reach_FromN = reach_data.FromN.astype(int)
-    
+
     # Plot arrows for representing the transport of sediment cascades
     transport_legend_added = False
     for i in range(transport_data.shape[0]):  # Iterate over start reaches
@@ -171,25 +166,25 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
                                         arrowstyle="-|>", mutation_scale=10, facecolor='none', edgecolor=cmap(norm(volume)), alpha=1, lw=1)
                 ax.add_patch(arrow)
                 transport_legend_added = True
-    
+
     # Add color scale to legend
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=ax, shrink=0.8)  # Make colorbar thinner
     cbar.set_label("Cascade Volume [m³]", fontsize = 14)
-    
+
     # Coordinate of the outlet point
     end_of_network_coords = reach_data.loc[reach_data['FromN'] == outlet_FromN, 'geometry'].values[0].coords[-1]
-        
+
     # Plot arrows representing cascades going to the outlet
-    # with opposite curvature   
+    # with opposite curvature
     for i, vol in enumerate(qout_data):
         if vol > 0:
             reach_id = reach_FromN[i]
             arrow = FancyArrowPatch(posA=pos[reach_id], posB=end_of_network_coords, connectionstyle=f"arc3,rad={0.35}", #if reach_id < confluence_node else -0.35
                                     arrowstyle="-|>", mutation_scale=10, facecolor='none', edgecolor=cmap(norm(vol)), alpha=1, lw=1)
             ax.add_patch(arrow)
-    
+
     # Plot a circle marker at each start of a reach
     node_legend_added = False
     for _, row in reach_data.iterrows():
@@ -205,26 +200,26 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
         label = "Node" if not node_legend_added else ""
         ax.scatter(start_x, start_y, color='white', marker='o', s=15, edgecolors='black', linewidth=1, label=label, zorder = 1000)
         node_legend_added = True
-    
+
     # Plot the outlet node at fixed coordinates
     ax.scatter(*end_of_network_coords, color='none', marker='o', s=50, edgecolors='red', linewidth=1.5, label="Monitoring Station")
 
     # Add north arrow
     ax.annotate('N', xy=(0.95, 0.95), xycoords='axes fraction', fontsize=13, fontweight='bold', ha='center')
 
-    arrow = FancyArrow(0.95, 0.90, 0, 0, 
-                       width=0, head_width=0.03, head_length=0.03, 
+    arrow = FancyArrow(0.95, 0.90, 0, 0,
+                       width=0, head_width=0.03, head_length=0.03,
                        color='black', fill=False, overhang=0.2,
                        transform=ax.transAxes)  # Use axes-relative coordinates
     ax.add_patch(arrow)
-        
+
     # Add scale, next to north arrow
     scale_x, scale_y = 0.85, 0.95
-    scale_bar_length = 1000  # Fixed to 1 km (you can change this if needed)    
-    ax.plot([scale_x, scale_x + 0.05], [scale_y, scale_y], color='black', lw=2, transform=ax.transAxes)    
+    scale_bar_length = 1000  # Fixed to 1 km (you can change this if needed)
+    ax.plot([scale_x, scale_x + 0.05], [scale_y, scale_y], color='black', lw=2, transform=ax.transAxes)
     # scale bar label (1 km)
     ax.text(scale_x + 0.025, scale_y - 0.05, f'{int(scale_bar_length / 1000)} km', ha='center', fontsize=13, transform=ax.transAxes)
-    
+
     # Remove x and y labels and map border
     ax.set_xticks([])
     ax.set_yticks([])
@@ -232,7 +227,7 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
-    
+
     # Customize legend with an empty arrow symbol for Sediment Transport, positioned lower left
     legend_handles = [
         Line2D([0, 1], [0, 0], color='black', linestyle='-', marker='>', markersize=10, markerfacecolor='white', markeredgecolor='black', label='Sediment cascade'),
@@ -240,21 +235,21 @@ def plot_connectivity(timestep, start_date, reach_data, direct_connectivity, out
         Line2D([], [], color='none', marker='o', markersize=8, markeredgecolor='red', label='Outlet'),
         Line2D([], [], color='black', label='River Network'),
     ]
-  
+
     ax.legend(handles=legend_handles, loc='lower left', fontsize = 15)
-    
+
     # Plot the date in the top left
     date_plotted = np.datetime64(start_date) + np.timedelta64(timestep, 'D')
     ax.text(0.01, 0.99, f"Date: {date_plotted}", transform=ax.transAxes, fontsize=17, ha='left', va='top', color='black', fontweight='bold', bbox=dict(facecolor='white', edgecolor='none', boxstyle='round,pad=0.3', alpha=0.8), zorder=1000)
 
-    
+
     # Deal with some aspect of the plots
-    ax.set_aspect('equal', adjustable='box')        
+    ax.set_aspect('equal', adjustable='box')
     x_min, y_min, x_max, y_max = reach_data.geometry.total_bounds
     ax.set_xlim(x_min - gap_plot, x_max + gap_plot)
     ax.set_ylim(y_min - gap_plot, y_max + gap_plot)
-    
-    
+
+
     fig.set_size_inches(7000./fig.dpi, 3000./fig.dpi)
     fig.savefig(figure_folder + 'connect_map_'+str(timestep))
     fig.clf()

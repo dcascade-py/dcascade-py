@@ -75,14 +75,14 @@ class TransportCapacityCalculator:
         self.D50 = index_to_partitioning.get(indx_partition)
 
         Qtr_cap, Qc = self.choose_formula(indx_tr_cap)
-          
+
         if indx_partition == 2:
             Qtr_cap = self.fi_r_reach * Qtr_cap
-    
+
         elif indx_partition == 3:
             pci = self.Molinas_rates(self.class_D50*1000, self.total_D50*1000)
             Qtr_cap = pci * Qtr_cap
-        
+
         # In case the water discharge or height is 0, some transport formula may return Qtr_cap = nans (e.g. A&W or Molinas partitionning)
         # so instead, Qtr_cap = zeros
         if self.Q == 0 or self.h == 0:
@@ -185,9 +185,9 @@ class TransportCapacityCalculator:
         tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
 
         return {"tr_cap": tr_cap}
-    
 
-    
+
+
 
     def Engelund_Hansen_formula(self):
         """
@@ -346,13 +346,13 @@ class TransportCapacityCalculator:
         # Coefficient in the rough turbulent equation
         # (value of 10 in Stevens & Yang, 1989)
         alpha = 10
-        
+
         # Dimensionless mobility number (Eq. 60 of Stevens & Yang, 1989)
         F_gr = (u_ast**n / np.sqrt(GRAV * self.D50 * R_VAR)) * (self.v / (np.sqrt(32) * np.log10(alpha * self.h / self.D50)))**(1 - n)
-        
-        # Dealing with nans appearing when (alpha * self.h / self.D50) < 1 
+
+        # Dealing with nans appearing when (alpha * self.h / self.D50) < 1
         # and (1 - n) is not integer (intermediate size range combined with super low flow)
-        invalid_mask = ((alpha * self.h / self.D50) < 1) & (~np.isclose(1 - n, np.round((1 - n))))
+        invalid_mask = ((alpha * self.h / self.D50) < 1) & (~np.isclose(1 - n, np.round(1 - n)))
 
         # Dimensionless sediment transport of Ackers and White
         # (Eq. 63 of Stevens & Yang, 1989) TOCHECK: WHY THE MAXIMUM, HERE?
@@ -369,7 +369,7 @@ class TransportCapacityCalculator:
         # Transport capacity [m3/s]
         QS = QS_kg / RHO_S
         tr_cap = QS
-        
+
         tr_cap[invalid_mask] = 0
 
         # If we compute the total load based on the bed D50 (float),
@@ -448,14 +448,14 @@ class TransportCapacityCalculator:
         tr_cap = Qb * self.wac
 
         return {"tr_cap": tr_cap, "Qc": Qc}
-    
-        
+
+
     def Wilcock_Crowe_Mueller_formula(self):
         """
         Returns the value of the transport capacity [m3/s] for each sediment class
         in the reach measured using the Wilcock and Crowe equations.
         This function is for use in the D-CASCADE toolbox.
-        
+
         --> TODO: add ref to Mueller (2005), Bizzi (2021)
 
         References:
@@ -536,6 +536,9 @@ class TransportCapacityCalculator:
         Wu et al. (2003). Fractional transport of sediment mixtures. 
         International Journal of Sediement Research. 
 
+        Wu et al. (2003). Fractional transport of sediment mixtures.
+        International Journal of Sediement Research.
+
         """
 
         # Hydraulic parameters
@@ -544,16 +547,15 @@ class TransportCapacityCalculator:
         vstar = np.sqrt(GRAV * self.h * self.slope)     # Shear velocity
 
         froude = self.v / np.sqrt(GRAV * self.h)        # Froude number
-        
+
         # Geometric standard deviation of bed material
         gsd_std = self.GSD_std(dmi)
 
-        if gsd_std < 1: 
+        if gsd_std < 1:
             raise Exception("The geometric std should not be less than 1, because D84 is always larger than D16")
 
         # Accounting for scaling size of bed material (from Wu et al. (2003))
         Dn = (1 + (gsd_std - 1)**1.5) * total_D50
-                
         # Alpha, beta, and zeta parameters (eq 24, 25, 26, in Molinas and Wu (2000))
         alpha = - 2.9 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
         beta = 0.2 * gsd_std
@@ -566,6 +568,18 @@ class TransportCapacityCalculator:
         # zeta = 2.4 * froude**(-1)
         # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
         
+        # # Alpha, beta, and zeta parameters (eq 21, 22, 23, in Wu et al. (2003))
+        # alpha = - 2.85 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+        # beta = 0.2 * gsd_std
+        # zeta = 2.16 * froude**(-1)
+        # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
+
+        # # Alpha, beta, and zeta parameters (eq 17, 18, 19, in Wu et al. (2003))
+        # alpha = - 2.2 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
+        # beta = 0.2 * gsd_std
+        # zeta = 2.4 * froude**(-1)
+        # zeta[np.isinf(zeta)] == 0 #zeta gets inf when there is only a single grain size.
+
         # # Alpha, beta, and zeta parameters (eq 21, 22, 23, in Wu et al. (2003))
         # alpha = - 2.85 * np.exp(-1000 * (self.v / vstar)**2 * (self.h / total_D50)**(-2))
         # beta = 0.2 * gsd_std

@@ -38,6 +38,7 @@ class DCASCADE:
         self.n_reaches = sedim_sys.n_reaches
         self.n_classes = sedim_sys.n_classes
         self.n_metadata = sedim_sys.n_metadata
+        self.t_track = sedim_sys.t_track 
 
         # Simulation attributes
         self.timescale = sedim_sys.timescale   # time step number
@@ -99,7 +100,7 @@ class DCASCADE:
 
             # loop for all reaches:
             for n in self.network['n_hier']:
-                
+
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
 
@@ -118,8 +119,14 @@ class DCASCADE:
                 # Note: we store the volume by original provenance
                 for cascade in Qbi_pass[n]:
                     SedimSys.Qbi_tr[t][[SedimSys.provenance(cascade.volume).astype(int)], n, :] += SedimSys.sediments(cascade.volume)
-                    # DD: If we want to store instead the direct provenance
-                    # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
+
+                # If specified, store also the erosion times of these cascades entering the reach
+                # (can be a decimal number since we average the time of same provenance)
+                if self.t_track == True: 
+                    if Qbi_pass[n] != []:
+                        concat_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
+                        concat_volume = SedimSys.matrix_compact(concat_volume)
+                        SedimSys.Qbi_tr_eros_times[t, SedimSys.provenance(concat_volume).astype(int), n] = SedimSys.metadata(concat_volume)[:, 1]
 
                 # Compute the velocity of the cascades in this reach [m/s]
                 if Qbi_pass[n] != []:
@@ -232,7 +239,7 @@ class DCASCADE:
             if self.update_slope == True and t != self.timescale - 1:
                 # DD: see what min slope value should be
                 SedimSys.change_slope(t)
-        
+
         # How many time the bottom was reached during the simulation
         if SedimSys.reach_bottom_count != 0:
             print("\n The deposit layer bottom was reached " + str(SedimSys.reach_bottom_count) + " times. \n")
@@ -317,6 +324,9 @@ class DCASCADE:
                         'e_max_vol_gs': SedimSys.e_max_vol_gs
                         }
 
+        if self.t_track == True:
+            data_output['Eros_times'] = SedimSys.Qbi_tr_eros_times
+
         # Sum quantities by provenance
         mobilised_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
         transported_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
@@ -349,7 +359,7 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
                            'Widths [m]': SedimSys.width.astype(np.float32),
                            'Slopes': SedimSys.slope.astype(np.float32),
-                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)                           
+                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
                            }
 
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Aug 20 17:17:11 2025
 
@@ -8,7 +7,7 @@ Created on Wed Aug 20 17:17:11 2025
 Plot D-CASCADE extented outputs --> per provenance
 total sum, plotted along reach indexes, per provenance
 
-You need to have saved the extended outputs to make these plots. 
+You need to have saved the extended outputs to make these plots.
 
 Choose between:
 'Qbi_mob [m^3]':    total volume of sediment leaving a reach per time step (full matrice) (= sediment flux x time step)
@@ -18,26 +17,26 @@ These are the full storing matrice. They have the shape: [time] x array(prov_rea
 """
 
 
-# Libraries 
+# Libraries
 import os
-import numpy as np 
-from matplotlib import pyplot as plt 
-import matplotlib.cm as cm 
-import pandas as pd
-import geopandas as gpd
 
+import geopandas as gpd
+import matplotlib.cm as cm
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
 
 #---------------------Path to the extended pickle output
-path = "..\\cascade_results\\" 
+path = "..\\cascade_results\\"
 name_simu = 'Vjosa_test'
 name_simu_ext = 'Vjosa_test_ext'
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure
 
-if not os.path.exists(figure_folder):       
+if not os.path.exists(figure_folder):
     os.makedirs(figure_folder)
-       
+
 #--------------------Output name you want to plot
 output_name = 'Qbi_mob [m^3]'   # Output available in pickle file
 # 'Qbi_mob [m^3]', 'Qbi_tr [m^3]'
@@ -49,7 +48,7 @@ output_name = 'Qbi_mob [m^3]'   # Output available in pickle file
 ##### Usefull function for naming figures
 
 def rename_names(output_name):
-    '''For exemple, renames 'Volume out [m^3]' into 'Volume_out' 
+    '''For exemple, renames 'Volume out [m^3]' into 'Volume_out'
     to use for saving csv and plots
     '''
     new_name = ''
@@ -83,30 +82,30 @@ for t in range(n_time - 1):
     my_data_per_prov[t,:,:] = np.sum(my_data[t], axis = (2))
 
 # Choose the colormap (viridis in this case)
-cmap = cm.viridis 
+cmap = cm.viridis
 
 #create figure and graph axes
 fig = plt.figure()
-ax = plt.subplot(111) 
+ax = plt.subplot(111)
 
 # Sum all time steps
-my_sum = np.nansum(my_data_per_prov, axis = 0) 
+my_sum = np.nansum(my_data_per_prov, axis = 0)
 n_reach = my_sum.shape[0]
 reach_FromN = np.arange(1, n_reach + 1, 1)
 
 # Colors and labels
-colors = np.array([cmap(i / n_reach) for i in range(n_reach)]) 
+colors = np.array([cmap(i / n_reach) for i in range(n_reach)])
 
 ax.stackplot(reach_FromN, my_sum, linewidth = 2.5, labels = reach_FromN, colors = colors)
 
 ax.legend(fontsize = 7, ncol = 3)#, bbox_to_anchor=(1, 1))
-            
+
 ax.set_xlabel('Reach index (FromN)', fontsize = 18)
 ax.set_ylabel(output_name, fontsize = 16)
 ax.tick_params(axis='y', which='major', labelsize=15)
 ax.tick_params(axis='x', which='major', labelsize=12)
 
-         
+
 fig.set_tight_layout(True)
 fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
 new_name = rename_names(output_name)

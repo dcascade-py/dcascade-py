@@ -43,27 +43,29 @@ class SedimentarySystem:
         Porosity (default: 0.4)
     @param minvel
         minimum velocity (default: 0.0000001)
-    @param n_metadata
-        number of metadata column (default: 1, for storing initial provenance)
+    @param t_track
+        Bool to activate time tracking options (default: False)
     '''
 
 
     def __init__(self, reach_data, network, timescale, ts_length, save_dep_layer,
-                 psi, phi = 0.4, minvel = 0.0000001, n_metadata = 1):
+                 psi, phi = 0.4, minvel = 0.0000001, t_track = False):
 
         self.reach_data = reach_data
         self.network = network
         self.timescale = timescale
         self.ts_length = ts_length
         self.save_dep_layer = save_dep_layer
-        self.n_metadata = n_metadata
         self.n_classes = len(psi)
         self.n_reaches = reach_data.n_reaches
         self.psi = psi
         self.phi = phi                          # sediment porosity
         self.minvel = minvel
         self.outlet = int(network['outlet'])    # outlet reach ID identification
-
+        
+        self.t_track = t_track
+        self.n_metadata = (2 if t_track == True else 1) #DD: for now only t_track activate the second metadata
+        
 
         # Storing matrices (and related options)
         self.Qbi_dep = None
@@ -107,7 +109,7 @@ class SedimentarySystem:
         # temporary ?
         self.Qbi_dep_0 = None
         self.Qc_class_all = None        # DD: can it be optional ?
-        
+
 
 
     def sediments(self, matrix):
@@ -142,12 +144,12 @@ class SedimentarySystem:
 
     def create_volume(self, provenance=None, etime=None, metadata=None, gsd=None):
         '''
-        Create a volume of sediment with a set provenance, a possible erosion time and a grain size distribution.
+        Create a volume of sediment with a set provenance, a possible erosion time (etime) and a grain size distribution.
         '''
         # Setting the metadata
         if provenance is not None:
             metadata_list = [provenance]
-            if self.n_metadata > 1:
+            if self.n_metadata > 1: #DD: figure out how we do when there will be other metadata (for now, the second metadata is always the etime)
                 if etime is not None:
                     metadata_list.append(etime)
                 else:
@@ -169,6 +171,22 @@ class SedimentarySystem:
             volume = volume.reshape(1,-1)
 
         return volume
+
+    def set_erosion_time(self, v_mob, t):
+        '''
+        Function developed for traveling time analysis.
+        Attributes current time step to the sediments that are eroded for the first time.
+        Save their erosion time.
+
+        v_mob: mobilised volume
+        t: current time step
+        '''
+        col_eros_time = 1 #if erosion time is tracked, it is saved in the second column (first column is initial provenance)
+
+        nan_mask = np.isnan(v_mob[:, 1]) # all nans in vmob are that eroded for the first time
+        v_mob[nan_mask, 1] = t # we only set the time 't' for those sediment eroded for the first time
+
+        return v_mob
 
     def create_4d_zero_array(self):
         '''
@@ -259,7 +277,7 @@ class SedimentarySystem:
 
 
     def initialize_storing_matrices(self):
-        """ Initialize all matrices used for storing sediment transport during the simulations
+        """ Initialize all matrices used for storing sediment transport informations during the simulations
         """
         # Create Qbi dep matrix with size size depending on how often we want to save it:
         # Note: Qbi_dep stores the state of the deposit layer Vdep at the beginning of the time step
@@ -281,8 +299,14 @@ class SedimentarySystem:
         self.Qbi_mob = self.create_4d_zero_array() # Volume leaving the reach (gives also original provenance)
         self.Qbi_mob_from_r = self.create_4d_zero_array() # Volume mobilised from reach (gives also original provenance)
         self.Qbi_tr = self.create_4d_zero_array() # Volume entering the reach (gives also original provenance)
+        
+        # Matrice for storing erosion times
+        if self.t_track == True: 
+            self.Qbi_tr_eros_times = np.full((self.timescale, self.n_reaches, self.n_reaches + 1), np.nan)
+
         # Direct connectivity matrice (an extra reach column is added to consider sediment leaving the system)
         self.direct_connectivity = [np.zeros((self.n_reaches, self.n_reaches + 1, self.n_classes)) for _ in range(self.timescale)]
+
 
         # 3D arrays
         self.Q_out = self.create_3d_zero_array()  # amount of material delivered outside the network in each timestep
@@ -471,22 +495,22 @@ class SedimentarySystem:
             cascade_list.append(ext_cascade)
 
         return cascade_list
-    
+
     def set_dams(self, dam_trap_efficiency):
         ''' Set the dam options
         @param dam_trap_efficiency
             dictionnary of reach FromN and associated trapping efficiency per size classes
         '''
-        if dam_trap_efficiency != None: 
+        if dam_trap_efficiency != None:
             self.dam_trap_efficiency = dam_trap_efficiency
             self.reach_has_dam = np.zeros(self.n_reaches)
             for FromN in dam_trap_efficiency.keys():
                 self.reach_has_dam[FromN - 1] = 1
                 # Check if the vector of trapping efficiency has good size
                 if dam_trap_efficiency[FromN].size != self.n_classes:
-                    raise ValueError("The dam trapping efficiency vector for reach " + str(FromN) + 
+                    raise ValueError("The dam trapping efficiency vector for reach " + str(FromN) +
                                      " does not have the size of size class number.")
-                
+
 
 
     def compute_cascades_velocities(self, cascades_list, Vdep,
@@ -913,7 +937,7 @@ class SedimentarySystem:
         if self.dam_trap_efficiency != None: 
             if self.reach_has_dam[n] == 1:
                 volume_mobilisable = volume_mobilisable * (1 - self.dam_trap_efficiency[n + 1]) # +1 because it is the FromN here
-        
+
         # Eventual total volume arriving
         if passing_cascades == None or passing_cascades == []:
             sum_pass = 0
@@ -941,22 +965,25 @@ class SedimentarySystem:
             # Search for layers to be put in the erosion max (e_max_vol_)
             V_inc_el, V_dep_el, V_dep_not_el, _ = self.layer_search(Vdep, e_max_vol_, roundpar = roundpar)
             [V_mob, Vdep_new] = self.tr_cap_deposit(V_inc_el, V_dep_el, V_dep_not_el, diff_pos, roundpar)
-            
-            # If Vmob is all 0 (may happen with some rounding rules)
+
+            # If specified, set erosion time in Vmob:
+            if self.t_track == True: #DD: see if I put a more transparent flag
+                V_mob = self.set_erosion_time(V_mob, t)
+
             if np.all(self.sediments(V_mob) == 0):
-                V_mob = None                
-            
+                V_mob = None
+
         else:
             Vdep_new  = Vdep
             V_mob = None
-        
+
         # Adding metric to measure how much is taken from the AL (or erosion max):
-        if V_mob is not None:           
+        if V_mob is not None:
             mob_vol_gs = np.sum(self.sediments(V_mob), axis = 0) #Vmob per GS
-            
+
             e_max_layers = np.vstack((V_inc_el, V_dep_el))
             e_max_vol_gs = np.sum(self.sediments(e_max_layers), axis = 0)  # emax layers per GS
-            
+
             # Which proportion is mobilised from e_max (or active layer) ?
             self.fr_mob_in_al[t, n, :] = mob_vol_gs/e_max_vol_gs
             self.mob_vol_gs[t, n, :] = mob_vol_gs
@@ -1037,7 +1064,7 @@ class SedimentarySystem:
             # and I put all the deposit into the active layer
             if (np.argwhere(csum_Vdep > V_lim_dep)).size == 0 :  # the vector is empty
                 self.reach_bottom_count += 1
-                
+
                 V_dep2act = V_dep_old
                 # Leave an empty layer in Vdep
                 V_dep = np.c_[reach_metadata, np.zeros((1, self.n_classes))]
@@ -1143,6 +1170,8 @@ class SedimentarySystem:
                     (x n_classes)
         roundpar  : number of decimals to round the volumes
         '''
+        
+        #TODO : DD, now in this new version, there is never volume incoming in this function -> to be adapted
 
         # Identify classes for which the incoming volume in the active layer
         # is under the transport capacity:
@@ -1191,7 +1220,7 @@ class SedimentarySystem:
             # The matrix V_dep2act_new contains the mobilized cascades from
             # the deposit layer, now corrected according to the tr_cap:
             V_dep2act_new = np.zeros(V_dep2act.shape)
-            self.provenance(V_dep2act_new)[:] = self.provenance(V_dep2act)
+            self.metadata(V_dep2act_new)[:] = self.metadata(V_dep2act)
             V_dep2act_new[:, mask] = map_perc * V_dep2act_class
             # Round the volume:
             if ~np.isnan(roundpar):
@@ -1234,8 +1263,17 @@ class SedimentarySystem:
         V_inc2act_new = V_inc2act * mask_above_capacity + V_inc2act * mask_under_capacity
 
         # Mobilised volume :
-        V_mob = np.vstack((V_dep2act_new, V_inc2act_new))
+        if np.sum(self.sediments(V_inc2act_new), axis = 1) != 0:
+            V_mob = np.vstack((V_dep2act_new, V_inc2act_new))
+        else:
+            V_mob = V_dep2act_new
+            
+        if np.sum(self.sediments(V_mob)) != 0: # NB: after rounding it is possible that Vmob is in fact empty
+            # remove possible empty lines
+            V_mob = V_mob[np.sum(self.sediments(V_mob), axis = 1) != 0]
+        # and merge same provenance
         V_mob = self.matrix_compact(V_mob)
+            
         # Round:
         if ~np.isnan(roundpar):
             self.sediments(V_mob)[:] = np.around(self.sediments(V_mob), decimals = roundpar)
@@ -1430,15 +1468,25 @@ class SedimentarySystem:
 
         provenance_ids = np.unique(self.provenance(volume)) # Provenance reach indexes
         volume_compacted = np.empty((len(provenance_ids), volume.shape[1]))
-        # sum elements with same ID
+        # Loop over elements with same provenance and sum them:
         for ind, i in enumerate(provenance_ids):
-            vect = volume[self.provenance(volume) == i,:]
-            volume_compacted[ind,:] = self.create_volume(provenance=provenance_ids[ind], gsd=np.sum(self.sediments(vect), axis=0))
+            vect = volume[self.provenance(volume) == i,:] # select volume with provenance i
 
-        if volume_compacted.shape[0] > 1:
+            # If specified, deal with erosion time by making an average, weighted by the volume,
+            # when two row have the same provenance but a different erosion time
+            if self.t_track == True:
+                vect_tot_vol = np.sum(self.sediments(vect))
+                weight = np.sum(self.sediments(vect), axis=1) / vect_tot_vol if vect_tot_vol != 0 else 1
+                eros_time = np.sum(self.metadata(vect)[:,1] * weight)
+            else:
+                eros_time = None
+            # Compacted volume
+            volume_compacted[ind,:] = self.create_volume(provenance=provenance_ids[ind], etime=eros_time, gsd=np.sum(self.sediments(vect), axis=0))
+
+        if volume_compacted.shape[0] > 1: # Remove lines with 0 sediments
             volume_compacted = volume_compacted[np.sum(self.sediments(volume_compacted), axis = 1) != 0]
 
-        if volume_compacted.size == 0:
+        if volume_compacted.size == 0: # If empty, we must always leave a empty line of 0
             volume_compacted = self.create_volume(provenance=provenance_ids[0])
 
         return volume_compacted
