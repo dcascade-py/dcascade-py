@@ -98,7 +98,6 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     sedimentary_system.set_dams(dam_trap_efficiency)
 
 
-
     # Create DCASCADE solver
     dcascade = DCASCADE(sedimentary_system)
 

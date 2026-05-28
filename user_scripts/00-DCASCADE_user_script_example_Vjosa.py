@@ -152,7 +152,7 @@ dynamic_display = False
                                # will put a trapping efficiency of 0.5 after reach with FromN 2, and 0.2 after reach 4 (to all sediment size classes).
                                # Other example, dam_trap_efficiency = {2: np.array([1, 0, 0, 0, 0, 0])} will trap fully the coarsest class only, in reach with FromN 2.
 
-# t_track = False              # If True, this will activate the time tracking of sediment cascade throughout the simulation
+t_track = True              # If True, this will activate the time tracking of sediment cascade throughout the simulation
                                # i.e. a metadata column is created registering the time step at which the sediment is mobilised for the first time
 
 ################ PREPROCESSING ###############

@@ -38,6 +38,7 @@ class DCASCADE:
         self.n_reaches = sedim_sys.n_reaches
         self.n_classes = sedim_sys.n_classes
         self.n_metadata = sedim_sys.n_metadata
+        self.t_track = sedim_sys.t_track 
 
         # Simulation attributes
         self.timescale = sedim_sys.timescale   # time step number
@@ -121,7 +122,7 @@ class DCASCADE:
 
                 # If specified, store also the erosion times of these cascades entering the reach
                 # (can be a decimal number since we average the time of same provenance)
-                if SedimSys.n_metadata == 2: # DD: see if I put a more obvious flag
+                if self.t_track == True: 
                     if Qbi_pass[n] != []:
                         concat_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
                         concat_volume = SedimSys.matrix_compact(concat_volume)
@@ -307,8 +308,8 @@ class DCASCADE:
                        'Fraction taken from AL': SedimSys.fr_mob_in_al,   # Active layer fraction metric
                        }
 
-        if SedimSys.n_metadata == 2:
-            data_output['Eros_times_full'] = SedimSys.Qbi_tr_eros_times
+        if self.t_track == True:
+            data_output['Eros_times'] = SedimSys.Qbi_tr_eros_times
 
         # Sum quantities by provenance
         mobilised_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
