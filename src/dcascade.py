@@ -325,8 +325,10 @@ class DCASCADE:
                         }
 
         if self.t_track == True:
-            data_output['Eros_times'] = SedimSys.Qbi_tr_eros_times
-
+            data_output['Eros_times']       = SedimSys.Qbi_tr_eros_times    # matrice containing the erosion times
+            data_output['Qbi_tr [m^3]']     = SedimSys.Qbi_tr
+            data_output['Qout per class [m^3]'] = SedimSys.Q_out.astype(np.float32)
+            
         # Sum quantities by provenance
         mobilised_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
         transported_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))

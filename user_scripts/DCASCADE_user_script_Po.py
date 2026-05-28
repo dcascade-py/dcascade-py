@@ -57,8 +57,8 @@ from d_finder import D_finder
 
 GSD_perc_list = [1.0] # [0.8, 0.9, 1.0, 1.1, 1.2]
 
-transport_law = [(6, 2)]   #(6, 2),(2, 4) , (6, 3)]  
-name_list = ['AW_BMF']         #'WC', , 'AW_Molinas']              
+transport_law = [(2, 4)]   #(6, 2),(2, 4) , (6, 3)]  
+name_list = ['WC']         #'WC', , 'AW_Molinas']              
 
 # List to loop over the two width scenarios:
 #  - Bankfull
@@ -116,7 +116,7 @@ for GSD_perc in GSD_perc_list:
             n_classes = 12          # number of classes
             
             #---Timescale 
-            timescale = 5843       # 5843 days, 1095, 1825
+            timescale = 1095       # 5843 days, 1095, 1825
             ts_length = 60 * 60 * 24    # length of timestep in seconds - 60*60*24 = daily; 60*60 = hourly
             
             #---Transport capacity formula and partitioning
@@ -168,7 +168,9 @@ for GSD_perc in GSD_perc_list:
             
             # roundpar = 0 # mimimum volume to be considered for mobilization of subcascade (as decimal digit, so that 0 means not less than 1m3; 1 means no less than 10m3 etc.)
             
-            
+            t_track = True              # If True, this will activate the time tracking of sediment cascade throughout the simulation
+                                           # i.e. a metadata column is created registering the time step at which the sediment is mobilised for the first time
+
             
             ################ MAIN ###############
             # If the transport capacity formula is not chosen manually:
@@ -359,6 +361,9 @@ for GSD_perc in GSD_perc_list:
             
             if 'force_pass_external_inputs' in globals():
                 kwargs['force_pass_external_inputs'] = globals().get('force_pass_external_inputs')
+                
+            if 't_track' in globals():
+                kwargs['t_track'] = globals().get('t_track')
             
             
             # Call dcascade main
