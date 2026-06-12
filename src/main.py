@@ -37,7 +37,10 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
                   dam_trap_efficiency = None,
                   
-                  t_track = False
+                  t_track = False,
+                  
+                  hypso_code = 0,
+                  CS_curves = None
                   ):
 
 
@@ -77,6 +80,10 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     force_pass_external_inputs = bool to decide if I force the external input to pass to the next reach
     dam_trap_efficiency = handles dams and a trapping efficiency per grain size                 
     t_track             = bool to activate time tracking 
+    hypso_code          = 0, 1, 2. 0 is the 1D initial version, 1 includes higher level hydraulic calculation, and 2 includes higher level tr_cap calculation
+                        1 and 2 require hypsometric curves
+    hypso_code          = 0, 1, 2. 0 is the 1D initial version, 1 includes higher level hydraulic calculation, and 2 includes higher level tr_cap calculation
+                            1 and 2 require hypsometric curves
 
     OUTPUT:
     data_output      = struct collecting the main aggregated output matrices
@@ -96,6 +103,9 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     sedimentary_system.set_erosion_maximum(eros_max, roundpar)
     sedimentary_system.set_active_layer(al_depth, al_depth_method)
     sedimentary_system.set_dams(dam_trap_efficiency)
+    
+    if hypso_code >= 1:
+        sedimentary_system.initialise_hypso_data(CS_curves)
 
 
     # Create DCASCADE solver

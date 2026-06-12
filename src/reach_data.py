@@ -53,6 +53,9 @@ class ReachData:
         self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else None
         self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else None
         self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else None
+        
+        # Hypsometric data
+        self.hypsometric_data = {}
 
 
 

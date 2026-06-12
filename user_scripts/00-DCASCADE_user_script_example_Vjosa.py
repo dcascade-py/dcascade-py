@@ -154,6 +154,20 @@ dynamic_display = False
 
 # t_track = False              # If True, this will activate the time tracking of sediment cascade throughout the simulation
                                # i.e. a metadata column is created registering the time step at which the sediment is mobilised for the first time
+                               
+hypso_code = 1               # 0, 1, 2. 0 is the 1D initial version, 1 includes higher level hydraulic calculation, and 2 includes higher level tr_cap calculation
+                               # 1 and 2 require hypsometric curves
+
+# CS_curves = None             # Dictionnary. The keys are the reach FromN, and the elements are 2D array of cross section data. 
+                               # First row is lateral distance. Second row is bed elevation. 
+
+CS_curves = {} 
+CS_curves[1] = np.array([[0, 10, 20, 30, 40, 50, 60, 100, 200, 250], 
+                         [4, 0, -1, -2.5, -2.0, -1.5, -1, 0.1, 0.5, 4]])
+
+CS_curves[2] = np.array([[0, 10, 20, 30, 40, 50, 60, 100, 200, 250],
+                        [4, 0, -1, -1.5, -2.0, -0.5, -.25, 0, 0.5, 4]])
+
 
 ################ PREPROCESSING ###############
 # If the transport capacity formula is not chosen manually:
@@ -249,6 +263,14 @@ if 'dam_trap_efficiency' in globals():
 if 't_track' in globals():
     kwargs['t_track'] = globals().get('t_track')
     
+if 't_track' in globals():
+    kwargs['t_track'] = globals().get('t_track')
+
+if 'hypso_code' in globals():
+    kwargs['hypso_code'] = globals().get('hypso_code')
+
+if 'CS_curves' in globals():
+    kwargs['CS_curves'] = globals().get('CS_curves')    
 
 
 ################ CALL MAIN ###############
