@@ -29,24 +29,41 @@ from matplotlib import pyplot as plt
 
 #---------------------Path to the pickle output
 path = "..\\cascade_results\\"
-name_simu = 'Vjosa_test'
+name_simu = 'Po_save_all'
 
 #---------------------Path to the input river network (.shp) or (.csv)
 path_river_network = "..\\inputs\\Input_Po_case_PGS_2025\\shp_slope_DEM_2021_smoothed\\" #Path to the shp
 name_river_network = "Po_river_network.shp"
 
 #---------------------Folder to store the plots
-figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure
+figure_folder = path+'figures_all_reaches\\'          # where you will store the figure
 
 if not os.path.exists(figure_folder):
     os.makedirs(figure_folder)
 
 #--------------------Output name you want to plot
-output_name = 'Volume out [m^3]'   # Output available in pickle file
+output_name_list = ['Sediment budget [m^3]', 'Volume out [m^3]']    # Output available in pickle file
 #'D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]'
 
 #--------------------First year simulated (for legend)
 year_0 = 2008
+
+
+# load network for reference 
+ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
+ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True )
+ReachData_Po = ReachData[ReachData['River'] == 'Po'] # select Po
+Po_idx = ReachData_Po['FromN'].values
+Po_idx = Po_idx.astype(int)
+Po_names=ReachData_Po['Reach'].str[3:]
+
+# All tributaries
+ReachData_trib = ReachData[ReachData['River'] != 'Po'] # select Trib
+Trib_idx = ReachData_trib['FromN'].values
+Trib_idx = Trib_idx.astype(int)
+Trib_names = ReachData_trib['Reach'].str[:-2]
+Trib_names = Trib_names.str.lower()
+Trib_names.loc[0] = 's. di lanzo'
 
 
 
@@ -75,87 +92,108 @@ def rename_names(output_name):
 
 ##### Plot average or median, x axis is the reach index
 
-data_output = pd.read_pickle(open( path + name_simu + '.p' , "rb"))
-my_data = data_output[output_name]
-n_reach = my_data.shape[1]
-FromN_idx = np.arange(1, n_reach + 1, 1)
-n_time = my_data.shape[0]
+for output_name in output_name_list:
 
-full_years_number = n_time // 365
-rest_days = n_time%365
-
-
-#create figure and graph axes
-fig = plt.figure()
-ax = plt.subplot(111)
-
-if rest_days != 0:
-    year_number =  full_years_number + 1
-else:
-    year_number =  full_years_number
-
-color = iter(plt.cm.viridis(np.linspace(0, 1, year_number)))
-
-sum_all = np.zeros(n_reach)
-
-t_0 = 0
-t_end = 364 #(365 - 1) since time 0 is the first day
-year = year_0
-
-for idx_year in range(year_number):
-
-    if t_0 == n_time:
-        continue
-
-    if (n_time - t_0) < 365:
-        t_end = n_time - (t_0 + 1)
-
-    time_list = [i for i in range(t_0, t_end + 1, 1)]
-    c=next(color)
-
+    data_output = pd.read_pickle(open( path + name_simu + '.p' , "rb"))
+    my_data = data_output[output_name]
+    n_reach = my_data.shape[1]
+    FromN_idx = np.arange(1, n_reach + 1, 1)
+    n_time = my_data.shape[0]
+    
+    full_years_number = n_time // 365
+    rest_days = n_time%365
+    
+    
+    #create figure and graph axes
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    
+    if rest_days != 0:
+        year_number =  full_years_number + 1
+    else:
+        year_number =  full_years_number
+    
+    color = iter(plt.cm.viridis(np.linspace(0, 1, year_number)))
+    
+    sum_all = np.zeros(n_reach)
+    
+    t_0 = 0
+    t_end = 364 #(365 - 1) since time 0 is the first day
+    year = year_0
+    
+    for idx_year in range(year_number):
+    
+        if t_0 == n_time:
+            continue
+    
+        if (n_time - t_0) < 365:
+            t_end = n_time - (t_0 + 1)
+    
+        time_list = [i for i in range(t_0, t_end + 1, 1)]
+        c=next(color)
+    
+        if output_name in ['Volume out [m^3]', 'Volume in [m^3]', 'Transport capacity [m^3]', 'Sediment budget [m^3]']:
+            my_sum = np.sum(my_data[time_list, :], axis = 0)
+            ax.plot(FromN_idx, my_sum, label = str(year), color = c)
+    
+            if ((t_end + 1) - t_0) == 365: # add to average only if it is a full year
+                sum_all+=my_sum
+    
+        if output_name in ['D50 active layer [m]', 'D50 volume out [m]']:
+            my_median = np.median(my_data[time_list, :], axis = 0)
+            ax.plot(FromN_idx, my_median, label = str(year), color = c)
+    
+    
+        t_0 = t_end + 1
+        t_end = t_end + 365
+        year += 1
+    
+    # Plot the average for certain outputs type:
     if output_name in ['Volume out [m^3]', 'Volume in [m^3]', 'Transport capacity [m^3]', 'Sediment budget [m^3]']:
-        my_sum = np.sum(my_data[time_list, :], axis = 0)
-        ax.plot(FromN_idx, my_sum, label = str(year), color = c)
-
-        if ((t_end + 1) - t_0) == 365: # add to average only if it is a full year
-            sum_all+=my_sum
-
-    if output_name in ['D50 active layer [m]', 'D50 volume out [m]']:
-        my_median = np.median(my_data[time_list, :], axis = 0)
-        ax.plot(FromN_idx, my_median, label = str(year), color = c)
-
-
-    t_0 = t_end + 1
-    t_end = t_end + 365
-    year += 1
-
-# Plot the average for certain outputs type:
-if output_name in ['Volume out [m^3]', 'Volume in [m^3]', 'Transport capacity [m^3]', 'Sediment budget [m^3]']:
-    if full_years_number > 1:
-        sum_all /= full_years_number
-
-        ax.plot(FromN_idx, sum_all, linewidth = 2.5, color = 'black', label = 'Average')
-
-
-# Add an horizontal line at 0
-if output_name == 'Delta z [m]' or output_name == 'Sediment budget [m^3]':
-    ax.hlines(0, xmin=3, xmax=42, linestyle='--', color='gray')
-
-
-ax.legend(fontsize = 12)#, bbox_to_anchor=(1, 1))
-
-ax.set_xlabel('Reach index (FromN)', fontsize = 18)
-ax.set_ylabel(output_name, fontsize = 16)
-ax.tick_params(axis='y', which='major', labelsize=15)
-ax.tick_params(axis='x', which='major', labelsize=12)
-
-
-
-fig.set_tight_layout(True)
-fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
-new_name = rename_names(output_name)
-fig.savefig(figure_folder+str(new_name)+'_yearly')
-
+        if full_years_number > 1:
+            sum_all /= full_years_number
+    
+            ax.plot(FromN_idx, sum_all, linewidth = 2.5, color = 'black', label = 'Average')
+    
+    
+    # Add an horizontal line at 0
+    if output_name == 'Delta z [m]' or output_name == 'Sediment budget [m^3]':
+        ax.hlines(0, xmin=3, xmax=42, linestyle='--', color='gray')
+        
+        
+    # # add tributaries ToNode position on same plot as vertical lines:
+    # # Find the value in the middle of y axis
+    # y_min, y_max = plt.ylim()
+    # y_middle = (y_min + y_max) / 1.2  
+    
+    # trib_data = ReachData[ReachData['River'] != 'Po']
+    # for _, row in trib_data.iterrows():
+    #     ax.axvline(x=row['ToN'], color = 'grey', linestyle = '--')
+    #     plt.text(row['ToN'], y_middle, row['River'], rotation=90, verticalalignment='center', color = 'grey', fontsize = 17)
+        
+    # # add Isola Serafini as vertical line
+    # ax.axvline(x=26, color='red', linestyle='-')
+    # plt.text(26, y_middle, 'Isola Serafini', rotation=90, verticalalignment='center', color='red', fontsize = 17)
+    
+    # # add Isola Serafini as vertical line
+    # ax.axvline(x=26, color='red', linestyle='-')
+    # plt.text(26, y_middle, 'Isola Serafini', rotation=90, verticalalignment='center', color='red', fontsize = 17)
+    
+    
+    ax.legend(fontsize = 12)#, bbox_to_anchor=(1, 1))
+    
+    ax.set_xlabel('Reach index (FromN)', fontsize = 18)
+    ax.set_ylabel(output_name, fontsize = 16)
+    ax.tick_params(axis='y', which='major', labelsize=15)
+    ax.tick_params(axis='x', which='major', labelsize=12)
+    
+    
+    
+    fig.set_tight_layout(True)
+    fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
+    new_name = rename_names(output_name)
+    fig.savefig(figure_folder+str(new_name)+'_yearly')
+    
 
 
 
@@ -187,6 +225,38 @@ fig.set_tight_layout(True)
 fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
 new_name = rename_names(output_name)
 fig.savefig(figure_folder+str(new_name)+'_yearly')
+
+
+
+# -------- Additional plot: all D50 active layer lines, x axis is the reach index
+output_name = 'Slopes'
+my_data = data_output[output_name]
+n_reach = my_data.shape[1]
+FromN_idx = np.arange(1, n_reach + 1, 1)
+n_time = 2#my_data.shape[0]
+
+#create figure and graph axes
+fig = plt.figure()
+ax = plt.subplot(111)
+
+color = iter(plt.cm.viridis(np.linspace(0, 1, n_time)))
+
+for t in range(n_time):
+    c=next(color)
+    ax.plot(FromN_idx, my_data[t,:], label = str(t), color = c)
+
+ax.legend(fontsize = 12)   #, bbox_to_anchor=(1, 1))
+
+ax.set_xlabel('Reach index (FromN)', fontsize = 18)
+ax.set_ylabel(output_name, fontsize = 16)
+ax.tick_params(axis='y', which='major', labelsize=15)
+ax.tick_params(axis='x', which='major', labelsize=12)
+
+fig.set_tight_layout(True)
+fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)
+new_name = rename_names(output_name)
+fig.savefig(figure_folder+str(new_name)+'_yearly')
+
 
 
 

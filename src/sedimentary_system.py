@@ -1393,8 +1393,8 @@ class SedimentarySystem:
         '''
         Function used to check the mass balance at time step t in reach n
         '''
-        tot_out = np.sum(self.Qbi_mob[t][:, n, :], axis=0)
-        tot_in = np.sum(self.Qbi_tr[t][:, n, :], axis=0)
+        tot_out = np.sum(self.Qbi_mob[t][:, n, :], axis = 0)
+        tot_in = np.sum(self.Qbi_tr[t][:, n, :], axis = 0)
         mass_balance_ = tot_in - tot_out - delta_volume_reach
         if np.any(mass_balance_ != 0) == True:
             self.mass_balance[t, n, :] = mass_balance_
@@ -1413,7 +1413,8 @@ class SedimentarySystem:
         # Update the elevation of the upstream node of the reach, after Czuba (2017)
         up_reaches = self.network['upstream_node'][n] # upstream reaches
         sum_all_areas = np.sum(self.reach_data.wac[np.append(n, up_reaches)] * self.reach_data.length[np.append(n, up_reaches)]) # sum of areas upstream and downstream of the node
-        delta_h = 2 * sed_budg_t_n / (sum_all_areas * (1 - self.phi))
+        delta_h = 2 * sed_budg_t_n / (sum_all_areas)# * (1 - self.phi)) DD: I think the 1 - phi is not required here, 
+                                                    # because the volumes and budgets already include porosity
 
         self.node_el[t+1, n] = self.node_el[t,n] + delta_h
 
@@ -1451,6 +1452,32 @@ class SedimentarySystem:
 
             #Find the new slope and store it for the next time step
             self.slope[t+1,n] = (self.node_el[t+1, n] - self.node_el[t+1, down_node]) / r_length
+            
+    
+    def update_slope_reach(self, t, n):
+        ''' Update reach slope according to deposit. 
+        This function only change the reach, but does not garanty node elevation continuity from reach to reach
+        DD: Simpler version (because initial node elevation may be not updated with refined slope in the reach data file.. 
+                              + how do we deal at dam nodes ? we don't want continuity there ..')
+        '''
+        # I don't update the slope of the source reaches
+        if n in self.network['sources']:
+            self.slope[t+1, n] = self.slope[t, n]
+            
+        else:
+        
+            # Total sediment budget (deposited or eroded) of reach n at time step t
+            sed_budg_t_n = np.sum(self.sediment_budget[t,n,:])
+            
+            area_n = self.reach_data.wac[n] * self.reach_data.length[n]
+            
+            # Height difference between up node and down node:
+            init_dh = self.slope[t, n] * self.reach_data.length[n]
+            
+            # Elevation gain of the upstream node
+            dh_up_node = 2 * sed_budg_t_n / area_n
+            
+            self.slope[t+1,n] = (init_dh + dh_up_node) / self.reach_data.length[n]
 
 
 

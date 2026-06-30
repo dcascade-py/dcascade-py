@@ -100,6 +100,12 @@ class DCASCADE:
 
             # loop for all reaches:
             for n in self.network['n_hier']:
+                
+                # if t == 2 and n == 173:
+                #     print('ok')
+                    
+                # if t == 2 and n == 145:
+                #     print('ok')
 
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
@@ -216,7 +222,8 @@ class DCASCADE:
                 # Optional: Update the changes in bed elevation, due to deposition (+) or erosion (-)
                 # Note: sediment budget at t, will update the node elevation at t+1
                 if self.update_slope == True and t != self.timescale - 1:
-                    SedimSys.update_node_elevation_with_deposit(t, n)
+                    # SedimSys.update_node_elevation_with_deposit(t, n)
+                    SedimSys.update_slope_reach(t, n)
                 
                 # For the sand analysis, I store the top of Vdep at the end of the time step    
                 AL_volume = SedimSys.al_vol[t, n]
@@ -235,10 +242,10 @@ class DCASCADE:
                     t_y = int((t+2)/365)
                     SedimSys.Qbi_dep[t_y] = copy.deepcopy(SedimSys.Qbi_dep_0)
 
-            # In case of changing slope, change the slope accordingly to the bed elevation (at t+1)
-            if self.update_slope == True and t != self.timescale - 1:
-                # DD: see what min slope value should be
-                SedimSys.change_slope(t)
+            # # In case of changing slope, change the slope accordingly to the bed elevation (at t+1)
+            # if self.update_slope == True and t != self.timescale - 1:
+            #     # DD: see what min slope value should be
+            #     SedimSys.change_slope(t)
 
         # How many time the bottom was reached during the simulation
         if SedimSys.reach_bottom_count != 0:
@@ -313,15 +320,17 @@ class DCASCADE:
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
                        
-                        # For Po
-                        'Vdep top [m^3]': SedimSys.Vdep_top_all,
-                        # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
-                        # 'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
+                       'Slopes': SedimSys.slope.astype(np.float32)
+                       
+                        # # For Po
+                        # 'Vdep top [m^3]': SedimSys.Vdep_top_all,
+                        # # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
+                        # # 'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
                                                   
-                        # Active layer info
-                        'Fraction taken from AL': SedimSys.fr_mob_in_al,   
-                        'mob_vol_gs': SedimSys.mob_vol_gs,
-                        'e_max_vol_gs': SedimSys.e_max_vol_gs
+                        # # Active layer info
+                        # 'Fraction taken from AL': SedimSys.fr_mob_in_al,   
+                        # 'mob_vol_gs': SedimSys.mob_vol_gs,
+                        # 'e_max_vol_gs': SedimSys.e_max_vol_gs
                         }
 
         if self.t_track == True:
