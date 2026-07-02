@@ -407,7 +407,7 @@ class DCASCADE:
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
-
+                       'Qout per class [m^3]': SedimSys.Q_out.astype(np.float32)
                        # TODO: 'Touch erosion max': touch_eros_max,
                         }
 
