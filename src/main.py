@@ -36,7 +36,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
                   force_pass_external_inputs = False,
 
                   passing_cascade_in_outputs = True,
-                  passing_cascade_in_trcap = False,
+                  passing_cascade_in_trcap = True,
                   time_lag_for_mobilised = False):
 
 
