@@ -533,7 +533,7 @@ class SedimentarySystem:
             Q_steps = np.array([0, 4000]) # validity range for hypsometric profile(s)
         
             h_xs = z_sec - np.min(z_sec) # elevation from CS lowest point
-        
+            
             x_dense = np.linspace(x_sec.min(), x_sec.max(), 2000)
             h_dense = np.interp(x_dense, x_sec, h_xs)
                 
@@ -549,9 +549,9 @@ class SedimentarySystem:
             w_vec = np.array(w_vec)
                 
             # Force monotonic, unique width values for inverse interpolation width -> height.
-            w_vec = np.maximum.accumulate(w_vec)
-            w_vec = w_vec + np.arange(w_vec.size) * 1e-9
-            w_vec[0] = 0.0
+            w_vec1 = np.maximum.accumulate(w_vec)
+            w_vec2 = w_vec + np.arange(w_vec.size) * 1e-9
+            w_vec2[0] = 0.0
             w_vec_q = np.tile(w_vec[:, None], (1, len(Q_steps)))
     
             
@@ -578,7 +578,7 @@ class SedimentarySystem:
             
             self.reach_data.hypsometry_data[n] = {
                 'Zvec': z_vec,
-                'Wvec_q': w_vec_q,
+                'Wvec_q': w_vec_q,  # DD: why we duplicate the info for two discharge ?
                 'Hvec': z_vec-z_vec.min(),
                 'Qsteps': Q_steps,
                 # 'hypsoDX': hypsoDX,
