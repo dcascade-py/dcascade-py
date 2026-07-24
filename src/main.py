@@ -15,6 +15,7 @@ import itertools
 
 from dcascade import DCASCADE
 from sedimentary_system import SedimentarySystem
+from hypsometry import initialise_hypso_data
 
 """ MAIN FUNCTION SECTION """
 
@@ -104,8 +105,10 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
     sedimentary_system.set_active_layer(al_depth, al_depth_method)
     sedimentary_system.set_dams(dam_trap_efficiency)
     
+    # Hypsometry option
     if hypso_code >= 1:
-        sedimentary_system.initialise_hypso_data(CS_curves)
+        sedimentary_system.hypso_code = hypso_code
+        initialise_hypso_data(reach_data, CS_curves)
 
 
     # Create DCASCADE solver

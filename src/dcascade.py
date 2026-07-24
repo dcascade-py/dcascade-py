@@ -21,6 +21,7 @@ from flow_depth import choose_flow_depth
 from sedimentary_system import SedimentarySystem
 from slope_reduction import choose_slope_reduction
 from width_variation import choose_width_variation
+from hypsometry import update_hypsometric_hydraulics, hypso_transport_capacity
 
 
 class DCASCADE:
@@ -72,16 +73,48 @@ class DCASCADE:
     def run(self, Q, roundpar):
 
         SedimSys = self.sedim_sys
+        
+        # Save for Pinzano
+        Q_pinz = Q[:self.timescale, 37]
+        h_0_pinz = np.zeros(self.timescale)
+        h_1_pinz = np.zeros(self.timescale)
+        w_0_pinz = np.zeros(self.timescale)
+        w_1_pinz = np.zeros(self.timescale)
+        
+        tr_cap_1_pinz = np.zeros(self.timescale)
+        tr_cap_2_pinz = np.zeros(self.timescale)
 
         # start waiting bar
         for t in tqdm(range(self.timescale)):
+            
+            # if Q[t, 37] > 300:
+            #     print('ok')
 
             # Channel width calculation
             SedimSys.width = choose_width_variation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
+            
+            w_0_pinz[t] = SedimSys.width[t, 37]
 
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
             SedimSys.flow_depth[t] = h
+            SedimSys.water_velocity[t] = v
+            
+            ### save for Pinzano
+            h_0_pinz[t] = h[37]
+            
+            if self.sedim_sys.hypso_code > 0:
+                # Compute hypsometric flow for hypso reaches only. It will overwrite width and water height previously defined
+                # Returns hypsometric water height, to be used for tr_cap if hypso code == 2
+                hypso_hw = update_hypsometric_hydraulics(self.reach_data, SedimSys, Q, t,  self.indx_flo_depth)
+                # h, and v need to be replaced to be used below (DD: maybe think of a more elegant way)
+                h = SedimSys.flow_depth[t]
+                v = SedimSys.water_velocity[t] 
+                
+                h_1_pinz[t] = hypso_hw[37]['h_mean']            
+                w_1_pinz[t] = hypso_hw[37]['width']
+                
+            ####
 
             # Compute velocity section height (may be dependant on the water depth)
             SedimSys.set_velocity_section_height(self.vel_height_option, h, t)
@@ -153,9 +186,49 @@ class DCASCADE:
                 # eventual continuing cascades.
 
                 # Compute transport capacity
+                # if n == 37:
+                #     print('ok')
                 tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
                                                                                   passing_cascades = Qbi_pass[n])
+                # Save Pinz
+                if n == 37:
+                    tr_cap_1_pinz[t] = np.sum(tr_cap_per_s)
+                
+                
+                if SedimSys.hypso_code >=2:    #hypsometric transport capacity calculation.
+                    # if n in self.reach_data.hypsometric_data.keys(): 
+                        # v_save = hypso_hw[n]['v_save']
+                        # h_save = hypso_hw[n]['h_save']
+                        
+                        # # Trim lateral hydraulics from stored profiles
+                        # v_prof = np.asarray(v_save, dtype=float).copy()
+                        # h_prof = np.asarray(h_save, dtype=float).copy()
+                 
+                        # nh = np.max(np.where(h_prof != 0)[0]) + 1 if np.any(h_prof != 0) else 0
+                   
+                        # Vsave_trimmed = v_prof[:nh]
+                        # Hsave_trimmed = h_prof[:nh]
+                    
+                        # Xwac = SedimSys.Xgrid[:nh+1].copy() #ccJR this was altering Xgrid without the copy!!   
+                        # Xwac[-1] = SedimSys.width[t,n] #last cell to match width.
+                    
+                        #NOTE / BUG / QUESTION, JR&DD: does this slice the bed up unnecessarily for case 2?
+                        #case 2 really just just take active layer * width off the 'top'?
+                        #returning: tr cap for each slice
+                    tr_cap_per_s, Fi_al, D50_al, Qc, htr_cap_per_s  = hypso_transport_capacity(Vdep_init, roundpar, t, n, Q, 
+                                                                                  hypso_hw,                               
+                                                                                  self.indx_tr_cap, self.indx_tr_partition,
+                                                                                  passing_cascades = Qbi_pass[n])
+
+                    # Save hypso trcap                        
+                    hypso_hw[n]['hypso_tr_cap'] = htr_cap_per_s
+                    
+                    # Save Pinz
+                    if n == 37:
+                        tr_cap_2_pinz[t] = np.sum(tr_cap_per_s)
+                    
+                
 
                 # Store transport capacity and active layer informations:
                 SedimSys.Fi_al[t, n, :] = Fi_al
@@ -217,6 +290,7 @@ class DCASCADE:
                 # Note: sediment budget at t, will update the node elevation at t+1
                 if self.update_slope == True and t != self.timescale - 1:
                     SedimSys.update_node_elevation_with_deposit(t, n)
+                    
 
             """End of the reach loop"""
 
@@ -236,6 +310,63 @@ class DCASCADE:
         # How many time the bottom was reached during the simulation
         if SedimSys.reach_bottom_count != 0:
             print("\n The deposit layer bottom was reached " + str(SedimSys.reach_bottom_count) + " times. \n")
+        
+        
+        
+        
+        # For Pinzano plots
+        import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots(figsize=(7, 4))
+        # ax.plot(Q_pinz, h_0_pinz, "o", label="h0")
+        # ax.plot(Q_pinz, h_1_pinz, "v", label="h1")
+        # ax.set_xlabel("Discharge Q [m3/s]")
+        # ax.set_ylabel("Water height")
+        # ax.grid(True, alpha=0.3)
+        # ax.legend()
+        # plt.tight_layout()
+        # plt.show()
+        
+        # fig, ax = plt.subplots(figsize=(7, 4))
+        # ax.plot(Q_pinz, w_0_pinz, "o", label="w0")
+        # ax.plot(Q_pinz, w_1_pinz, "v", label="w1")
+        # ax.set_xlabel("Discharge Q [m3/s]")
+        # ax.set_ylabel("Width [m]")
+        # ax.grid(True, alpha=0.3)
+        # ax.legend()
+        # plt.tight_layout()
+        # plt.show()
+        
+        
+        #
+        mobilised = SedimSys.create_2d_zero_array()
+        for t in range(self.timescale):
+            # Sum over provenances (axe 0) and sediment classes (axe 2)
+            mobilised[t,:] = np.sum(SedimSys.Qbi_mob[t], axis = (0,2))
+        
+        Vout_pinz = mobilised[:, 37]
+        
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(Q_pinz, Vout_pinz, "o", label="V out 1")
+        ax.set_xlabel("Discharge Q [m3/s]")
+        ax.set_ylabel("V out [m3]")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+        
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(Q_pinz, tr_cap_1_pinz*self.ts_length, "o", label="tr_cap_1")
+        ax.plot(Q_pinz, tr_cap_2_pinz*self.ts_length, "v", label="tr_cap_2")
+        ax.set_xlabel("Discharge Q [m3/s]")
+        ax.set_ylabel("Tr cap total")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+        
+        
+        
+        
 
         """End of the time loop"""
 

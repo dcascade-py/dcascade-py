@@ -262,9 +262,6 @@ if 'dam_trap_efficiency' in globals():
     
 if 't_track' in globals():
     kwargs['t_track'] = globals().get('t_track')
-    
-if 't_track' in globals():
-    kwargs['t_track'] = globals().get('t_track')
 
 if 'hypso_code' in globals():
     kwargs['hypso_code'] = globals().get('hypso_code')

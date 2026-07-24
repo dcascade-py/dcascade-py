@@ -6,6 +6,7 @@ Created on Tue Oct 29 10:58:54 2024
 import copy
 from itertools import groupby
 
+
 import numpy as np
 
 from cascade import Cascade
@@ -66,6 +67,7 @@ class SedimentarySystem:
         self.t_track = t_track
         self.n_metadata = (2 if t_track == True else 1) #DD: for now only t_track activate the second metadata
         
+        
 
         # Storing matrices (and related options)
         self.Qbi_dep = None
@@ -83,6 +85,7 @@ class SedimentarySystem:
         self.width = None
         self.node_el = None
         self.flow_depth = None
+        self.water_velocity = None
         self.tr_cap = None
         self.tr_cap_before_tlag = None
         self.tr_cap_sum = None
@@ -107,6 +110,9 @@ class SedimentarySystem:
         # temporary ?
         self.Qbi_dep_0 = None
         self.Qc_class_all = None        # DD: can it be optional ?
+        
+        #
+        self.hypso_code = 0
 
 
 
@@ -321,7 +327,7 @@ class SedimentarySystem:
         self.D50_al = self.create_2d_zero_array()  # D50 of the active layer in each reach in each timestep
         self.tr_cap_sum = self.create_2d_zero_array()  # total transport capacity
         self.flow_depth = self.create_2d_zero_array()
-
+        self.water_velocity = self.create_2d_zero_array()
 
 
     def set_sediment_initial_deposit(self, Qbi_dep_in):
@@ -506,84 +512,10 @@ class SedimentarySystem:
                     raise ValueError("The dam trapping efficiency vector for reach " + str(FromN) +
                                      " does not have the size of size class number.")
 
-
-    def initialise_hypso_data(self, CS_curves):
-        '''
-        '''
-        
-        import matplotlib.pyplot as plt
-        
-        if CS_curves == None:
-            raise ValueError('You did not provide cross section data for this hyspo_code option')
+       
             
-        # Create
-        
-        # Define elevation vector:
             
-        z_res = 0.1 # vertical resolution
-        h_max = max(np.max(CS_curves[n][1, :] - np.min(CS_curves[n][1, :])) 
-            for n in CS_curves.keys())      # max elevation of all reaches
-        z_vec = np.arange(0, h_max + z_res, z_res) # elevation vector common to all reaches
-
-        # Loop through each reach for which we have a CS
-        for n in CS_curves.keys():
-            x_sec = CS_curves[n][0, :]
-            z_sec = CS_curves[n][1, :]   
             
-            Q_steps = np.array([0, 4000]) # validity range for hypsometric profile(s)
-        
-            h_xs = z_sec - np.min(z_sec) # elevation from CS lowest point
-            
-            x_dense = np.linspace(x_sec.min(), x_sec.max(), 2000)
-            h_dense = np.interp(x_dense, x_sec, h_xs)
-                
-            # Width vector associated with each water height
-            w_vec = []
-            for z in z_vec:
-                mask = h_dense <= z        
-                if np.any(mask):
-                    width = np.ptp(x_dense[mask])
-                else:
-                    width = 0.0        
-                w_vec.append(width)        
-            w_vec = np.array(w_vec)
-                
-            # Force monotonic, unique width values for inverse interpolation width -> height.
-            w_vec1 = np.maximum.accumulate(w_vec)
-            w_vec2 = w_vec + np.arange(w_vec.size) * 1e-9
-            w_vec2[0] = 0.0
-            w_vec_q = np.tile(w_vec[:, None], (1, len(Q_steps)))
-    
-            
-            # qmax_model = np.max(Q[:, i])
-            # if Q_steps[-1] <= qmax_model:
-            #     raise ValueError(
-            #             f"Reach {i}: model Q over range "
-            #             f"(Qmax_model={qmax_model:.2f} > Qmax_hypso={Qsteps[-1]:.2f}). "
-            #             f"Fix the hypsometry q steps file / Qsteps table."
-            #         )
-
-
-            fig, ax = plt.subplots(figsize=(7, 4))
-            ax.plot(x_dense, h_dense, "-", label="densified cross-section")
-            ax.plot(w_vec, z_vec, ".-", label="hypsometric width curve")
-            ax.set_xlabel("x or wetted width [m]")
-            ax.set_ylabel("height above thalweg [m]")
-            ax.grid(True, alpha=0.3)
-            ax.legend()
-            plt.tight_layout()
-            plt.show()
-    
-            # Store info
-            
-            self.reach_data.hypsometry_data[n] = {
-                'Zvec': z_vec,
-                'Wvec_q': w_vec_q,  # DD: why we duplicate the info for two discharge ?
-                'Hvec': z_vec-z_vec.min(),
-                'Qsteps': Q_steps,
-                # 'hypsoDX': hypsoDX,
-                # 'crossoverwidth': crossoverwidth,
-            }
         
         
 
@@ -1583,4 +1515,8 @@ class SedimentarySystem:
             volume_sort = volume
 
         return volume_sort
+    
+    
+    
+
 
