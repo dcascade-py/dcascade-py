@@ -74,31 +74,17 @@ class DCASCADE:
 
         SedimSys = self.sedim_sys
         
-        # # Save for Pinzano
-        # Q_pinz = Q[:self.timescale, 37]
-        # h_0_pinz = np.zeros(self.timescale)
-        # h_1_pinz = np.zeros(self.timescale)
-        # w_0_pinz = np.zeros(self.timescale)
-        # w_1_pinz = np.zeros(self.timescale)
-        
-        # tr_cap_1_pinz = np.zeros(self.timescale)
-        # tr_cap_2_pinz = np.zeros(self.timescale)
-
         # start waiting bar
         for t in tqdm(range(self.timescale)):
             
             # Channel width calculation
             SedimSys.width = choose_width_variation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
             
-            # w_0_pinz[t] = SedimSys.width[t, 37]
-
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
             SedimSys.flow_depth[t] = h
             SedimSys.water_velocity[t] = v
-            
-            # ### save for Pinzano
-            # h_0_pinz[t] = h[37]
+
             
             if self.sedim_sys.hypso_code > 0:
                 # Compute hypsometric flow for hypso reaches only. It will overwrite width and water height previously defined
@@ -108,10 +94,6 @@ class DCASCADE:
                 h = SedimSys.flow_depth[t]
                 v = SedimSys.water_velocity[t] 
                 
-                # h_1_pinz[t] = hypso_hw[37]['h_mean']            
-                # w_1_pinz[t] = hypso_hw[37]['width']
-                
-            ####
 
             # Compute velocity section height (may be dependant on the water depth)
             SedimSys.set_velocity_section_height(self.vel_height_option, h, t)
@@ -186,13 +168,9 @@ class DCASCADE:
                 tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
                                                                                   passing_cascades = Qbi_pass[n])
-                # # Save Pinz
-                # if n == 37:
-                #     tr_cap_1_pinz[t] = np.sum(tr_cap_per_s)
                 
                 # Hypsometric transport capacity calculation for hypso reaches.
-                if SedimSys.hypso_code >=2 and n in hypso_hw.keys():    
-                    
+                if SedimSys.hypso_code >=2 and n in hypso_hw.keys():                        
                     tr_cap_per_s, Fi_al_, D50_al_, Qc, hypso_tr_cap_per_s  = hypso_transport_capacity(Vdep_init, roundpar, t, n, Q, hypso_hw,                                                                                                                             
                                                                                               self.indx_tr_cap, self.indx_tr_partition,
                                                                                               SedimSys,
@@ -281,71 +259,6 @@ class DCASCADE:
         # How many time the bottom was reached during the simulation
         if SedimSys.reach_bottom_count != 0:
             print("\n The deposit layer bottom was reached " + str(SedimSys.reach_bottom_count) + " times. \n")
-        
-        
-        
-        
-        # For Pinzano plots
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(figsize=(7, 4))
-        # ax.plot(Q_pinz, h_0_pinz, "o", label="h0")
-        # ax.plot(Q_pinz, h_1_pinz, "v", label="h1")
-        # ax.set_xlabel("Discharge Q [m3/s]")
-        # ax.set_ylabel("Water height")
-        # ax.grid(True, alpha=0.3)
-        # ax.legend()
-        # plt.tight_layout()
-        # plt.show()
-        
-        # fig, ax = plt.subplots(figsize=(7, 4))
-        # ax.plot(Q_pinz, w_0_pinz, "o", label="w0")
-        # ax.plot(Q_pinz, w_1_pinz, "v", label="w1")
-        # ax.set_xlabel("Discharge Q [m3/s]")
-        # ax.set_ylabel("Width [m]")
-        # ax.grid(True, alpha=0.3)
-        # ax.legend()
-        # plt.tight_layout()
-        # plt.show()
-        
-        
-        # #
-        # mobilised = SedimSys.create_2d_zero_array()
-        # for t in range(self.timescale):
-        #     # Sum over provenances (axe 0) and sediment classes (axe 2)
-        #     mobilised[t,:] = np.sum(SedimSys.Qbi_mob[t], axis = (0,2))
-        
-        # Vout_pinz = mobilised[:, 37]
-        
-        # fig, ax = plt.subplots(figsize=(7, 4))
-        # ax.plot(Q_pinz, Vout_pinz, "o", label="V out 1")
-        # ax.set_xlabel("Discharge Q [m3/s]")
-        # ax.set_ylabel("V out [m3]")
-        # ax.grid(True, alpha=0.3)
-        # ax.legend()
-        # plt.tight_layout()
-        # plt.show()
-        
-        # fig, ax = plt.subplots(figsize=(7, 4))
-        # ax.plot(Q_pinz, tr_cap_1_pinz*self.ts_length, "o", label="tr_cap_1")
-        # ax.plot(Q_pinz, tr_cap_2_pinz*self.ts_length, "v", label="tr_cap_2")
-        # ax.set_xlabel("Discharge Q [m3/s]")
-        # ax.set_ylabel("Tr cap total")
-        # ax.grid(True, alpha=0.3)
-        # ax.legend()
-        # plt.tight_layout()
-        # plt.show()
-        
-        # fig, ax = plt.subplots(figsize=(7, 4))
-        # ax.plot(tr_cap_2_pinz*self.ts_length, tr_cap_1_pinz*self.ts_length, "o", markersize = 3)
-        # ax.plot([0,20000], [0, 20000], "--")
-        # ax.set_xlabel("Tr cap total 2")
-        # ax.set_ylabel("Tr cap total 1")
-        # ax.grid(True, alpha=0.3)
-        # ax.legend()
-        # plt.tight_layout()
-        # plt.show()
-        
-        
         
         
 
