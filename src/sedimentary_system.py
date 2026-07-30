@@ -577,15 +577,32 @@ class SedimentarySystem:
             # In this case, we store the averaged velocities obtained among all the cascades
             velocities = np.mean(np.array(velocities_list), axis = 0)
 
-        if indx_velocity == 2:
+        if indx_velocity == 2:            
+            
             # concatenate cascades in one volume, and compact it by original provenance
             # DD: should the cascade volume be in [m3/s] ?
             volume_all_cascades = np.concatenate([cascade.volume for cascade in cascades_list], axis=0)
             volume_all_cascades = self.matrix_compact(volume_all_cascades)
 
             volume_total = np.sum(self.sediments(volume_all_cascades))
-            if volume_total < self.al_vol[t, n]:
-                _, Vdep_active, _, _ = self.layer_search(Vdep, self.al_vol[t, n],
+            
+            # For hypso reaches, because passing through cascade volume are physically 
+            # transported on a different width than the one over which AL volume and Vdep where defined, 
+            # we adjust temporarilly these two volumes to the new width:
+            if self.hypso_code > 0 and n in self.reach_data.hypsometric_data.keys():
+                W_new = self.width[t, n]
+                W_init = self.reach_data.wac[n]
+                al_vol_ = self.al_vol[t, n] * (W_new / W_init)
+                Vdep_ = copy.deepcopy(Vdep)
+                self.sediments(Vdep_)[:] = self.sediments(Vdep_) * (W_new / W_init)
+            else:
+                al_vol_ = self.al_vol[t, n]
+                Vdep_ = Vdep            
+            
+            # In case this volume is smaller than the active layer, we complete with bed material
+            # which may influence the velocity for bedload
+            if volume_total < al_vol_:                
+                _, Vdep_active, _, _ = self.layer_search(Vdep_, al_vol_,
                                         Qpass_volume = volume_all_cascades, roundpar = roundpar)
                 volume_all_cascades = np.concatenate([volume_all_cascades, Vdep_active], axis=0)
 
@@ -866,21 +883,34 @@ class SedimentarySystem:
                 passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
                 passing_volume = self.matrix_compact(passing_volume) #compact by original provenance
 
-        # Compute fraction and D50 in the active layer
+        #---Compute fraction and D50 in the active layer
         # TODO: warning when the AL is very small, we can have Fi_r is 0 due to roundpar
+        
+        # For hypso reaches, because passing through cascade volume are physically 
+        # transported on a different width than the one over which AL volume and Vdep where defined, 
+        # we adjust temporarilly these two volumes to the new width (to get coherence in the proportions):
+        if self.hypso_code > 0 and n in self.reach_data.hypsometric_data.keys():
+            W_new = self.width[t, n]
+            W_init = self.reach_data.wac[n]
+            al_vol_ = self.al_vol[t, n] * (W_new / W_init)
+            Vdep_ = copy.deepcopy(Vdep)
+            self.sediments(Vdep_)[:] = self.sediments(Vdep_) * (W_new / W_init)
+        else:
+            al_vol_ = self.al_vol[t, n]
+            Vdep_ = Vdep
 
         if passing_volume is None:
-            AL_volume = self.al_vol[t,n]
+            AL_volume = al_vol_
         else:
             if self.al_depth_method == 1:
                 # Method 1: (default) if there are passing cascades, their total volume is added to the user-defined active volume
                 sum_pass = np.sum(self.sediments(passing_volume))
-                AL_volume = self.al_vol[t,n] + sum_pass
+                AL_volume = al_vol_ + sum_pass
             elif self.al_depth_method == 2:
                 # Method 2: the active depth is measured from the top of the passing cascades
-                AL_volume = self.al_vol[t,n]
+                AL_volume = al_vol_
 
-        _,_,_, Fi_al_ = self.layer_search(Vdep, AL_volume, Qpass_volume = passing_volume, roundpar = roundpar)
+        _,_,_, Fi_al_ = self.layer_search(Vdep_, AL_volume, Qpass_volume = passing_volume, roundpar = roundpar)
 
 
         # In case the active layer is empty, I use the GSD of the previous timestep
@@ -933,12 +963,20 @@ class SedimentarySystem:
 
         """
 
-
         # Mobilisable volume:
         volume_mobilisable = tr_cap_per_s * self.ts_length
-        # Erosion maximum during the time lag
-        e_max_vol_ = self.eros_max_vol[t,n]
-
+        
+        # Erosion maximum during the time step
+        e_max_vol_ = self.eros_max_vol[t,n]                
+        # For hypso reaches, I adjust the eros max volume with the wetted width to be coherent in the
+        # eros max depth. 
+        # DD: we could do something also with how layers are accessed in Vdep, 
+        # but since it is in 1D, I don't know how to do.
+        if self.hypso_code > 0 and n in self.reach_data.hypsometric_data.keys():
+            W_new = self.width[t, n]
+            W_init = self.reach_data.wac[n]
+            e_max_vol_ = e_max_vol_ * (W_new / W_init)
+        
         # Dam trapping
         if self.dam_trap_efficiency != None:
             if self.reach_has_dam[n] == 1:
@@ -978,7 +1016,6 @@ class SedimentarySystem:
 
             if np.all(self.sediments(V_mob) == 0):
                 V_mob = None
-
         else:
             Vdep_new  = Vdep
             V_mob = None

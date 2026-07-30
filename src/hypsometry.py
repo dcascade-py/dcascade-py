@@ -11,9 +11,11 @@ Hypsometric calculations related functions.
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
+import copy
 
 from constants import GRAV
 from d_finder import D_finder
+from transport_capacity_calculator import TransportCapacityCalculator
 
 
 
@@ -38,10 +40,12 @@ def initialise_hypso_data(reach_data, CS_curves, dx = 5, dz = 0.1):
         widths_all_CS = []
         
         # Temp: for plot         
-        fig, ax = plt.subplots(figsize=(7, 4))
+        # fig, ax = plt.subplots(figsize=(7, 4))
         
         # Loop for each CS available for this reach
         for CS in CS_curves[fn].values():
+            
+            # fig, ax = plt.subplots(figsize=(7, 4))
             
             x_sec = CS[0, :]
             z_sec = CS[1, :]   
@@ -65,23 +69,25 @@ def initialise_hypso_data(reach_data, CS_curves, dx = 5, dz = 0.1):
             
             widths_all_CS.append(np.array(widths))
                                     
-            # Temp for plot
+            # # Temp for plot
             # ax.plot(x_dense - x_dense.min(), h_dense, "-", color = 'gray', linewidth = 1)
-            ax.plot(widths, z_vec, "-")
+            # ax.plot(widths, z_vec, "-")
+            
+            # plt.show()
             
         # Compute avg width for each water height (DD: is it a correct method?)
         widths_all_CS = np.array(widths_all_CS)
         widths_mean = np.mean(widths_all_CS, axis = 0)
                 
         # Temp for plot
-        ax.plot(widths_mean, z_vec, ".-", color = 'black', label = "hypsometric width curve - avg")
+        # ax.plot(widths_mean, z_vec, ".-", color = 'black', label = "hypsometric width curve - avg")
         
-        ax.set_xlabel("x or wetted width [m]")
-        ax.set_ylabel("height above thalweg [m]")
-        ax.grid(True, alpha=0.3)
-        ax.legend()
-        plt.tight_layout()
-        plt.show()
+        # ax.set_xlabel("x or wetted width [m]")
+        # ax.set_ylabel("height above thalweg [m]")
+        # ax.grid(True, alpha=0.3)
+        # ax.legend()
+        # plt.tight_layout()
+        # plt.show()
 
         # Force monotonic, unique width values for inverse interpolation width -> height.
         widths_mean = np.maximum.accumulate(widths_mean)
@@ -149,7 +155,7 @@ def update_hypsometric_hydraulics(reach_data, SedimSys, Q, t,  indx_flo_depth):
         # Retrive hypso data from reach
         hypso_n = reach_data.hypsometric_data[n]    
         dx = hypso_n['hypsoDX']
-        x_vec = reach_data.hypsometric_data[n]['Xgrid']
+        x_vec = hypso_n['Xgrid']
         
         # Compute water heigths corresponding to x_vec
         z_vec = hypso_n['q_to_H_interp_func']((Q[t, n], x_vec))
@@ -218,6 +224,9 @@ def update_hypsometric_hydraulics(reach_data, SedimSys, Q, t,  indx_flo_depth):
         
         # Save the wetted width
         hypso_hw[n]['width'] = b_
+        
+        # Save the width discretisation for latter
+        hypso_hw[n]['Xgrid'] = hypso_n['Xgrid']
         
         # Here we directly update width and water height for the chosen reaches
         SedimSys.width[t, n] = b_
@@ -398,180 +407,303 @@ def hypso_ferguson_Q(H, Hsec, dy, D84, slope):
 
 
 
-def hypso_transport_capacity(self, Vdep, roundpar, t, n, Q, Xwac, vsave, hsave,
-                         indx_tr_cap, indx_tr_partition,
-                         passing_cascades=None, per_second=True):
+def hypso_transport_capacity(Vdep, roundpar, t, n, Q, 
+                             hypso_hw, #Xwac, vsave, hsave,
+                             indx_tr_cap, indx_tr_partition,
+                             SedimSys,
+                             passing_cascades = None):
+
     """
     Compute hypsometric transport capacity by lateral wet slice.
+    First lines are same as in 1D transport capacity calculation.
+    (i.e. preparing passing through volume and active layer GSD)    
+    Hypsometry appear only when calculating the transport capacity.
+    """   
+    
+    #--- Concatenate passing cascades into one volume (if they are)
+    if passing_cascades == None or passing_cascades == []:
+        passing_volume = None
 
-    Current simplification:
-    - passing_cascades are ignored in hypso reaches.
-    - bed material is sliced from thalweg outward using layer_search().
-    - if a slice consumes essentially all remaining deposit, we take it directly
-      to avoid tiny negative dry remainders from layer_search roundoff.
-    - true negative sediment volumes are treated as an error.
-    - tiny numerical negatives are snapped to zero, with mass balance checked.
-    """
-
-    mbdebug = False
-
-    # Explicitly ignore passing cascades in hypso reaches for now.
-    passing_volume = None
-
-    subQ = np.zeros(len(vsave))
-    h_tr_cap_per_s = np.zeros((len(vsave), len(self.psi)))
-    Vdep_slices = []
-
-    Vdep_from_thalweg = copy.deepcopy(Vdep)
-    Vdep_wet = np.zeros((1, 1 + len(self.psi)), dtype=np.float64)
-
-    Qc = np.full(len(self.psi), np.nan)
-
-    for w in range(len(vsave)):
-
-        dX = Xwac[w + 1] - Xwac[w]
-        subQ[w] = dX * vsave[w] * hsave[w]
-
-        slicevol = self.reach_data.deposit[n] * self.reach_data.length[n] * dX
-        vol_before = np.sum(self.sediments(Vdep_from_thalweg))
-
-        # If this slice consumes all remaining bed material, avoid layer_search()
-        # roundoff creating a tiny negative dry remainder.
-        if slicevol >= vol_before * (1 - 1e-7):
-            Vdep_slice = copy.deepcopy(Vdep_from_thalweg)
-            Vdep_remaining = self.create_volume(provenance=n)
-
-            sed_sum = np.sum(self.sediments(Vdep_slice), axis=0)
-            if np.sum(sed_sum) > 0:
-                Fi_al_ = sed_sum / np.sum(sed_sum)
-            else:
-                Fi_al_ = np.zeros(len(self.psi))
-
-        else:
-            _, Vdep_slice, Vdep_remaining, Fi_al_ = self.layer_search(
-                Vdep_from_thalweg,
-                np.float32(slicevol),
-                Qpass_volume=None,
-                roundpar=roundpar
-            )
-
-        # ------------------------------------------------------------
-        # Safety check: split should conserve deposit and not create
-        # true negative sediment. Tolerance is relative to remaining bed.
-        # ------------------------------------------------------------
-        neg_tol = 1e-6 #max(1e-6, 1e-7 * max(vol_before, 1.0))
-
-        sed_slice = self.sediments(Vdep_slice)
-        sed_remain = self.sediments(Vdep_remaining)
-
-        min_slice = np.min(sed_slice) if sed_slice.size else 0.0
-        min_remain = np.min(sed_remain) if sed_remain.size else 0.0
-
-        if min_slice < -neg_tol or min_remain < -neg_tol:
-            raise ValueError(
-                f"Negative sediment after hypso split at t={t}, n={n}, w={w}. "
-                f"min_slice={min_slice:.6g}, min_remaining={min_remain:.6g}, "
-                f"slicevol={slicevol:.6g}, vol_before={vol_before:.6g}, "
-                f"neg_tol={neg_tol:.6g}"
-            )
-
-        # Clean signed zero and tiny floating-point sediment noise.
-        # True negatives already raised above.
-        #zero_tol = min(1e-6, max(1e-12, 1e-12 * max(vol_before, 1.0)))
-        zero_tol = 1e-9
-        
-        sed_slice[np.abs(sed_slice) <= zero_tol] = 0.0
-        sed_remain[np.abs(sed_remain) <= zero_tol] = 0.0
-
-        vol_after = (
-            np.sum(self.sediments(Vdep_slice)) +
-            np.sum(self.sediments(Vdep_remaining))
-        )
-
-        mb_tol = max(1e-4, 1e-7 * max(vol_before, 1.0))
-        if abs(vol_after - vol_before) > mb_tol:
-            raise ValueError(
-                f"Mass balance error in hypso split at t={t}, n={n}, w={w}. "
-                f"before={vol_before:.6g}, after={vol_after:.6g}, "
-                f"diff={vol_after - vol_before:.6g}, mb_tol={mb_tol:.6g}"
-            )
-
-        Vdep_slices.append(copy.deepcopy(Vdep_slice))
-        Vdep_wet = Vdep_wet + Vdep_slice[:, :].sum(0)
-
-        # Skip tiny/dry/narrow slices, but keep a smooth fallback from prior slice.
-        if slicevol < 10**roundpar or hsave[w] < 0.1 or dX < 1:
-            if w == 0 or subQ[w - 1] <= 0 or not np.isfinite(subQ[w - 1]):
-                h_tr_cap_per_s[w, :] = 0.0
-            else:
-                dQ_ratio = subQ[w] / subQ[w - 1]
-                h_tr_cap_per_s[w, :] = dQ_ratio * h_tr_cap_per_s[w - 1, :]
-
-            Vdep_from_thalweg = Vdep_remaining
-            continue
-
-        if np.sum(Fi_al_) <= 0 or not np.all(np.isfinite(Fi_al_)):
-            h_tr_cap_per_s[w, :] = 0.0
-            Vdep_from_thalweg = Vdep_remaining
-            continue
-
-        D50_al_ = float(D_finder(Fi_al_, 50, self.psi))
-
-        calculator = TransportCapacityCalculator(
-            Fi_al_, D50_al_, self.slope[t, n], subQ[w],
-            dX, vsave[w], hsave[w], self.psi, self.reach_data.roughness[n]) #self.SUSP_MULT
-
-
-        h_tr_cap_per_s[w, :], Qc = calculator.tr_cap_function(
-            indx_tr_cap, indx_tr_partition
-        )
-
-        # True negative capacity is an error. Negative zero / tiny roundoff is fine.
-        cap_neg_tol = 1e-12
-        if np.any(h_tr_cap_per_s[w, :] < -cap_neg_tol):
-            raise ValueError(
-                f"Negative hypso transport capacity at t={t}, n={n}, w={w}. "
-                f"min={np.min(h_tr_cap_per_s[w, :]):.6g}"
-            )
-
-        h_tr_cap_per_s[w, np.abs(h_tr_cap_per_s[w, :]) < cap_neg_tol] = 0.0
-
-        if np.any(np.isnan(h_tr_cap_per_s[w, :])):
-            print("NaN here", Fi_al_)
-            print(w, self.slope[t, n], subQ[w], dX, vsave[w], hsave[w])
-
-            if w == 0 or subQ[w - 1] <= 0 or not np.isfinite(subQ[w - 1]):
-                h_tr_cap_per_s[w, :] = 0.0
-            else:
-                dQ_ratio = subQ[w] / subQ[w - 1]
-                h_tr_cap_per_s[w, :] = dQ_ratio * h_tr_cap_per_s[w - 1, :]
-
-        Vdep_from_thalweg = Vdep_remaining
-
-    # Final dry remainder
-    Vdep_slices.append(copy.deepcopy(Vdep_remaining))
-
-    if mbdebug:
-        vol_slices = sum(np.sum(self.sediments(vs)) for vs in Vdep_slices)
-        vol_total = np.sum(self.sediments(Vdep))
-        print(
-            f"[MB hypso split] t={t} n={n} "
-            f"split/total={vol_slices / max(vol_total, 1e-12):.6f}"
-        )
-
-    total_h_tr_cap_per_s = np.sum(h_tr_cap_per_s, axis=0)
-
-    Vdep_wet[0, 0] = n
-    total_sum = np.sum(Vdep_wet[:, 1:])
-    sum_per_class = np.sum(Vdep_wet[:, 1:], axis=0)
-
-    if total_sum > 0:
-        Fi_wet = sum_per_class / total_sum
-        D50_wet_ = float(D_finder(Fi_wet, 50, self.psi))
     else:
-        Fi_wet = np.zeros(len(self.psi))
-        D50_wet_ = np.nan
+        # Particular case where external cascades are passed to the next reach and excluded of the calculation
+        if SedimSys.force_pass_external_inputs == True:
+            passing_cascades = [cascade for cascade in passing_cascades
+                                  if not (cascade.is_external == True and cascade.provenance == n)]
+        if passing_cascades == []: 
+            passing_volume = None
+        else:
+            # Makes a single volume out of the passing cascade list:
+            passing_volume = np.concatenate([cascade.volume for cascade in passing_cascades], axis=0)
+            passing_volume = SedimSys.matrix_compact(passing_volume) #compact by original provenance    
+    
+    #--- Compute fraction and D50 in the active layer
+    # TODO: warning when the AL is very small, we can have Fi_r is 0 due to roundpar
+    
+    # Because passing through cascade volume are physically 
+    # transported on a different width than the one over which AL volume and Vdep where defined, 
+    # we adjust temporarilly these two volumes to the new width (to get coherence in the layer depths):
+    W_new = SedimSys.width[t, n]
+    W_init = SedimSys.reach_data.wac[n]
+    al_vol_ = SedimSys.al_vol[t, n] * (W_new / W_init)
+    Vdep_ = copy.deepcopy(Vdep) # I dont want to modify the reach Vdep
+    SedimSys.sediments(Vdep_)[:] = SedimSys.sediments(Vdep_) * (W_new / W_init)
 
-    return total_h_tr_cap_per_s, Fi_wet, D50_wet_, Qc, h_tr_cap_per_s, Vdep_slices
+    if passing_volume is None:
+        AL_volume = al_vol_
+    else:
+        if SedimSys.al_depth_method == 1:
+            # Method 1: (default) if there are passing cascades, their total volume is added to the user-defined active volume
+            sum_pass = np.sum(SedimSys.sediments(passing_volume))
+            AL_volume = al_vol_ + sum_pass
+        elif SedimSys.al_depth_method == 2:
+            # Method 2: the active depth is measured from the top of the passing cascades
+            AL_volume = al_vol_
+
+    _,_,_, Fi_al_ = SedimSys.layer_search(Vdep_, AL_volume, Qpass_volume = passing_volume, roundpar = roundpar)
+
+
+    # In case the active layer is empty, I use the GSD of the previous timestep
+    if np.sum(Fi_al_) == 0:
+       Fi_al_ = SedimSys.Fi_al[t-1, n, :]
+    D50_al_ = float(D_finder(Fi_al_, 50, SedimSys.psi))
+    
+    #--- Compute hypsometric transport capacity
+    
+    # Retrieve width discretisation vector, hyspometric height, and velocities
+    w_vec = hypso_hw[n]['Xgrid'] 
+    hsave = hypso_hw[n]['h_save']
+    vsave = hypso_hw[n]['v_save']
+    
+    hypso_tr_cap_per_s = np.zeros((len(hsave), len(SedimSys.psi)))
+    
+    # Total discharge
+    Qtot = 0
+    
+    # Loop over lateral slices i:
+    for i in range(len(hsave)):
+        
+        h_i = hsave[i]
+        if h_i == 0:
+            continue # DD: not ideal, see later
+        v_i = vsave[i]
+        w_i = w_vec[i + 1] - w_vec[i]
+        Q_i = w_i * h_i * v_i        
+        Qtot += Q_i
+            
+        # Transport capacity in m3/s
+        calculator = TransportCapacityCalculator(Fi_al_ , D50_al_, SedimSys.slope[t,n],
+                                               Q_i, w_i, v_i, h_i,
+                                               SedimSys.psi, SedimSys.reach_data.roughness[n])
+        
+        tr_cap_per_s_i, Qc = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
+        # NB: Qc does not change lateraly here (homogeneous bed)
+        
+        hypso_tr_cap_per_s[i, :] = tr_cap_per_s_i
+        
+    # Check that sum Q is not to different from input Q
+    rel_err = abs(Q[t, n] - Qtot) / abs(Qtot) * 100
+    if rel_err > 5.0:
+        raise ValueError(f"Flow mismatch at t={t}, n={n}: "
+                         f"Q={Q[t, n]:.6g}, Qtot={Qtot:.6g}, "
+                         f"relative error={rel_err:.2f}%")
+    
+    # Compute sum of hypso tr_cap
+    tr_cap_per_s = np.sum(hypso_tr_cap_per_s, axis = 0)  
+    
+    return tr_cap_per_s, Fi_al_, D50_al_, Qc, hypso_tr_cap_per_s
+
+    
+    
+
+
+################### To keep from JR
+
+
+# def hypso_transport_capacity(Vdep, roundpar, t, n, Q, 
+#                              hypso_hw, #Xwac, vsave, hsave,
+#                              indx_tr_cap, indx_tr_partition,
+#                              SedimSys,
+#                              passing_cascades = None):
+
+#     """
+#     Compute hypsometric transport capacity by lateral wet slice.
+
+#     Current simplification:
+#     - passing_cascades are ignored in hypso reaches.
+#     - bed material is sliced from thalweg outward using layer_search().
+#     - if a slice consumes essentially all remaining deposit, we take it directly
+#       to avoid tiny negative dry remainders from layer_search roundoff.
+#     - true negative sediment volumes are treated as an error.
+#     - tiny numerical negatives are snapped to zero, with mass balance checked.
+#     """
+    
+#     # Retrieve width discretisation vector
+#     w_vec = hypso_hw[n]['Xgrid']
+    
+#     # Retrieve hyspometric height and velocities
+#     hsave = hypso_hw[n]['h_save']
+#     vsave = hypso_hw[n]['v_save']
+    
+
+#     mbdebug = False
+
+#     # Explicitly ignore passing cascades in hypso reaches for now.
+#     passing_volume = None
+
+#     subQ = np.zeros(len(vsave))
+#     h_tr_cap_per_s = np.zeros((len(vsave), len(SedimSys.psi)))
+#     Vdep_slices = []
+
+#     Vdep_from_thalweg = copy.deepcopy(Vdep)
+#     Vdep_wet = np.zeros((1, 1 + len(SedimSys.psi)), dtype=np.float64)
+
+#     Qc = np.full(len(SedimSys.psi), np.nan)
+
+#     for w in range(len(vsave)):
+
+#         dX = w_vec[w + 1] - w_vec[w]
+#         subQ[w] = dX * vsave[w] * hsave[w]
+
+#         slicevol = SedimSys.reach_data.deposit[n] * SedimSys.reach_data.length[n] * dX
+#         vol_before = np.sum(SedimSys.sediments(Vdep_from_thalweg))
+
+#         # If this slice consumes all remaining bed material, avoid layer_search()
+#         # roundoff creating a tiny negative dry remainder.
+#         if slicevol >= vol_before * (1 - 1e-7):
+#             Vdep_slice = copy.deepcopy(Vdep_from_thalweg)
+#             Vdep_remaining = SedimSys.create_volume(provenance=n)
+
+#             sed_sum = np.sum(SedimSys.sediments(Vdep_slice), axis=0)
+#             if np.sum(sed_sum) > 0:
+#                 Fi_al_ = sed_sum / np.sum(sed_sum)
+#             else:
+#                 Fi_al_ = np.zeros(len(SedimSys.psi))
+
+#         else:
+#             _, Vdep_slice, Vdep_remaining, Fi_al_ = SedimSys.layer_search(
+#                 Vdep_from_thalweg,
+#                 np.float32(slicevol),
+#                 Qpass_volume=None,
+#                 roundpar=roundpar
+#             )
+
+#         # ------------------------------------------------------------
+#         # Safety check: split should conserve deposit and not create
+#         # true negative sediment. Tolerance is relative to remaining bed.
+#         # ------------------------------------------------------------
+#         neg_tol = 1e-6 #max(1e-6, 1e-7 * max(vol_before, 1.0))
+
+#         sed_slice = SedimSys.sediments(Vdep_slice)
+#         sed_remain = SedimSys.sediments(Vdep_remaining)
+
+#         min_slice = np.min(sed_slice) if sed_slice.size else 0.0
+#         min_remain = np.min(sed_remain) if sed_remain.size else 0.0
+
+#         if min_slice < -neg_tol or min_remain < -neg_tol:
+#             raise ValueError(
+#                 f"Negative sediment after hypso split at t={t}, n={n}, w={w}. "
+#                 f"min_slice={min_slice:.6g}, min_remaining={min_remain:.6g}, "
+#                 f"slicevol={slicevol:.6g}, vol_before={vol_before:.6g}, "
+#                 f"neg_tol={neg_tol:.6g}"
+#             )
+
+#         # Clean signed zero and tiny floating-point sediment noise.
+#         # True negatives already raised above.
+#         #zero_tol = min(1e-6, max(1e-12, 1e-12 * max(vol_before, 1.0)))
+#         zero_tol = 1e-9
+        
+#         sed_slice[np.abs(sed_slice) <= zero_tol] = 0.0
+#         sed_remain[np.abs(sed_remain) <= zero_tol] = 0.0
+
+#         vol_after = (
+#             np.sum(SedimSys.sediments(Vdep_slice)) +
+#             np.sum(SedimSys.sediments(Vdep_remaining))
+#         )
+
+#         mb_tol = max(1e-4, 1e-7 * max(vol_before, 1.0))
+#         if abs(vol_after - vol_before) > mb_tol:
+#             raise ValueError(
+#                 f"Mass balance error in hypso split at t={t}, n={n}, w={w}. "
+#                 f"before={vol_before:.6g}, after={vol_after:.6g}, "
+#                 f"diff={vol_after - vol_before:.6g}, mb_tol={mb_tol:.6g}"
+#             )
+
+#         Vdep_slices.append(copy.deepcopy(Vdep_slice))
+#         Vdep_wet = Vdep_wet + Vdep_slice[:, :].sum(0)
+
+#         # Skip tiny/dry/narrow slices, but keep a smooth fallback from prior slice.
+#         if slicevol < 10**roundpar or hsave[w] < 0.1 or dX < 1:
+#             if w == 0 or subQ[w - 1] <= 0 or not np.isfinite(subQ[w - 1]):
+#                 h_tr_cap_per_s[w, :] = 0.0
+#             else:
+#                 dQ_ratio = subQ[w] / subQ[w - 1]
+#                 h_tr_cap_per_s[w, :] = dQ_ratio * h_tr_cap_per_s[w - 1, :]
+
+#             Vdep_from_thalweg = Vdep_remaining
+#             continue
+
+#         if np.sum(Fi_al_) <= 0 or not np.all(np.isfinite(Fi_al_)):
+#             h_tr_cap_per_s[w, :] = 0.0
+#             Vdep_from_thalweg = Vdep_remaining
+#             continue
+
+#         D50_al_ = float(D_finder(Fi_al_, 50, SedimSys.psi))
+
+#         calculator = TransportCapacityCalculator(
+#             Fi_al_, D50_al_, SedimSys.slope[t, n], subQ[w],
+#             dX, vsave[w], hsave[w], SedimSys.psi, SedimSys.reach_data.roughness[n]) #self.SUSP_MULT
+
+
+#         h_tr_cap_per_s[w, :], Qc = calculator.tr_cap_function(
+#             indx_tr_cap, indx_tr_partition
+#         )
+
+#         # True negative capacity is an error. Negative zero / tiny roundoff is fine.
+#         cap_neg_tol = 1e-12
+#         if np.any(h_tr_cap_per_s[w, :] < -cap_neg_tol):
+#             raise ValueError(
+#                 f"Negative hypso transport capacity at t={t}, n={n}, w={w}. "
+#                 f"min={np.min(h_tr_cap_per_s[w, :]):.6g}"
+#             )
+
+#         h_tr_cap_per_s[w, np.abs(h_tr_cap_per_s[w, :]) < cap_neg_tol] = 0.0
+
+#         if np.any(np.isnan(h_tr_cap_per_s[w, :])):
+#             print("NaN here", Fi_al_)
+#             print(w, SedimSys.slope[t, n], subQ[w], dX, vsave[w], hsave[w])
+
+#             if w == 0 or subQ[w - 1] <= 0 or not np.isfinite(subQ[w - 1]):
+#                 h_tr_cap_per_s[w, :] = 0.0
+#             else:
+#                 dQ_ratio = subQ[w] / subQ[w - 1]
+#                 h_tr_cap_per_s[w, :] = dQ_ratio * h_tr_cap_per_s[w - 1, :]
+
+#         Vdep_from_thalweg = Vdep_remaining
+
+#     # Final dry remainder
+#     Vdep_slices.append(copy.deepcopy(Vdep_remaining))
+
+#     if mbdebug:
+#         vol_slices = sum(np.sum(SedimSys.sediments(vs)) for vs in Vdep_slices)
+#         vol_total = np.sum(SedimSys.sediments(Vdep))
+#         print(
+#             f"[MB hypso split] t={t} n={n} "
+#             f"split/total={vol_slices / max(vol_total, 1e-12):.6f}"
+#         )
+
+#     total_h_tr_cap_per_s = np.sum(h_tr_cap_per_s, axis=0)
+
+#     Vdep_wet[0, 0] = n
+#     total_sum = np.sum(Vdep_wet[:, 1:])
+#     sum_per_class = np.sum(Vdep_wet[:, 1:], axis=0)
+
+#     if total_sum > 0:
+#         Fi_wet = sum_per_class / total_sum
+#         D50_wet_ = float(D_finder(Fi_wet, 50, SedimSys.psi))
+#     else:
+#         Fi_wet = np.zeros(len(SedimSys.psi))
+#         D50_wet_ = np.nan
+
+#     return total_h_tr_cap_per_s, Fi_wet, D50_wet_, Qc, h_tr_cap_per_s, Vdep_slices
 
 
