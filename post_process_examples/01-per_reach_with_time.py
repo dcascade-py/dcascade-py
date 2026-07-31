@@ -28,11 +28,11 @@ import geopandas as gpd
 
 #---------------------Path to the pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'Vjosa_test'
+name_simu = 'Tagliamento_bf'
 
 #---------------------Path to the input river network (.shp) or (.csv)
-path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
-name_river_network = "River_Network.shp"
+path_river_network = "..\\inputs\\Tagliamento_river\\" #Path to the shp
+name_river_network = "Reach_data_tag_bf.csv"
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_per_reach\\' # where you will store the figure

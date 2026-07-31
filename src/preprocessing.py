@@ -184,9 +184,10 @@ def graph_preprocessing(reach_data):
                 for z in range(len(el) - 1):
                    # find relative distance
                    idx = np.where((to_n == int(el[z])) & (from_n == int(el[z+1])))
+                   
                    if len(idx[0]) != 0: # if found the combination of nodes - find the distance between them
-                     dist[int(collection[w])] = length [idx] + add
-                     add += length[idx]
+                       dist[int(collection[w])] = length [idx] + add
+                       add += length[idx]
 
         distance_upstream[i] = dist
         number_upstream_nodes[i] = length_dict

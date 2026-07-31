@@ -76,7 +76,7 @@ name_output = 'Vjosa_test'
 # defines the sediment sizes considered in the simulation
 #(must be compatible with D16, D50, D84 defined for the reach - i.e. max sed class cannot be lower than D16)
 sed_range = [-8, 5]  # range of sediment sizes - in Krumbein phi (φ) scale (classes from coarse to fine – e.g., -9.5, -8.5, -7.5 … 5.5, 6.5).
-n_classes = 6        # number of classes
+n_classes = 12        # number of classes
 
 #---Timescale
 timescale = 20 # days
@@ -105,7 +105,7 @@ save_dep_layer = 'never' # options: 'yearly', 'always', 'never'.  Choose when to
 save_extended = True
 
 #---Option to display dynamic output plots at the end
-dynamic_display = False
+dynamic_display = True
 
 
 #-------------------3) List of optional defined parameters of the simulation

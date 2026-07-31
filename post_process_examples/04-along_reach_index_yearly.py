@@ -30,11 +30,11 @@ import geopandas as gpd
 
 #---------------------Path to the pickle output
 path = "..\\cascade_results\\" 
-name_simu = 'Vjosa_test'
+name_simu = 'Tagliamento_bf'
 
 #---------------------Path to the input river network (.shp) or (.csv)
-path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
-name_river_network = "River_Network.shp"
+path_river_network = "..\\inputs\\Tagliamento_river\\" #Path to the shp
+name_river_network = "Reach_data_tag_bf.csv"
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure
@@ -171,7 +171,7 @@ n_time = my_data.shape[0]
 fig = plt.figure()
 ax = plt.subplot(111) 
    
-color = iter(plt.cm.viridis(np.linspace(0, 1, n_time)))
+color = iter(plt.cm.coolwarm(np.linspace(0, 1, n_time)))
 
 for t in range(n_time):        
     c=next(color)        
