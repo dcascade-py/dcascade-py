@@ -21,6 +21,7 @@ from flow_depth import choose_flow_depth
 from sedimentary_system import SedimentarySystem
 from slope_reduction import choose_slope_reduction
 from width_variation import choose_width_variation
+from hypsometry import update_hypsometric_hydraulics, hypso_transport_capacity
 
 
 class DCASCADE:
@@ -38,6 +39,7 @@ class DCASCADE:
         self.n_reaches = sedim_sys.n_reaches
         self.n_classes = sedim_sys.n_classes
         self.n_metadata = sedim_sys.n_metadata
+        self.t_track = sedim_sys.t_track 
 
         # Simulation attributes
         self.timescale = sedim_sys.timescale   # time step number
@@ -71,16 +73,27 @@ class DCASCADE:
     def run(self, Q, roundpar):
 
         SedimSys = self.sedim_sys
-
+        
         # start waiting bar
         for t in tqdm(range(self.timescale)):
-
+            
             # Channel width calculation
             SedimSys.width = choose_width_variation(self.reach_data, SedimSys, Q, t, self.indx_width_calc)
-
+            
             # Define flow depth and flow velocity for all reaches at this time step:
             h, v = choose_flow_depth(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
             SedimSys.flow_depth[t] = h
+            SedimSys.water_velocity[t] = v
+
+            
+            if self.sedim_sys.hypso_code > 0:
+                # Compute hypsometric flow for hypso reaches only. It will overwrite width and water height previously defined
+                # Returns hypsometric water height, to be used for tr_cap if hypso code == 2                
+                hypso_hw = update_hypsometric_hydraulics(self.reach_data, SedimSys, Q, t, self.indx_flo_depth)
+                # h, and v need to be replaced to be used below (DD: maybe think of a more elegant way)
+                h = SedimSys.flow_depth[t]
+                v = SedimSys.water_velocity[t] 
+                
 
             # Compute velocity section height (may be dependant on the water depth)
             SedimSys.set_velocity_section_height(self.vel_height_option, h, t)
@@ -99,7 +112,7 @@ class DCASCADE:
 
             # loop for all reaches:
             for n in self.network['n_hier']:
-                
+
                 # Extracts the deposit layer left in previous time step
                 Vdep_init = Qbi_dep_old[n] # extract the deposit layer of the reach
 
@@ -118,8 +131,14 @@ class DCASCADE:
                 # Note: we store the volume by original provenance
                 for cascade in Qbi_pass[n]:
                     SedimSys.Qbi_tr[t][[SedimSys.provenance(cascade.volume).astype(int)], n, :] += SedimSys.sediments(cascade.volume)
-                    # DD: If we want to store instead the direct provenance
-                    # Qbi_tr[t][cascade.provenance, n, :] += np.sum(cascade.volume[:, 1:], axis = 0)
+
+                # If specified, store also the erosion times of these cascades entering the reach
+                # (can be a decimal number since we average the time of same provenance)
+                if self.t_track == True: 
+                    if Qbi_pass[n] != []:
+                        concat_volume = np.concatenate([cascade.volume for cascade in Qbi_pass[n]], axis=0)
+                        concat_volume = SedimSys.matrix_compact(concat_volume)
+                        SedimSys.Qbi_tr_eros_times[t, SedimSys.provenance(concat_volume).astype(int), n] = SedimSys.metadata(concat_volume)[:, 1]
 
                 # Compute the velocity of the cascades in this reach [m/s]
                 if Qbi_pass[n] != []:
@@ -149,6 +168,16 @@ class DCASCADE:
                 tr_cap_per_s, Fi_al, D50_al, Qc = SedimSys.compute_transport_capacity(Vdep_init, roundpar, t, n, Q, v, h,
                                                                                   self.indx_tr_cap, self.indx_tr_partition,
                                                                                   passing_cascades = Qbi_pass[n])
+                
+                # Hypsometric transport capacity calculation for hypso reaches.
+                if SedimSys.hypso_code >=2 and n in hypso_hw.keys():                        
+                    tr_cap_per_s, Fi_al_, D50_al_, Qc, hypso_tr_cap_per_s  = hypso_transport_capacity(Vdep_init, roundpar, t, n, Q, hypso_hw,                                                                                                                             
+                                                                                              self.indx_tr_cap, self.indx_tr_partition,
+                                                                                              SedimSys,
+                                                                                              passing_cascades = Qbi_pass[n])                                                                                        
+                    # Save hypso tr_cap                        
+                    hypso_hw[n]['hypso_tr_cap'] = hypso_tr_cap_per_s
+                                   
 
                 # Store transport capacity and active layer informations:
                 SedimSys.Fi_al[t, n, :] = Fi_al
@@ -210,6 +239,7 @@ class DCASCADE:
                 # Note: sediment budget at t, will update the node elevation at t+1
                 if self.update_slope == True and t != self.timescale - 1:
                     SedimSys.update_node_elevation_with_deposit(t, n)
+                    
 
             """End of the reach loop"""
 
@@ -225,10 +255,12 @@ class DCASCADE:
             if self.update_slope == True and t != self.timescale - 1:
                 # DD: see what min slope value should be
                 SedimSys.change_slope(t)
-        
+
         # How many time the bottom was reached during the simulation
         if SedimSys.reach_bottom_count != 0:
             print("\n The deposit layer bottom was reached " + str(SedimSys.reach_bottom_count) + " times. \n")
+        
+        
 
         """End of the time loop"""
 
@@ -297,9 +329,12 @@ class DCASCADE:
                        'D50 volume out [m]': D50_mob.astype(np.float32),
                        'D50 active layer [m]': SedimSys.D50_al.astype(np.float32),
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
-                       'Transport capacity [m^3]': transport_capacity.astype(np.float32),                                             
-                        'Fraction taken from AL': SedimSys.fr_mob_in_al   # Active layer fraction metric
-                        }
+                       'Transport capacity [m^3]': transport_capacity.astype(np.float32),
+                       'Fraction taken from AL': SedimSys.fr_mob_in_al,   # Active layer fraction metric
+                       }
+
+        if self.t_track == True:
+            data_output['Eros_times'] = SedimSys.Qbi_tr_eros_times
 
         # Sum quantities by provenance
         mobilised_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
@@ -333,7 +368,7 @@ class DCASCADE:
                            'Velocities [m/s]': SedimSys.V_sed.astype(np.float32),
                            'Widths [m]': SedimSys.width.astype(np.float32),
                            'Slopes': SedimSys.slope.astype(np.float32),
-                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)                           
+                           'Mass balance [m^3]' : SedimSys.mass_balance.astype(np.float32)
                            }
 
 

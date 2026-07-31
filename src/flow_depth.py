@@ -30,6 +30,8 @@ For estimating the flow depth in the reaches two options are given:
 
 import numpy as np
 import numpy.matlib
+from scipy.optimize import brentq
+
 
 from constants import GRAV
 from d_finder import D_finder
@@ -60,11 +62,107 @@ def h_ferguson(reach_data, SedimSys, Q, t):
 
     return h, v
 
+def h_chezy(reach_data, SedimSys, Q, t, min_slope = 0.0001):
+    """
+    The Chezy equation. Using C = 2.5.ln(11h/e) (after Walter Bertoldi). 
+    Therefore needs a solver, to invert for h.
+    """
+    
+    widths = SedimSys.width[t]
+    slopes = SedimSys.slope[t]
+    d50s = reach_data.D50          #choice: we keep using the initial one for roughness
+    Q_t = Q[t, :]
+
+    h = np.zeros_like(Q_t)
+    v = np.zeros_like(Q_t)
+    
+    Q_TOL = 1e-12
+
+    for i in range(len(Q_t)):
+        
+        B = widths[i]
+        S = slopes[i]
+        D50 = d50s[i]
+        Qi_target = Q_t[i]
+        
+        # if Q is too small:
+        if Qi_target <= Q_TOL:
+            h[i] = 0.0
+            v[i] = 0.0            
+            # print(
+            #     f"Warning: target Q below TOL "
+            #     f"at t={t}, reach={i}. "
+            #     f"Qtarget={Qi_target}, "
+            # )
+            
+            continue
+        
+        # if S is too small:
+        if S <= min_slope:
+            S = min_slope
+            
+        roughness = 5.3 * D50
+
+        def discharge_from_depth(H):
+    
+            A = B * H
+            P = B + 2.0 * H
+            Rh = A / P
+    
+            C = 2.5 * np.log(11.0 * H / roughness)
+    
+            return C * A * np.sqrt(Rh) * np.sqrt(GRAV * S)
+
+        def residual(H):
+            return discharge_from_depth(H) - Qi_target
+    
+        # Lower bound must ensure C > 0
+        h_min = roughness / 11.0 * np.exp(1e-6)
+        # Check whether the target discharge is reachable
+        if residual(h_min) > 0:        
+            # print(
+            #     f"Warning: target Q below minimum valid Chézy depth "
+            #     f"at t={t}, reach={i}. "
+            #     f"Qtarget={Qi_target}, "
+            #     f"Q(h_min)={discharge_from_depth(h_min)}, "
+            #     f"h_min={h_min}"
+            # )
+            h[i] = 0.0
+            v[i] = 0.0
+            continue
+               
+        # Upper braket
+        h_max = 1.0    
+        # Increase upper bound until the target Q is bracketed
+        while residual(h_max) < 0:
+            h_max *= 2.0
+        try:
+            h[i] = brentq(residual, h_min, h_max)
+        except Exception as e:
+            print(f"brentq failed at t={t}, reach={i}: {e}")
+            
+        # Compute velocity
+        A = B * h[i]
+        v[i] = Qi_target / A
+
+    return h, v
+    
+
 def choose_flow_depth(reach_data, SedimSys, Q, t, flow_depth):
     if flow_depth == 1:
         [h, v] = h_manning(reach_data, SedimSys, Q, t)
 
     elif flow_depth == 2:
         [h, v] = h_ferguson(reach_data, SedimSys, Q, t)
+        
+    elif flow_depth == 3:
+        [h, v] = h_chezy(reach_data, SedimSys, Q, t)
 
     return h, v
+
+
+
+
+
+
+

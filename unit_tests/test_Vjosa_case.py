@@ -29,12 +29,9 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 ''' List of tests performed here:
 
-        test_Vjosa_Engelund_all_new_options_false
-        test_Vjosa_Wilcock_all_new_options_false
-        (reproducing algorithme of the version 1 of dcascade)
 
-        test_Vjosa_Engelund_all_new_options_true
-        test_Vjosa_Wilcock_all_new_options_true
+        test_v2_Vjosa_Engelund_BMF
+        test_v2_Vjosa_Wilcock
 
 '''
 
@@ -90,7 +87,7 @@ for n in range(reach_data.n_reaches):
     Qbi_dep_in[n] = deposit[n] * Fi_r[n,:]
 
 
-def test_Vjosa_Engelund_all_true_no_tlag():
+def test_v2_Vjosa_Engelund_BMF():
     '''20 days are simulated.
     We use Engelund. With the "Bed Material Fraction" partitioning.
     '''
@@ -127,7 +124,7 @@ def test_Vjosa_Engelund_all_true_no_tlag():
     # np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
 
 
-def test_Vjosa_Wilcock_all_true_no_tlag():
+def test_v2_Vjosa_Wilcock():
     '''20 days are simulated.
     We use Wilcock and Crowes.
     '''
@@ -144,7 +141,6 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
 
     #----Test the total mobilised volume per reach
     test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
-    # expected_result = np.array([2142257.,  497025.,  271124.,   68684.,  770800.,  113202.,  175644.])
     expected_result = np.array([2.245782e+06, 5.261160e+05, 2.874930e+05, 7.204900e+04,
                                 8.078890e+05, 1.185800e+05, 1.840180e+05])
 
@@ -165,10 +161,48 @@ def test_Vjosa_Wilcock_all_true_no_tlag():
     np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
 
 
+def test_v2_Vjosa_Ackers_and_White_Molinas():
+    '''20 days are simulated.
+    We use Ackers and White with Molinas partitioning.
+    (NB: DD, test with alternative coefficients in Molinas does not change much the results)
+    '''
+    # indexes
+    indx_tr_cap = 6         # AW
+    indx_tr_partition = 3   # Molinas
+
+
+    # Run definition
+    data_output, extended_output = DCASCADE_main(reach_data, Network, Q, psi, timescale, ts_length,
+                                                 al_depth, indx_tr_cap, indx_tr_partition, Qbi_dep_in,
+                                                 al_depth_method = al_depth_method,
+                                                 eros_max = eros_max)
+
+    #----Test the total mobilised volume per reach
+    test_result = np.sum(data_output['Volume out [m^3]'], axis = 0)
+    expected_result = np.array([4.65e+03, 3.49e+02, 3.20e+01, 0.00e+00, 8.19e+02, 0.00e+00,
+                                4.00e+00])
+
+    np.testing.assert_array_equal(test_result, expected_result)
+
+    #----Test the total transported volume per reach
+    test_result = np.sum(data_output['Volume in [m^3]'], axis = 0)
+    expected_result = np.array([   0., 5469.,  349.,   36.,    0.,    0.,    0.])
+    np.testing.assert_array_equal(test_result, expected_result)
+
+    # #----Test D50 active layer
+    # test_result = np.median(data_output['D50 active layer [m]'], axis = 0)
+    # expected_result = np.array([0.00235723, 0.00235714, 0.00228797, 0.00228537, 0.002357  ,
+    #                             0.00235716, 0.00235696])
+    # the relative tolerance is fixed to 1e-05, because the expected results
+    # were displayed by spyder, and have 6 significative numbers
+    np.testing.assert_allclose(test_result, expected_result, rtol = 1e-05)
+
+
 
 if __name__ == "__main__":
-    test_Vjosa_Engelund_all_true_no_tlag()
-    test_Vjosa_Wilcock_all_true_no_tlag()
+    test_v2_Vjosa_Engelund_BMF()
+    test_v2_Vjosa_Wilcock()
+    test_v2_Vjosa_Ackers_and_White_Molinas()
 
 
     print("All tests successfully run.")

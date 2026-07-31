@@ -103,7 +103,7 @@ def dynamic_plot(data_output, ReachData, **kwargs):
     slider.on_changed(value_update)
     button1.on_clicked(backward)
     button2.on_clicked(forward)
-    
+
     plt.show()
     return slider, button1, button2
 
