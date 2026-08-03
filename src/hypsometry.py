@@ -35,7 +35,7 @@ def initialise_hypso_data(reach_data, CS_curves, dx = 5, dz = 0.1):
                 for sections in CS_curves.values() for section in sections.values())       
     z_vec = np.arange(0, h_max + dz, dz)        # elevation vector common to all reaches
 
-    # Loop through each reach for which we have a CS
+    # Loop through each reach for which we have CS(s)
     for fn in CS_curves.keys():
         widths_all_CS = []
         
@@ -60,13 +60,17 @@ def initialise_hypso_data(reach_data, CS_curves, dx = 5, dz = 0.1):
             # Width vector associated with each water height
             widths = []
             for z in z_vec:
-                mask = h_dense <= z        
-                if np.any(mask):
-                    width = np.ptp(x_dense[mask])
-                else:
-                    width = 0.0        
-                widths.append(width)        
-            
+                mask = h_dense <= z             
+                
+                # Segments between x_dense points
+                diff_x = np.diff(x_dense)
+    
+                # Segment is considered as immerged if its left extremity is
+                seg_mask = mask[:-1]               
+                width = np.sum(diff_x[seg_mask])
+                
+                widths.append(width)
+                            
             widths_all_CS.append(np.array(widths))
                                     
             # # Temp for plot
