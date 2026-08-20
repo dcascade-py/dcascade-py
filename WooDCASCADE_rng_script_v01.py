@@ -12,15 +12,38 @@ path_river_network = r'C:\path\to\ReachFile\folder\\'
 name_river_network = r'ReachFile.csv' # Located at the folder stated at path_river_network
 path_results = r"C:\path\to\Output\folder\\"
 
-n_classes = 1 ### Change to 2 if applying Wood Class; select appropriate f(x) in loop
-timescale = 4
+export_pickle = True
+pickle_file = os.path.join(path_results, 'Name_of_output_file.p')
+
+n_classes = 1
+timescale = 4  # Initial state + 3 modeled events <-- timescale = 4
+n_iterations = 10
+
+# Function options:
+#   "Global" and "HiLo" use n_classes = 1
+#   "WoodClass" and "HiLoWoodClass" use n_classes = 2
+function_family = "Global"
+
+recruitment_schedule = {
+    # 0: [(5, 5.0)],          # Add 5.0 m³ of total wood to reach 5
+    # 0: [(5, [3.0, 2.0])],   # Two classes: add 3.0 m³ Large and 2.0 m³ Medium
+}
+
+barrier_schedule = {
+    # 0: [(5, 0.50)],
+}
+
+# Used only by "HiLo" and "HiLoWoodClass"
+hilo_event_schedule = {
+    # 0: "hi",
+    # 1: "lo",
+    # 2: "hi",
+}
+
 update_slope = False
 save_dep_layer = 'always'
 roundpar = 0
 
-n_iterations = 10
-export_pickle = True
-pickle_file = os.path.join(path_results, 'Name_of_output_file.p')
 
 # ---- STORAGE ---- #
 all_runs_output = {}  # {iteration_number: data_output}
@@ -44,8 +67,11 @@ for iteration in range(1, n_iterations + 1):
     # Run the model
     data_output, extended_output = DCASCADE_main(
         ReachData, Network, Qbi_dep_in, timescale,
-        roundpar, update_slope, save_dep_layer, n_classes
-    )
+        roundpar, update_slope, save_dep_layer, n_classes,
+        function_family=function_family,
+        recruitment_schedule=recruitment_schedule,
+        barrier_schedule=barrier_schedule,
+        event_schedule=hilo_event_schedule)
 
     # Optional: clean output of unused keys
     data_output_clean = copy.deepcopy(data_output)

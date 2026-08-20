@@ -26,12 +26,10 @@ from supporting_functions import tr_cap_deposit
 from supporting_functions import matrix_compact 
 from supporting_functions import sed_transfer_simple
 from supporting_functions import change_slope
-
 from supporting_wood_functions_v01 import Global_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb
 from supporting_wood_functions_v01 import HiLo_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb
 from supporting_wood_functions_v01 import WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb
 from supporting_wood_functions_v01 import HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb
-
 from transport_capacity_computation import tr_cap_function
 from transport_capacity_computation import sed_velocity
 from transport_capacity_computation import sed_velocity_OLD
@@ -45,7 +43,8 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 def DCASCADE_main(ReachData, Network, Qbi_dep_in, timescale, roundpar, 
-                  update_slope, save_dep_layer, n_classes):
+                  update_slope, save_dep_layer, n_classes, function_family, recruitment_schedule,
+                  barrier_schedule, event_schedule):
     """INPUT :
     indx_tr_cap    = the index indicating the transport capacity formula
     indx_partition = the index indicating the type of sediment flux partitioning
@@ -77,6 +76,20 @@ def DCASCADE_main(ReachData, Network, Qbi_dep_in, timescale, roundpar,
     outlet = Network['NH'][-1] #outlet reach ID identification
     n_reaches = len(ReachData)
     # n_classes = len(psi)
+    
+    one_class_functions = {"Global", "HiLo"}
+    two_class_functions = {"WoodClass", "HiLoWoodClass"}
+    
+    if function_family in one_class_functions and n_classes != 1:
+        raise ValueError(
+            f"{function_family} requires n_classes = 1."
+        )
+    
+    if function_family in two_class_functions and n_classes != 2:
+        raise ValueError(
+            f"{function_family} requires n_classes = 2 "
+            "with class order [Large, Medium]."
+        )
     
     # Correct the value in the Downstream_Node
     # Network['Downstream_Node'][12] = np.int64(13)
@@ -164,113 +177,6 @@ def DCASCADE_main(ReachData, Network, Qbi_dep_in, timescale, roundpar,
     #     AL_vol = AL_depth * ReachData['Wac'].values[n] * ReachData['Length'].values[n]
     #     AL_vol_all[:,n] = np.repeat(AL_vol, timescale, axis=0)
     #     AL_depth_all[:,n] = np.repeat(AL_depth, timescale, axis=0)
-          
-
-# ================================================================
-# EXAMPLE: RECRUITMENT AND LOSS SCHEDULE
-# ================================================================
-# Format:
-# timestep: [(reach_id, volume_change), ...]
-#
-# volume_change may be:
-#   scalar             -> one total volume
-#   [class_0, class_1] -> explicit volume for each wood class
-#
-# For a single-class model:
-#   (5, 5.0) adds 5.0 m³ to reach 5.
-#
-# For a two-class model with class order [L, S]:
-#   (5, [5.0, 1.0]) adds 5.0 m³ L and 1.0 m³ S.
-#
-# Positive values add wood.
-# Negative values remove wood.
-# Reach IDs and timesteps are 0-based.
-# Use [] when no recruitment or loss occurs.
-#
-# In a multiclass model, scalar values are distributed according
-# to recruitment_mode. Use a vector to specify exact class volumes.
-
-    recruitment_schedule = {
-    # ----- Single-class examples -----
-    # 0: [(5, 5.0)],                  # Reach 5: add 5.0 m³
-    # 1: [],                          # No recruitment or loss
-    # 2: [
-    #     (0, 2.0),                   # Reach 0: add 2.0 m³
-    #     (5, -1.0),                  # Reach 5: remove 1.0 m³
-    # ],
-    # 3: [(9, 3.5)],                  # Reach 9: add 3.5 m³
-
-    # ----- Two-class examples: [L, S] -----
-    # 0: [(5, [5.0, 1.0])],          # Add 5.0 m³ L and 1.0 m³ S
-    # 1: [],                          # No recruitment or loss
-    # 2: [
-    #     (0, [2.0, 0.5]),            # Add 2.0 m³ L and 0.5 m³ S
-    #     (5, [-1.0, -0.2]),          # Remove 1.0 m³ L and 0.2 m³ S
-    # ],
-    # 3: [(9, [0.0, 3.5])],          # Add only 3.5 m³ S
-}
-
-
-# ================================================================
-# EXAMPLE: BARRIER SCHEDULE
-# ================================================================
-# Format:
-# timestep: [(reach_id, retention), ...]
-#
-# retention may be:
-#   scalar             -> same retention for every wood class
-#   [class_0, class_1] -> class-specific retention
-#
-# Retention values:
-#   0.0 = no retention; all mobilized wood transfers
-#   1.0 = complete retention; no mobilized wood transfers
-#   0–1 = partial retention
-#
-# For a two-class model, class order is [L, S].
-# Barriers must be listed at every timestep they remain active.
-# Reach IDs and timesteps are 0-based.
-
-    barrier_schedule = {
-    # ----- Same retention for all classes -----
-    # 0: [(2, 1.0), (8, 0.5)],       # Complete at reach 2; 50% at reach 8
-    # 1: [(2, 1.0), (8, 0.5)],       # Both barriers remain active
-    # 2: [(2, 1.0)],                  # Barrier at reach 8 is removed
-    # 3: [],                          # No active barriers
-
-    # ----- Two-class examples: [L, S] -----
-    # 0: [
-    #     (2, [1.0, 0.25]),           # Retain 100% L and 25% S
-    #     (8, [0.5, 0.0]),            # Retain 50% L and 0% S
-    # ],
-    # 1: [
-    #     (2, [1.0, 0.25]),           # Both barriers remain active
-    #     (8, [0.5, 0.0]),
-    # ],
-    # 2: [(2, [1.0, 0.25])],         # Barrier at reach 8 is removed
-    # 3: [],                          # No active barriers
-}
-
-
-# ================================================================
-# EXAMPLE: EVENT SCHEDULE
-# ================================================================
-# The event schedule selects the "lo" or "hi" b-range at each
-# timestep.
-#
-# A global event label applies to all reaches.
-#
-# In the single-class HiLo function, the label selects one b-range.
-# In the multiclass HiLo function, it selects the corresponding
-# b-range for each wood class.
-#
-# Timesteps are 0-based.
-
-    event_schedule = {
-    # 0: "lo",                        # Low-magnitude event
-    # 1: "lo",                        # Low-magnitude event
-    # 2: "hi",                        # High-magnitude event
-
-}
 
 
     # start waiting bar    
@@ -342,12 +248,74 @@ def DCASCADE_main(ReachData, Network, Qbi_dep_in, timescale, roundpar,
             # tr_cap_per_s, Qc = tr_cap_function(Fi_r_act[t][:,n] , D50_AL[t,n], Slope[t,n] , Q.iloc[t,n], ReachData['Wac'][n], v[n] , h[n], psi, indx_tr_cap, indx_partition)   
             
             ## select wood transfer function ##
-            V_mob, V_dep = Global_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(V_dep_old, Qbi_incoming, ReachData, n,t=t, recruitment_schedule=recruitment_schedule, barrier_schedule=barrier_schedule,default_retention=0.0)
-            # V_mob, V_dep = HiLo_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(V_dep_old, Qbi_incoming, ReachData, n,t=t, recruitment_schedule=recruitment_schedule, barrier_schedule=barrier_schedule, event_schedule=event_schedule, default_retention=0.0)
-            # V_mob, V_dep = WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(V_dep_old, Qbi_incoming, ReachData, n, t=t,recruitment_schedule=recruitment_schedule, barrier_schedule=barrier_schedule, default_retention=0.0)
-            # V_mob, V_dep = HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(V_dep_old=V_dep_old, Qbi_incoming=Qbi_incoming, ReachData=ReachData, n=n, t=t, recruitment_schedule=recruitment_schedule, barrier_schedule=barrier_schedule, default_retention=0.0, event_schedule=event_schedule)
             
-
+            if function_family == "Global":
+            
+                V_mob, V_dep = (
+                    Global_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
+                        V_dep_old,
+                        Qbi_incoming,
+                        ReachData,
+                        n,
+                        t=t,
+                        recruitment_schedule=recruitment_schedule,
+                        barrier_schedule=barrier_schedule,
+                        default_retention=0.0
+                    )
+                )
+            
+            elif function_family == "HiLo":
+            
+                V_mob, V_dep = (
+                    HiLo_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
+                        V_dep_old,
+                        Qbi_incoming,
+                        ReachData,
+                        n,
+                        t=t,
+                        recruitment_schedule=recruitment_schedule,
+                        barrier_schedule=barrier_schedule,
+                        event_schedule=event_schedule,
+                        default_retention=0.0
+                    )
+                )
+            
+            elif function_family == "WoodClass":
+            
+                V_mob, V_dep = (
+                    WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
+                        V_dep_old,
+                        Qbi_incoming,
+                        ReachData,
+                        n,
+                        t=t,
+                        recruitment_schedule=recruitment_schedule,
+                        barrier_schedule=barrier_schedule,
+                        default_retention=0.0
+                    )
+                )
+            
+            elif function_family == "HiLoWoodClass":
+            
+                V_mob, V_dep = (
+                    HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
+                        V_dep_old=V_dep_old,
+                        Qbi_incoming=Qbi_incoming,
+                        ReachData=ReachData,
+                        n=n,
+                        t=t,
+                        recruitment_schedule=recruitment_schedule,
+                        barrier_schedule=barrier_schedule,
+                        event_schedule=event_schedule,
+                        default_retention=0.0
+                    )
+                )
+            
+            else:
+                raise ValueError(
+                    f"Unknown function_family: {function_family!r}. "
+                    "Choose 'Global', 'HiLo', 'WoodClass', or 'HiLoWoodClass'."
+                )
 
             # merge duplicate provenance IDs + remove zero rows
             V_mob = matrix_compact(V_mob)
