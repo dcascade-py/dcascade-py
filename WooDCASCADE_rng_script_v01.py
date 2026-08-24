@@ -58,11 +58,23 @@ for iteration in range(1, n_iterations + 1):
     Network = graph_preprocessing(ReachData)
 
     n_reaches = len(ReachData)
-    deposit = ReachData.deposit ### One class of wood
-    # deposit = np.array([ReachData.deposit_L,ReachData.deposit_S]).T  # Two classes of wood
-    Qbi_dep_in = np.zeros((n_reaches, 1, n_classes))
-    for n in range(len(ReachData)):
-        Qbi_dep_in[n] = deposit[n]
+    
+    # Load the initial wood deposit according to the number of classes.
+    if n_classes == 1:
+        # One-class models: total deposited wood
+        deposit = ReachData[['deposit']].to_numpy(dtype=float)
+    
+    elif n_classes == 2:
+        # Two-class models: class order is [Large, Medium]
+        deposit = ReachData[['deposit_L', 'deposit_M']].to_numpy(dtype=float)
+    
+    else:
+        raise ValueError(
+            f"n_classes must be either 1 or 2; received {n_classes}."
+        )
+    
+    # Required model shape: [reach, deposit layer, wood class]
+    Qbi_dep_in = deposit[:, np.newaxis, :]
 
     # Run the model
     data_output, extended_output = DCASCADE_main(

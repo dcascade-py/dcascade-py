@@ -694,9 +694,9 @@ def DCASCADE_main(ReachData, Network, Qbi_dep_in, timescale, roundpar,
                    'Channel Width [m]': np.repeat(np.array(ReachData['Wac']).reshape(1,-1),len(Qbi_dep), axis = 0),  #Original
                    'Reach Slope' : Slope,   
                    # 'Discharge [m^3/s]': Q[0:timescale,:],                    
-                   'Mobilized [m^3]' : QB_mob_sum,
-                   'Transported [m^3]':  tot_tranported,                   
-                   'Transported + deposited [m^3]':tot_sed,   
+                   'Mobilized from reach during event [m^3]' : QB_mob_sum, #Mobilized
+                   'Transported into reach during event [m^3]':  tot_tranported, #Transported                   
+                   'Transported + deposited: Gross wood available during event [m^3]':tot_sed, #Transported + deposit  
                    # 'D50 deposit layer [m]' :D50_dep, 
                    # 'D50 mobilised layer [m]':D50_mob,
                    # 'D50 active layer [m]' :D50_AL,  

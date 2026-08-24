@@ -141,7 +141,7 @@ def HiLo_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
     p_no_mobilize=0.20,             # Probability that nothing mobilizes (fallback)
 
     # --- Default exponent controls ---
-    b_range=(-0.10, 0.85),          # Default random exponent range [min_b, max_b]
+    b_range=(-0.03, 0.98),          # Default random exponent range [min_b, max_b]
     a_fixed=0.5,                    # Load_mob = a_fixed * Vol_dens**b
     rng=None,                       # Optional numpy Generator
 
@@ -521,7 +521,7 @@ def HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
 
     # --- Default per-class b ranges (used when no event schedule hit) ---
     # order: class 0 = deposit_L, class 1 = deposit_S
-    b_ranges_default=((0.10, 0.90), (-0.05, 0.80)),
+    b_ranges_default=((-0.07, 0.95), (-0.52, 0.23)),
 
     # --- Hi/Lo per-class b ranges (FOUR total) ---
     hi_b_ranges=((0.49, 1.01), (-0.33, 0.33)),   # (hi_L, hi_S)
