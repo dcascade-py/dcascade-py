@@ -332,7 +332,7 @@ def WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
     a_fixed = 0.5,
     b_range = [
         (-0.07, 0.95),   # class 0 (deposit_L)
-        (-0.52, 0.23),  # class 1 (deposit_S)
+        (-0.52, 0.23),  # class 1 (deposit_M)
     ],
 
     rng=None,
@@ -520,12 +520,12 @@ def HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
     a_fixed=0.5,
 
     # --- Default per-class b ranges (used when no event schedule hit) ---
-    # order: class 0 = deposit_L, class 1 = deposit_S
+    # order: class 0 = deposit_L, class 1 = deposit_M
     b_ranges_default=((-0.07, 0.95), (-0.52, 0.23)),
 
     # --- Hi/Lo per-class b ranges (FOUR total) ---
-    hi_b_ranges=((0.49, 1.01), (-0.33, 0.33)),   # (hi_L, hi_S)
-    lo_b_ranges=((-0.15, 0.76), (-0.59, 0.06)), # (lo_L, lo_S)
+    hi_b_ranges=((0.49, 1.01), (-0.33, 0.33)),   # (hi_L, hi_M)
+    lo_b_ranges=((-0.15, 0.76), (-0.59, 0.06)), # (lo_L, lo_M)
 
     rng=None,
 
@@ -543,9 +543,9 @@ def HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
     # --- Event-driven b controls ---
     # Supports:
     #   {12: "hi", 34: "lo"}   (global)
-    #   {12: [(3,"hi"), (7,"lo")], 34: [(5,(bL_range,bS_range))]}
-    # Where (bL_range,bS_range) can be:
-    #   ((bminL,bmaxL),(bminS,bmaxS))  or  [(bminL,bmaxL),(bminS,bmaxS)]
+    #   {12: [(3,"hi"), (7,"lo")], 34: [(5,(bL_range,bM_range))]}
+    # Where (bL_range,bM_range) can be:
+    #   ((bminL,bmaxL),(bminM,bmaxM))  or  [(bminL,bmaxL),(bminM,bmaxM)]
     event_schedule=None,
 ):
     """
@@ -553,7 +553,7 @@ def HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
       1) Reach-specific mobilization gating (mobten_prob / mob_prob logic unchanged)
       2) Hi/Lo (or custom) *per-class* b ranges (4 ranges total for hi/lo)
       3) Both class equations are driven by the *combined* load density:
-           Vol_dens_total = (V_L + V_S) / Area
+           Vol_dens_total = (V_L + V_M) / Area
       4) Recruitment AFTER mobilization (supports scalar or vector events)
       5) Barrier retention AFTER recruitment
     """
@@ -600,7 +600,7 @@ def HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
         Returns one of:
           - None (no event)
           - "hi" / "lo"
-          - custom per-class ranges: [(bminL,bmaxL),(bminS,bmaxS)] for this (t,n)
+          - custom per-class ranges: [(bminL,bmaxL),(bminM,bmaxM)] for this (t,n)
         """
         if event_schedule is None or t is None:
             return None
@@ -614,7 +614,7 @@ def HiLo_WoodClass_fixedAmpPwr_rng_brange_recruit_barriers_uniqueMobProb(
             return evt.lower()
 
         # Could be a custom two-class spec directly (global custom)
-        # e.g., evt = [ (bminL,bmaxL), (bminS,bmaxS) ] or ((...),(....))
+        # e.g., evt = [ (bminL,bmaxL), (bminM,bmaxM) ] or ((...),(....))
         try:
             # if it's 2 items and each looks like a pair, treat as custom per-class
             if len(evt) == 2 and len(evt[0]) == 2 and len(evt[1]) == 2 and np.isscalar(evt[0][0]) is False:
