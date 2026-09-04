@@ -325,7 +325,9 @@ class SedimentarySystem:
         self.flow_depth = self.create_2d_zero_array()
         
         # For Po case:
-        self.Vdep_top_all = self.create_4d_zero_array()
+        self.Vdep_top_all_10 = self.create_4d_zero_array()
+        self.Vdep_top_all_20 = self.create_4d_zero_array()
+        self.Vdep_top_all_30 = self.create_4d_zero_array()
 
 
 

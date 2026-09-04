@@ -225,12 +225,26 @@ class DCASCADE:
                     # SedimSys.update_node_elevation_with_deposit(t, n)
                     SedimSys.update_slope_reach(t, n)
                 
-                # For the sand analysis, I store the top of Vdep at the end of the time step    
+                # For the sand analysis, I store the top of Vdep at the end of the time step (al = 30 cm)
                 AL_volume = SedimSys.al_vol[t, n]
                 nothing, Vdep_top, Vdep_left, _ = SedimSys.layer_search(Vdep_end, AL_volume, roundpar = roundpar)
                 Vdep_top_c = SedimSys.matrix_compact(Vdep_top)
                 
-                SedimSys.Vdep_top_all[t][[SedimSys.provenance(Vdep_top_c).astype(int)], n, :] += SedimSys.sediments(Vdep_top_c)
+                SedimSys.Vdep_top_all_30[t][[SedimSys.provenance(Vdep_top_c).astype(int)], n, :] += SedimSys.sediments(Vdep_top_c)
+                
+                # For the sand analysis, I store the top of Vdep at the end of the time step   (10cm)  
+                AL_volume = SedimSys.al_vol[t, n] / 3
+                nothing, Vdep_top, Vdep_left, _ = SedimSys.layer_search(Vdep_end, AL_volume, roundpar = roundpar)
+                Vdep_top_c = SedimSys.matrix_compact(Vdep_top)
+                
+                SedimSys.Vdep_top_all_10[t][[SedimSys.provenance(Vdep_top_c).astype(int)], n, :] += SedimSys.sediments(Vdep_top_c)
+                
+                # For the sand analysis, I store the top of Vdep at the end of the time step   (20cm)  
+                AL_volume = SedimSys.al_vol[t, n] / 1.5
+                nothing, Vdep_top, Vdep_left, _ = SedimSys.layer_search(Vdep_end, AL_volume, roundpar = roundpar)
+                Vdep_top_c = SedimSys.matrix_compact(Vdep_top)
+                
+                SedimSys.Vdep_top_all_20[t][[SedimSys.provenance(Vdep_top_c).astype(int)], n, :] += SedimSys.sediments(Vdep_top_c)
 
             """End of the reach loop"""
 
@@ -307,6 +321,21 @@ class DCASCADE:
 
         # Total transport capacity, summed over sediment classes (axe 2):
         transport_capacity = np.sum(SedimSys.tr_cap, axis = 2)
+        
+        
+        # to have info per grain size
+        # Sum quantities by provenance
+        mobilised_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
+        transported_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
+        deposited_per_class = np.zeros((self.timescale, self.n_reaches, self.n_classes))
+
+
+        for t in range(self.timescale - 1):
+            # Sum over provenances (axe 0)
+            mobilised_per_class[t,:,:] = np.sum(SedimSys.Qbi_mob[t], axis = (0))
+            transported_per_class[t,:,:] = np.sum(SedimSys.Qbi_tr[t], axis = (0))
+            deposited_per_class[t,:,:] = np.sum(SedimSys.direct_connectivity[t][:, :-1, :], axis = (0)) # - 1 to exclude outlet
+        
 
         data_output = {'Simulation parameters': simulation_param,
                        'Volume out [m^3]': mobilised.astype(np.float32),
@@ -320,12 +349,20 @@ class DCASCADE:
                        'Direct connectivity [m^3]': direct_connectivity.astype(np.float32),
                        'Transport capacity [m^3]': transport_capacity.astype(np.float32),
                        
-                       'Slopes': SedimSys.slope.astype(np.float32)
+                       'Slopes': SedimSys.slope.astype(np.float32),
                        
-                        # # For Po
-                        # 'Vdep top [m^3]': SedimSys.Vdep_top_all,
-                        # # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
-                        # # 'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32)
+                        # For Po
+                        'Vdep top 10 [m^3]': SedimSys.Vdep_top_all_10,
+                        'Vdep top 20 [m^3]': SedimSys.Vdep_top_all_20,
+                        'Vdep top 30 [m^3]': SedimSys.Vdep_top_all_30,
+                        # 'Qbi_tr [m^3]': SedimSys.Qbi_tr,
+                        'Sediment budget per class [m^3]': SedimSys.sediment_budget.astype(np.float32),
+                        
+                        'Qbi_mob [m^3]': SedimSys.Qbi_mob,
+                        
+                        # 'Volume out per grain sizes [m^3]': mobilised_per_class,
+                        # 'Volume in per grain sizes [m^3]': transported_per_class,
+                        # 'Deposited per grain sizes [m^3]': deposited_per_class,
                                                   
                         # # Active layer info
                         # 'Fraction taken from AL': SedimSys.fr_mob_in_al,   
