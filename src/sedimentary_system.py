@@ -674,24 +674,28 @@ class SedimentarySystem:
 
         [ tr_cap_per_s, pci ] = calculator.tr_cap_function(indx_tr_cap, indx_tr_partition)
 
-
-        Svel = self.vl_height[t, n] * self.width[t, n] * (1 - self.phi)  # the global section where all sediments pass through
-        if Svel == 0 or np.isnan(Svel) == True:
-            raise ValueError("The section to compute velocities can not be 0 or NaN.")
-
-        if indx_vel_partition == 1:
-            velocity_same = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
-            velocity_same = np.maximum(velocity_same, self.minvel)    # apply the min vel threshold
-            velocities = np.full(len(tr_cap_per_s), velocity_same) # put the same value for all classes
-
-        elif indx_vel_partition == 2:
-            # Get the number of classes that are non 0 in the transport capacity flux:
-            number_with_flux = np.count_nonzero(tr_cap_per_s)
-            if number_with_flux != 0:
-                Si = Svel / number_with_flux             # same section for all sediments
-                velocities = np.maximum(tr_cap_per_s/Si, self.minvel)
-            else:
-                velocities = np.zeros(len(tr_cap_per_s)) # if transport capacity is all 0, velocity is all 0
+        if self.width[t, n] == 0 or np.isnan(self.width[t, n]) == True: # Special case when the width could be 0 or Nan (eg using changing width)
+            velocities = np.zeros(len(tr_cap_per_s))
+            
+        else:
+            Svel = self.vl_height[t, n] * self.width[t, n] * (1 - self.phi)  # the global section where all sediments pass through
+            if Svel == 0 or np.isnan(Svel) == True:
+                raise ValueError("The section to compute velocities can not be 0 or NaN.")
+    
+            if indx_vel_partition == 1:
+                velocity_same = np.sum(tr_cap_per_s) / Svel     # same velocity for each class
+                velocity_same = np.maximum(velocity_same, self.minvel)    # apply the min vel threshold
+                velocities = np.full(len(tr_cap_per_s), velocity_same) # put the same value for all classes
+    
+            elif indx_vel_partition == 2:
+                # Get the number of classes that are non 0 in the transport capacity flux:
+                number_with_flux = np.count_nonzero(tr_cap_per_s)
+                if number_with_flux != 0:
+                    Si = Svel / number_with_flux             # same section for all sediments
+                    velocities = np.maximum(tr_cap_per_s/Si, self.minvel)
+                else:
+                    velocities = np.zeros(len(tr_cap_per_s)) # if transport capacity is all 0, velocity is all 0
+                    
         return velocities
 
 
