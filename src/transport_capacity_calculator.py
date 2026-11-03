@@ -24,7 +24,8 @@ class TransportCapacityCalculator:
             5: self.Wong_Parker_formula,
             6: self.Ackers_White_formula,
             7: self.Rickenmann_formula,
-            8: self.Wilcock_Crowe_Mueller_formula
+            8: self.Wilcock_Crowe_Mueller_formula,
+            9: self.Deiv
         }
         self.fi_r_reach = fi_r_reach
         self.total_D50 = total_D50              # total D50 in meters
