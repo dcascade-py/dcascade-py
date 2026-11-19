@@ -48,10 +48,11 @@ class TransportCapacityCalculator:
         and the relative Grain Size Distrubution (pci) for each sediment class in the reach.
         """
 
+
         # Verify compatibility between transport formula and partitionning:
-        if indx_tr_cap == 2 and indx_partition != 4:
+        if (indx_tr_cap == 2 or indx_tr_cap == 8) and indx_partition != 4:
             raise Exception("W&C formula can only be used with the 'shear stress correction' partitioning")
-        if indx_tr_cap != 2 and indx_partition == 4:
+        if (indx_tr_cap != 2 and indx_tr_cap != 8) and indx_partition == 4:
             raise Exception("the 'shear stress correction' partitioning can only be used for W&C")
 
 
