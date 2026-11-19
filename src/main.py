@@ -30,7 +30,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
                   indx_slope_red = 1,
                   indx_width_calc = 1,
                   update_slope = False,
-                  roundpar = 0,
+                  roundpar = 1,
 
                   external_inputs = None,
                   force_pass_external_inputs = False,

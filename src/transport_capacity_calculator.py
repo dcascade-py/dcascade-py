@@ -23,7 +23,8 @@ class TransportCapacityCalculator:
             4: self.Yang_formula,
             5: self.Wong_Parker_formula,
             6: self.Ackers_White_formula,
-            7: self.Rickenmann_formula
+            7: self.Rickenmann_formula,
+            8: self.Wilcock_Crowe_Mueller_formula
         }
         self.fi_r_reach = fi_r_reach
         self.total_D50 = total_D50              # total D50 in meters
@@ -157,6 +158,55 @@ class TransportCapacityCalculator:
             tau = tau[None,:] # add a dimension for computation
 
         # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
+        tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
+
+        b = 0.67 / (1 + np.exp(1.5 - self.class_D50 / self.D50)) # hiding factor
+
+        fact = (self.class_D50 / self.D50)**b
+
+        tau_ri = tau_r50 * fact # reference shear stress for each sediment class [Kg m-1 s-1]
+
+        phi_ri = tau / tau_ri
+
+        # Dimensionless transport rate for each sediment class [-]
+        # The formula changes for each class according to the phi_ri of the class
+        # is higher or lower then 1.35.
+        W_i = (phi_ri >= 1.35) * (14 * (np.maximum(1 - 0.894 / np.sqrt(phi_ri), 0))**4.5) + (phi_ri < 1.35) * (0.002 * phi_ri**7.5)
+
+        # Dimensionful transport rate for each sediment class [m3/s]
+        if self.wac.ndim == 0:
+            tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+            if tr_cap.ndim > 1:
+               tr_cap = np.squeeze(tr_cap) # EB: a bit of a mess here with dimensions, corrected a posteriori. I want a 1-d vector as output
+        else:
+            self.wac = np.array(self.wac)[None, :]
+            tr_cap = self.wac * W_i * self.fi_r_reach * (tau / RHO_W)**(3/2) / (R_VAR * GRAV)
+
+        tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
+
+        return {"tr_cap": tr_cap}
+    
+    
+    
+    def Wilcock_Crowe_Mueller_formula(self):
+        """
+        Returns the value of the transport capacity [m3/s] for each sediment class
+        in the reach measured using the Wilcock and Crowe equations.
+        This function is for use in the D-CASCADE toolbox.
+
+        References:
+        Wilcock, Crowe(2003). Surface-based transport model for mixed-size sediment. Journal of Hydraulic Engineering.
+        """
+
+        # Fraction of sand in river bed (sand considered as sediment with phi > -1)
+        Fr_s = np.sum((self.psi > - 1) * self.fi_r_reach)
+        ## Transport capacity from Wilcock-Crowe equations
+
+        tau = np.array(RHO_W * GRAV * self.h * self.slope) # bed shear stress [Kg m-1 s-1]
+        if tau.ndim != 0:
+            tau = tau[None,:] # add a dimension for computation
+
+        # reference shear stress for the mean size of the bed surface sediment [Kg m-1 s-1]
         # tau_r50 = (0.021 + 0.015 * np.exp(-20 * Fr_s)) * (RHO_W * R_VAR * GRAV * self.D50)
 
         # tau_r50 after Mueller et al (2005) as presented in eqn 5 in Bizzi et al (2021)
@@ -186,7 +236,7 @@ class TransportCapacityCalculator:
 
         tr_cap[np.isnan(tr_cap)] = 0 #if Qbi_tr are NaN, they are put to 0
 
-        return {"tr_cap": tr_cap}
+        return {"tr_cap": tr_cap} 
 
     def Engelund_Hansen_formula(self):
         """
