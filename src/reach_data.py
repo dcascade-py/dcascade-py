@@ -31,8 +31,8 @@ class ReachData:
         self.D50 = geodataframe['D50'].astype(float).values
         self.D84 = geodataframe['D84'].astype(float).values
         self.length = geodataframe['Length'].astype(float).values
-        self.el_fn = geodataframe['el_FN'].astype(float).values
-        self.el_tn = geodataframe['el_TN'].astype(float).values
+        # self.el_fn = geodataframe['el_FN'].astype(float).values
+        # self.el_tn = geodataframe['el_TN'].astype(float).values
 
         self.roughness = self.compute_roughness()
 
@@ -53,6 +53,8 @@ class ReachData:
         self.strO = geodataframe['StrO'].values if 'StrO' in geodataframe.columns else None
         self.deposit = geodataframe['deposit'].values if 'deposit' in geodataframe.columns else None
         self.geometry = geodataframe['geometry'].values if 'geometry' in geodataframe.columns else None
+        self.el_fn = geodataframe['el_FN'].astype(float).values if 'el_fn' in geodataframe.columns else None
+        self.el_tn = geodataframe['el_TN'].astype(float).values if 'el_tn' in geodataframe.columns else None
 
 
 

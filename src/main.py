@@ -89,7 +89,7 @@ def DCASCADE_main(reach_data, network, Q, psi, timescale, ts_length, al_depth,
 
     sedimentary_system.initialize_slopes(update_slope, indx_slope_red)
     sedimentary_system.initialize_widths(indx_width_calc)
-    sedimentary_system.initialize_elevations(update_slope)
+    # sedimentary_system.initialize_elevations(update_slope)
     sedimentary_system.initialize_storing_matrices()
     sedimentary_system.set_sediment_initial_deposit(Qbi_dep_in)
     sedimentary_system.set_external_input(external_inputs, force_pass_external_inputs, roundpar)

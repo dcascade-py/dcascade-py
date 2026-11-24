@@ -29,11 +29,11 @@ from matplotlib import pyplot as plt
 
 #---------------------Path to the pickle output
 path = "..\\cascade_results\\"
-name_simu = 'Vjosa_test'
+name_simu = 'Piave'
 
 #---------------------Path to the input river network (.shp) or (.csv)
-path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
-name_river_network = "River_Network.shp"
+path_river_network = "..\\..\\11-Piave_case\\inputs\\01-initial\\shp_network\\" #Path to the shp
+name_river_network = "DCASCADE_Piave_tratti.shp"
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_all_reaches_sum\\'          # where you will store the figure
@@ -42,11 +42,11 @@ if not os.path.exists(figure_folder):
     os.makedirs(figure_folder)
 
 #--------------------Output name you want to plot
-output_name = 'Volume out [m^3]'   # Output available in pickle file
+output_name = 'Sediment budget [m^3]'  # Output available in pickle file
 #'D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]'
 
 #--------------------First year simulated (for legend)
-year_0 = 2019
+year_0 = 2010
 
 
 
@@ -71,6 +71,14 @@ def rename_names(output_name):
     new_name = new_name[:-1]
     return new_name
 
+
+# Load network for reference 
+ReachData = gpd.GeoDataFrame.from_file(path_river_network + name_river_network) #read shapefine from shp format
+ReachData = ReachData.sort_values(by = 'FromN', ignore_index = True)
+# ReachData_Piave = ReachData[ReachData['River'] == 'Po'] # select Po
+Piave_idx = ReachData['FromN'].values
+Piave_idx = Piave_idx.astype(int)
+Piave_names=ReachData['Reach'].str[:4]
 
 
 ##### Plot average or median, x axis is the reach index
@@ -142,13 +150,16 @@ if output_name == 'Delta z [m]' or output_name == 'Sediment budget [m^3]':
     ax.hlines(0, xmin=3, xmax=42, linestyle='--', color='gray')
 
 
-ax.legend(fontsize = 12)#, bbox_to_anchor=(1, 1))
+ax.legend(fontsize = 12, bbox_to_anchor=(1, 1))
 
-ax.set_xlabel('Reach index (FromN)', fontsize = 18)
+ax.set_xlabel('Reach index', fontsize = 18)
 ax.set_ylabel(output_name, fontsize = 16)
 ax.tick_params(axis='y', which='major', labelsize=15)
 ax.tick_params(axis='x', which='major', labelsize=12)
 
+# Update the x-tick labels with the Piave names
+ax.set_xticks(Piave_idx)
+ax.set_xticklabels(Piave_names, fontsize=15, rotation = 45) 
 
 
 fig.set_tight_layout(True)
@@ -178,10 +189,14 @@ for t in range(n_time):
 
 ax.legend(fontsize = 12)#, bbox_to_anchor=(1, 1))
 
-ax.set_xlabel('Reach index (FromN)', fontsize = 18)
+ax.set_xlabel('Reach index', fontsize = 18)
 ax.set_ylabel(output_name, fontsize = 16)
 ax.tick_params(axis='y', which='major', labelsize=15)
 ax.tick_params(axis='x', which='major', labelsize=12)
+
+# Update the x-tick labels with the Piave names
+ax.set_xticks(Piave_idx)
+ax.set_xticklabels(Piave_names, fontsize=15, rotation = 45) 
 
 fig.set_tight_layout(True)
 fig.set_size_inches(2000./fig.dpi, 700./fig.dpi)

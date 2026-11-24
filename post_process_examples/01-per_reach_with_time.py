@@ -27,11 +27,11 @@ from matplotlib import pyplot as plt
 
 #---------------------Path to the pickle output
 path = "..\\cascade_results\\"
-name_simu = 'Vjosa_test'
+name_simu = 'Piave'
 
 #---------------------Path to the input river network (.shp) or (.csv)
-path_river_network = "..\\inputs\\input_trial\\" #Path to the shp
-name_river_network = "River_Network.shp"
+path_river_network = "..\\..\\11-Piave_case\\inputs\\01-initial\\shp_network\\" #Path to the shp
+name_river_network = "DCASCADE_Piave_tratti.shp"
 
 #---------------------Folder to store the plots
 figure_folder = path+'figures_per_reach\\' # where you will store the figure
@@ -40,7 +40,7 @@ if not os.path.exists(figure_folder):
     os.makedirs(figure_folder)
 
 #--------------------Output name you want to plot
-output_name = 'Volume out [m^3]'   # Output available in pickle file
+output_name = 'Fraction taken from AL'   # Output available in pickle file
 #'D50 active layer [m]', 'D50 volume out [m]', 'Sediment budget [m^3]', 'Transport capacity [m^3]', 'Volume in [m^3]', 'Volume out [m^3]'
 
 
@@ -81,10 +81,10 @@ for i in range(my_data.shape[1]):
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    ax.plot(np.arange(1, len(my_data[:, i]) + 1, 1), my_data[:, i], linewidth = 2)
+    ax.plot(np.arange(1, len(my_data[:, i]) + 1, 1), my_data[:, i], linewidth = 1)
 
     if output_name == 'D50 active layer [m]':
-        D50_real = ReachData.loc[ReachData['FromN'] == i+1, 'D50'].unique()[0]
+        D50_real = ReachData.loc[ReachData['FromN'] == i+1, 'D50'].unique()[0]/1000
         ax.plot(0, D50_real, '*', label = 'D50meas', markersize = 10)
 
     ax.set_title('FromN: '+str(reach_FromN), fontsize = 16)
